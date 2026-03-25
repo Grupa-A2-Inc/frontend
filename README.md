@@ -1,17 +1,14 @@
 # IP2026 Frontend
 
-Frontend application for the IP2026 project, built with Next.js.
+Next.js frontend application for the IP2026 project.
 
-## Purpose
+## Overview
 
-This repository contains the actual frontend codebase used by the frontend team.
-Project documentation, planning materials, diagrams, backlog notes, and design references are maintained separately in the documentation repository.
+This repository contains the implementation of the frontend application.
 
-## Related Documentation
+Project documentation such as system design, page-by-page planning, diagrams, backlog material, and design inspiration is maintained in the separate documentation repository:
 
-The full frontend documentation is maintained here:
-
-- **System design / docs repo:** `IP2026-frontend-system-design-docs`
+[IP2026 Frontend System Design Docs](https://github.com/TilicaMihail/IP2026-frontend-system-design-docs)
 
 Main references from the docs repository include:
 
