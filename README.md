@@ -22,4 +22,4 @@ Main references from the docs repository include:
 - Next.js
 - Tailwind
 - TypeScript
-- Redux Toolkit
+- Redux 
