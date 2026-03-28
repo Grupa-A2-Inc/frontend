@@ -104,7 +104,6 @@ export default function CoreFeatures() {
         </div>
       </div>
 
-      {/* Bottom wave */}
       <div className="absolute bottom-0 left-0 right-0">
         <svg viewBox="0 0 1440 60" fill="none" className="block">
           <path d="M0 20 Q360 60 720 20 Q1080 -20 1440 20 L1440 60 L0 60 Z"
