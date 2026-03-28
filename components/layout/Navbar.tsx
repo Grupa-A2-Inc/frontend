@@ -8,8 +8,8 @@ export default function Navbar() {
         style={{ paddingLeft: "100px", paddingRight: "100px" }}
       >
         <h1 className="text-[28px] font-extrabold tracking-tight">
-          <span className="text-[#5B6AD0]">Byte</span>
-          <span className="text-[#58A06C]">Lab</span>
+          <span className="text-[#4c57a9]">Testify</span>
+          <span className="text-[#a57ef1]">AI</span>
         </h1>
 
         <div className="flex items-center gap-6">
