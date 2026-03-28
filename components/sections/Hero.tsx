@@ -1,552 +1,277 @@
 "use client";
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 
-/* ── Matrix rain canvas ── */
-function MatrixAura() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
+function useScrollY() {
+  const [y, setY] = useState(0);
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
-    const resize = () => {
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    const chars = "0123456789";
-    const fontSize = 13;
-    let cols = Math.floor(canvas.width / fontSize);
-    const drops: number[] = Array(cols).fill(1).map(() => Math.random() * -50);
-
-    const draw = () => {
-      cols = Math.floor(canvas.width / fontSize);
-      if (drops.length < cols) {
-        for (let i = drops.length; i < cols; i++) drops.push(Math.random() * -50);
-      }
-
-      ctx.fillStyle = "rgba(13, 27, 62, 0.18)";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      for (let i = 0; i < cols; i++) {
-        const char = chars[Math.floor(Math.random() * chars.length)];
-        const y = drops[i] * fontSize;
-
-        ctx.fillStyle = `rgba(91, 106, 208, ${Math.random() * 0.4 + 0.6})`;
-        ctx.font = `${fontSize}px 'Fira Code', monospace`;
-        ctx.fillText(char, i * fontSize, y);
-
-        if (Math.random() > 0.97) {
-          ctx.fillStyle = `rgba(88, 160, 108, 0.9)`;
-          ctx.fillText(char, i * fontSize, y);
-        }
-
-        if (y > canvas.height && Math.random() > 0.975) {
-          drops[i] = 0;
-        }
-        drops[i] += 0.4;
-      }
-    };
-
-    const interval = setInterval(draw, 40);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener("resize", resize);
-    };
+    const handler = () => setY(window.scrollY);
+    window.addEventListener("scroll", handler, { passive: true });
+    return () => window.removeEventListener("scroll", handler);
   }, []);
+  return y;
+}
 
-  const outerBoundary =
-    "radial-gradient(ellipse 80% 75% at 50% 44%, " +
-    "black 52%, " +
-    "rgba(0,0,0,0.5) 70%, " +
-    "transparent 88%)";
-
-  const innerHole =
-    "radial-gradient(ellipse 46% 40% at 50% 43%, " +
-    "transparent 78%, " +
-    "black 90%)";
-
+function DoodleScene() {
   return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        position: "absolute",
-        inset: 0,
-        width: "100%",
-        height: "100%",
-        pointerEvents: "none",
-        WebkitMaskImage: `${outerBoundary}, ${innerHole}`,
-        maskImage: `${outerBoundary}, ${innerHole}`,
-        WebkitMaskComposite: "destination-in",
-        maskComposite: "intersect",
-      }}
-    />
+    <svg
+      viewBox="0 0 480 480"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-full max-w-[420px] lg:max-w-[480px]"
+      aria-hidden="true"
+    >
+      <defs>
+        <filter id="hero-rough" x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" seed="5" result="noise"/>
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="1.8" xChannelSelector="R" yChannelSelector="G"/>
+        </filter>
+      </defs>
+
+      <ellipse cx="240" cy="255" rx="200" ry="190" fill="#e5dfc9" opacity="0.7"/>
+
+      <g filter="url(#hero-rough)">
+        <path
+          d="M240 100 C210 100 188 122 188 152 C188 172 200 188 208 200 L208 218 L272 218 L272 200 C280 188 292 172 292 152 C292 122 270 100 240 100 Z"
+          fill="#f5f1e6" stroke="#8f6038" strokeWidth="3" strokeLinejoin="round"
+        />
+        <path d="M208 218 L272 218" stroke="#8f6038" strokeWidth="2.5" strokeLinecap="round"/>
+        <path d="M212 226 L268 226" stroke="#8f6038" strokeWidth="2" strokeLinecap="round"/>
+        <path d="M218 233 L262 233" stroke="#8f6038" strokeWidth="1.5" strokeLinecap="round"/>
+      </g>
+      <text x="240" y="168" textAnchor="middle" fontSize="32" fontWeight="800"
+        fill="#8f6038" fontFamily="Caveat, cursive" opacity="0.9">AI</text>
+      <ellipse cx="220" cy="130" rx="10" ry="15" fill="white" opacity="0.35" transform="rotate(-20,220,130)"/>
+
+      {[0, 45, 90, 135, 180, 225, 270, 315].map((angle, i) => {
+        const rad = (angle * Math.PI) / 180;
+        const x1 = 240 + 100 * Math.cos(rad), y1 = 152 + 100 * Math.sin(rad);
+        const x2 = 240 + 115 * Math.cos(rad), y2 = 152 + 115 * Math.sin(rad);
+        return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}
+          stroke="#c4845a" strokeWidth="2.5" strokeLinecap="round" opacity="0.7"/>;
+      })}
+
+      <g filter="url(#hero-rough)">
+        <ellipse cx="240" cy="378" rx="110" ry="12" fill="#c8b898" opacity="0.5"/>
+        <path d="M130 290 C130 278 155 270 240 268 L240 370 C155 370 130 362 130 350 Z"
+          fill="#f5f1e6" stroke="#8f6038" strokeWidth="2.5" strokeLinejoin="round"/>
+        <path d="M350 290 C350 278 325 270 240 268 L240 370 C325 370 350 362 350 350 Z"
+          fill="#f5f1e6" stroke="#8f6038" strokeWidth="2.5" strokeLinejoin="round"/>
+        <line x1="240" y1="268" x2="240" y2="370" stroke="#8f6038" strokeWidth="3"/>
+        {[0, 1, 2, 3].map(i => (
+          <line key={i} x1={148} y1={300 + i * 16} x2={228} y2={300 + i * 16}
+            stroke="#c8b898" strokeWidth="2.5" strokeLinecap="round"/>
+        ))}
+        <line x1="148" y1="364" x2="195" y2="364" stroke="#c8b898" strokeWidth="2.5" strokeLinecap="round"/>
+        {[0, 1, 2, 3].map(i => (
+          <line key={i} x1={252} y1={300 + i * 16} x2={332} y2={300 + i * 16}
+            stroke="#c8b898" strokeWidth="2.5" strokeLinecap="round"/>
+        ))}
+        <line x1="252" y1="364" x2="300" y2="364" stroke="#c8b898" strokeWidth="2.5" strokeLinecap="round"/>
+      </g>
+
+      <g transform="rotate(-35 370 340)" filter="url(#hero-rough)">
+        <rect x="355" y="290" width="18" height="80" rx="3" fill="#d9a07a" stroke="#8f6038" strokeWidth="2"/>
+        <polygon points="355,370 373,370 364,393" fill="#f5f1e6" stroke="#8f6038" strokeWidth="2"/>
+        <circle cx="364" cy="391" r="2.5" fill="#211d18"/>
+        <rect x="355" y="286" width="18" height="6" rx="2" fill="#c4845a" stroke="#8f6038" strokeWidth="1.5"/>
+        <rect x="357" y="278" width="14" height="10" rx="2" fill="#e8c0b0" stroke="#8f6038" strokeWidth="1.5"/>
+        <line x1="364" y1="290" x2="364" y2="370" stroke="#8f6038" strokeWidth="1" opacity="0.35"/>
+      </g>
+
+      {[
+        { cx: 90, cy: 160, r: 7, op: 0.75 },
+        { cx: 395, cy: 130, r: 5, op: 0.65 },
+        { cx: 60, cy: 310, r: 5, op: 0.55 },
+        { cx: 420, cy: 260, r: 4, op: 0.50 },
+        { cx: 340, cy: 420, r: 6, op: 0.60 },
+      ].map(({ cx, cy, r, op }, i) => (
+        <g key={i} opacity={op}>
+          <path
+            d={`M${cx} ${cy - r} L${cx + r * .35} ${cy - r * .35} L${cx + r} ${cy} L${cx + r * .35} ${cy + r * .35} L${cx} ${cy + r} L${cx - r * .35} ${cy + r * .35} L${cx - r} ${cy} L${cx - r * .35} ${cy - r * .35} Z`}
+            fill="#c4845a" stroke="#8f6038" strokeWidth="1"
+          />
+        </g>
+      ))}
+
+      <circle cx="78" cy="225" r="10" fill="none" stroke="#8f6038" strokeWidth="2" opacity="0.45"/>
+      <circle cx="410" cy="320" r="14" fill="none" stroke="#c4845a" strokeWidth="2" opacity="0.4"/>
+      <circle cx="100" cy="380" r="7" fill="#d9a07a" opacity="0.5"/>
+      <circle cx="380" cy="200" r="8" fill="#a87a50" opacity="0.35"/>
+
+      <path d="M60 130 Q68 120 76 130 Q84 140 92 130 Q100 120 108 130"
+        stroke="#8f6038" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.5"/>
+      <path d="M370 370 Q378 360 386 370 Q394 380 402 370 Q410 360 418 370"
+        stroke="#c4845a" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.45"/>
+
+      {[[130, 105], [310, 88], [430, 160], [50, 270], [155, 415], [390, 430]].map(([cx, cy], i) => (
+        <circle key={i} cx={cx} cy={cy} r="3.5" fill="#a87a50" opacity="0.45"/>
+      ))}
+    </svg>
   );
 }
 
-/* ── AI Test Question Window ── */
-function AITestWindow({
-  windowOpen,
-  clicking,
-  redBtnRef,
-}: {
-  windowOpen: boolean;
-  clicking: boolean;
-  redBtnRef: React.RefObject<HTMLDivElement | null>;
-}) {
-  const [selected, setSelected] = useState<number | null>(null);
-  const [confirmed, setConfirmed] = useState(false);
-  const [animStep, setAnimStep] = useState(0);
-
-  useEffect(() => {
-    if (!windowOpen) return;
-    setSelected(null);
-    setConfirmed(false);
-    setAnimStep(0);
-    const timers = [1, 2, 3, 4].map((step) =>
-      setTimeout(() => setAnimStep(step), step * 280)
-    );
-    const t5 = setTimeout(() => setSelected(1), 1700);
-    const t6 = setTimeout(() => setConfirmed(true), 2400);
-    return () => { timers.forEach(clearTimeout); clearTimeout(t5); clearTimeout(t6); };
-  }, [windowOpen]);
-
-  const options = [
-    "Metabolismul celular",
-    "Codul genetic al organismului",
-    "Sinteza proteinelor",
-    "Structura membranei",
-  ];
-
+function ParallaxDoodles({ scrollY }: { scrollY: number }) {
   return (
-    <div
-      style={{
-        position: "absolute",
-        inset: "5% 5%",
-        background: "#1a2235",
-        borderRadius: "12px",
-        border: "1.5px solid #2d3a58",
-        boxShadow: "0 8px 40px rgba(0,0,0,0.5)",
-        overflow: "hidden",
-        opacity: windowOpen ? 1 : 0,
-        transform: windowOpen ? "scale(1)" : "scale(0.93)",
-        transition: "opacity 0.35s ease, transform 0.35s ease",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* Title bar */}
-      <div style={{
-        height: "36px",
-        flexShrink: 0,
-        background: "#212d44",
-        display: "flex",
-        alignItems: "center",
-        paddingLeft: "14px",
-        gap: "9px",
-        borderBottom: "1px solid #2d3a58",
-      }}>
-        <div
-          ref={redBtnRef}
-          style={{
-            width: "13px", height: "13px", borderRadius: "50%",
-            background: "#e05050",
-            boxShadow: clicking ? "0 0 10px 4px rgba(224,80,80,0.8)" : "none",
-            transition: "box-shadow 0.12s",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            fontSize: "9px", color: "rgba(0,0,0,0.45)", fontWeight: "bold", flexShrink: 0,
-          }}
-        >×</div>
-        <div style={{ width: "13px", height: "13px", borderRadius: "50%", background: "#e0a030", flexShrink: 0 }} />
-        <div style={{ width: "13px", height: "13px", borderRadius: "50%", background: "#40a860", flexShrink: 0 }} />
-        <div style={{
-          marginLeft: "auto",
-          marginRight: "14px",
-          display: "flex",
-          alignItems: "center",
-          gap: "5px",
-          background: "rgba(0,151,178,0.12)",
-          border: "1px solid rgba(0,151,178,0.3)",
-          borderRadius: "100px",
-          padding: "3px 10px",
-        }}>
-          <span style={{ width: "6px", height: "6px", borderRadius: "50%", background: "#0097b2", boxShadow: "0 0 6px #0097b2", display: "inline-block" }} />
-          <span style={{ fontFamily: "'Fira Code', monospace", fontSize: "10px", color: "#0097b2", fontWeight: 600 }}>AI generated</span>
-        </div>
-      </div>
-
-      {/* Content */}
-      <div style={{
-        flex: 1,
-        padding: "clamp(12px,2.5%,22px) clamp(14px,3%,28px)",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "center",
-        gap: "clamp(8px,1.5%,14px)",
-      }}>
-        {/* Progress bar */}
-        <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "2px" }}>
-          <div style={{ flex: 1, height: "3px", background: "#2a3560", borderRadius: "4px" }}>
-            <div style={{ width: "30%", height: "100%", background: "linear-gradient(90deg, #5B6AD0, #0097b2)", borderRadius: "4px" }} />
-          </div>
-          <span style={{ fontFamily: "'Fira Code', monospace", fontSize: "10px", color: "#5a6490" }}>3 / 10</span>
-        </div>
-
-        {/* Question */}
-        <p style={{
-          fontFamily: "'Nunito', sans-serif",
-          fontSize: "clamp(11px, 1.6vw, 17px)",
-          fontWeight: 700,
-          color: "#d4d8f0",
-          margin: 0,
-          lineHeight: 1.45,
-        }}>
-          Ce reprezintă secvența de baze azotate în ADN?
-        </p>
-
-        {/* Options */}
-        <div style={{ display: "flex", flexDirection: "column", gap: "clamp(5px,1%,9px)" }}>
-          {options.map((opt, i) => {
-            const isSelected = selected === i;
-            const isCorrect = i === 1;
-            const showResult = confirmed;
-            const borderColor = showResult && isCorrect
-              ? "#40a860"
-              : showResult && isSelected && !isCorrect
-              ? "#e05050"
-              : isSelected
-              ? "#5B6AD0"
-              : "#2a3560";
-            const bg = showResult && isCorrect
-              ? "rgba(64,168,96,0.12)"
-              : showResult && isSelected && !isCorrect
-              ? "rgba(224,80,80,0.1)"
-              : isSelected
-              ? "rgba(91,106,208,0.12)"
-              : "rgba(255,255,255,0.02)";
-
-            return (
-              <div
-                key={i}
-                onClick={() => !confirmed && setSelected(i)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  padding: "clamp(7px,1.2%,11px) clamp(10px,1.5%,14px)",
-                  borderRadius: "8px",
-                  border: `1px solid ${borderColor}`,
-                  background: bg,
-                  cursor: confirmed ? "default" : "pointer",
-                  transition: "all 0.3s ease",
-                  opacity: animStep > i ? 1 : 0,
-                  transform: animStep > i ? "translateX(0)" : "translateX(-8px)",
-                }}
-              >
-                <span style={{
-                  width: "clamp(18px,2vw,24px)",
-                  height: "clamp(18px,2vw,24px)",
-                  borderRadius: "6px",
-                  border: `1px solid ${borderColor}`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontFamily: "'Fira Code', monospace",
-                  fontSize: "clamp(9px,1vw,12px)",
-                  color: isSelected || (showResult && isCorrect) ? "#e8ecf8" : "#5a6490",
-                  fontWeight: 700,
-                  flexShrink: 0,
-                  background: isSelected ? "rgba(91,106,208,0.2)" : "transparent",
-                }}>
-                  {String.fromCharCode(65 + i)}
-                </span>
-                <span style={{
-                  fontFamily: "'Nunito', sans-serif",
-                  fontSize: "clamp(10px,1.3vw,14px)",
-                  color: isSelected || (showResult && isCorrect) ? "#d4d8f0" : "#8892b0",
-                  fontWeight: isSelected ? 700 : 500,
-                  transition: "color 0.3s",
-                }}>
-                  {opt}
-                </span>
-                {showResult && isCorrect && (
-                  <span style={{ marginLeft: "auto", color: "#40a860", fontSize: "14px" }}>✓</span>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div
+        className="absolute -left-[8%] top-[10%] w-[460px] h-[460px] rounded-full bg-[radial-gradient(circle,#e5dfc9_0%,transparent_70%)] dark:bg-[radial-gradient(circle,rgba(143,96,56,0.08)_0%,transparent_70%)]"
+        style={{ transform: `translateY(${scrollY * 0.08}px)` }}
+      />
+      <div
+        className="absolute -right-[6%] top-[30%] w-[300px] h-[300px] rounded-full bg-[radial-gradient(circle,rgba(143,96,56,0.07)_0%,transparent_70%)]"
+        style={{ transform: `translateY(${scrollY * 0.12}px)` }}
+      />
+      <svg
+        className="absolute top-[15%] right-[5%] opacity-25 dark:opacity-20"
+        style={{ transform: `translateY(${scrollY * 0.18}px)` }}
+        width="120" height="120" viewBox="0 0 120 120"
+      >
+        {[0, 1, 2, 3].map(row => [0, 1, 2, 3].map(col => (
+          <circle key={`${row}-${col}`} cx={col * 32 + 16} cy={row * 32 + 16} r="3.5" fill="#8f6038"/>
+        )))}
+      </svg>
+      <svg
+        className="absolute top-[8%] left-[38%] opacity-20"
+        style={{ transform: `translateY(${scrollY * 0.22}px)` }}
+        width="180" height="30" viewBox="0 0 180 30"
+      >
+        <path d="M0 15 Q22 5 45 15 Q68 25 90 15 Q112 5 135 15 Q158 25 180 15"
+          stroke="#8f6038" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+      </svg>
+      <svg
+        className="absolute bottom-[25%] left-[6%] opacity-35 dark:opacity-25"
+        style={{ transform: `translateY(${scrollY * 0.3}px)` }}
+        width="60" height="60" viewBox="0 0 60 60"
+      >
+        <path d="M30 5 L34 24 L53 24 L38 36 L44 55 L30 43 L16 55 L22 36 L7 24 L26 24 Z"
+          stroke="#8f6038" strokeWidth="2" fill="rgba(143,96,56,0.12)" strokeLinejoin="round"/>
+      </svg>
+      <svg
+        className="absolute top-[55%] right-[10%] opacity-25"
+        style={{ transform: `translateY(${scrollY * 0.25}px)` }}
+        width="36" height="36" viewBox="0 0 36 36"
+      >
+        <line x1="18" y1="4" x2="18" y2="32" stroke="#c4845a" strokeWidth="3" strokeLinecap="round"/>
+        <line x1="4" y1="18" x2="32" y2="18" stroke="#c4845a" strokeWidth="3" strokeLinecap="round"/>
+      </svg>
+      <svg
+        className="absolute bottom-[12%] right-[22%] opacity-20"
+        style={{ transform: `translateY(${scrollY * 0.14}px)` }}
+        width="50" height="50" viewBox="0 0 50 50"
+      >
+        <path d="M25 5 L48 44 L2 44 Z" stroke="#8f6038" strokeWidth="2" fill="none" strokeLinejoin="round"/>
+      </svg>
     </div>
   );
 }
 
-/* ── Main Hero ── */
 export default function Hero() {
-  const [cursorPos, setCursorPos] = useState({ x: 60, y: 55 });
-  const [clicking, setClicking] = useState(false);
-  const [windowOpen, setWindowOpen] = useState(true);
-  const [showContent, setShowContent] = useState(false);
-
-  const redBtnRef = useRef<HTMLDivElement>(null);
-  const screenRef = useRef<HTMLDivElement>(null);
+  const scrollY = useScrollY();
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    const t1 = setTimeout(() => {
-      if (redBtnRef.current && screenRef.current) {
-        const btn = redBtnRef.current.getBoundingClientRect();
-        const screen = screenRef.current.getBoundingClientRect();
-        const x = ((btn.left - screen.left + btn.width / 2) / screen.width) * 100;
-        const y = ((btn.top - screen.top + btn.height / 2) / screen.height) * 100;
-        setCursorPos({ x, y });
-      }
-    }, 500);
-
-    const t2 = setTimeout(() => setClicking(true), 1600);
-    const t3 = setTimeout(() => {
-      setClicking(false);
-      setWindowOpen(false);
-    }, 1950);
-    const t4 = setTimeout(() => setShowContent(true), 2350);
-
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
-    };
+    const t = setTimeout(() => setVisible(true), 100);
+    return () => clearTimeout(t);
   }, []);
 
   return (
-    <section
-      style={{
-        position: "relative",
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "center",
-        minHeight: "100vh",
-        paddingTop: "8vh",
-        background: "#0b1032",
-        overflow: "hidden",
-      }}
-    >
-      {/* Matrix aura — full section, ring-masked around laptop */}
-      <MatrixAura />
+    <section className="relative bg-cream dark:bg-cocoa min-h-screen flex items-center overflow-hidden pt-[68px]">
+      <ParallaxDoodles scrollY={scrollY} />
 
-      {/* Glow behind laptop */}
-      <div
-        style={{
-          position: "absolute",
-          top: "40%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: "900px",
-          height: "600px",
-          background:
-            "radial-gradient(ellipse at center, rgba(91,106,208,0.18) 0%, transparent 65%)",
-          pointerEvents: "none",
-          zIndex: 1,
-        }}
-      />
+      <div className="max-w-[1200px] mx-auto px-6 md:px-10 py-16 lg:py-20 grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16 items-center relative z-10 w-full">
 
-      {/* Laptop wrapper */}
-      <div style={{ position: "relative", width: "min(94vw, 1050px)", zIndex: 2 }}>
-
-        {/* Screen body */}
+        {/* Text */}
         <div
+          className="transition-all duration-700 ease-out"
           style={{
-            background: "#1a2340",
-            borderRadius: "18px",
-            border: "2.5px solid #2a3560",
-            boxShadow:
-              "0 0 0 1px #111a35, 0 30px 80px rgba(0,0,0,0.7), 0 0 80px rgba(91,106,208,0.15)",
-            overflow: "hidden",
-            aspectRatio: "16/10",
-            position: "relative",
+            opacity: visible ? 1 : 0,
+            transform: visible ? "translateY(0)" : "translateY(28px)",
           }}
         >
-          {/* Inner screen */}
-          <div
-            ref={screenRef}
-            style={{
-              position: "absolute",
-              inset: 0,
-              background: "#0f1729",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-            }}
+          <div className="inline-flex items-center gap-2 bg-[rgba(143,96,56,0.12)] border border-warm-border dark:border-cocoa-border rounded-full px-4 py-1.5 mb-7">
+            <span className="text-base">✦</span>
+            <span className="font-hand text-base font-semibold text-brand">AI-powered learning platform</span>
+          </div>
+
+          <h1
+            className="font-display font-black text-cocoa dark:text-on-dark leading-[1.1] tracking-tight mb-6"
+            style={{ fontSize: "clamp(38px, 5.5vw, 70px)" }}
           >
-            {/* ── AI TEST QUESTION WINDOW ── */}
-            <AITestWindow
-              windowOpen={windowOpen}
-              clicking={clicking}
-              redBtnRef={redBtnRef}
-            />
+            The smarter way
+            <br />
+            to{" "}
+            <span className="relative inline-block text-brand">
+              learn & teach
+              <svg viewBox="0 0 240 18" fill="none" className="absolute -bottom-1.5 left-0 w-full" preserveAspectRatio="none">
+                <path d="M4 10 Q30 4 60 10 Q90 16 120 10 Q150 4 180 10 Q210 16 236 8"
+                  stroke="#c4845a" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
+              </svg>
+            </span>
+          </h1>
 
-            {/* ── CURSOR ── */}
-            {!showContent && (
-              <div
-                style={{
-                  position: "absolute",
-                  left: `${cursorPos.x}%`,
-                  top: `${cursorPos.y}%`,
-                  transform: "translate(-3px, -3px)",
-                  transition: "left 1s cubic-bezier(0.4,0,0.2,1), top 1s cubic-bezier(0.4,0,0.2,1)",
-                  zIndex: 30,
-                  pointerEvents: "none",
-                }}
-              >
-                <svg
-                  width="24" height="30" viewBox="0 0 22 28" fill="none"
-                  style={{
-                    filter: "drop-shadow(0 2px 6px rgba(0,0,0,0.6))",
-                    transform: clicking ? "scale(0.82)" : "scale(1)",
-                    transition: "transform 0.1s",
-                  }}
-                >
-                  <path d="M2 2L2 22L7.5 16.5L11 24L14 23L10.5 15.5H18L2 2Z" fill="white" stroke="#1a1a2e" strokeWidth="1.5" strokeLinejoin="round" />
-                </svg>
+          <p
+            className="font-body text-muted dark:text-muted-dark leading-[1.75] max-w-[480px] mb-10 transition-opacity duration-700 delay-200 font-semibold"
+            style={{ fontSize: "clamp(16px, 1.6vw, 19px)", opacity: visible ? 1 : 0 }}
+          >
+            TestifyAI brings together admins, teachers and students in one platform.
+            Build courses, generate AI-powered tests, and track real progress — all in one place.
+          </p>
+
+          <div
+            className="flex gap-3.5 flex-wrap transition-opacity duration-700 delay-[350ms]"
+            style={{ opacity: visible ? 1 : 0 }}
+          >
+            <Link href="/register">
+              <button className="h-[52px] px-8 rounded-full bg-brand text-on-dark font-body font-extrabold text-base cursor-pointer shadow-[0_6px_24px_rgba(143,96,56,0.45)] transition-all duration-200 hover:bg-brand-dark hover:-translate-y-0.5 hover:shadow-[0_10px_30px_rgba(143,96,56,0.5)] flex items-center gap-2">
+                Create your organization
+                <span className="text-lg">→</span>
+              </button>
+            </Link>
+            <a href="#how-it-works">
+              <button className="h-[52px] px-7 rounded-full border border-warm-border dark:border-cocoa-border bg-transparent text-cocoa dark:text-on-dark font-body font-bold text-base cursor-pointer transition-all duration-200 hover:border-brand hover:bg-[rgba(143,96,56,0.1)]">
+                See how it works
+              </button>
+            </a>
+          </div>
+
+          <div
+            className="flex gap-8 mt-12 pt-7 border-t border-warm-border dark:border-cocoa-border transition-opacity duration-700 delay-500"
+            style={{ opacity: visible ? 1 : 0 }}
+          >
+            {[
+              { value: "3", label: "user roles" },
+              { value: "AI", label: "test generation" },
+              { value: "∞", label: "learning potential" },
+            ].map(({ value, label }) => (
+              <div key={value}>
+                <div className="font-hand text-[32px] font-bold text-brand leading-none">{value}</div>
+                <div className="font-body text-[13px] text-muted dark:text-muted-dark mt-1 font-semibold">{label}</div>
               </div>
-            )}
-
-            {/* ── HERO CONTENT ── */}
-            <div
-              style={{
-                position: "absolute",
-                inset: 0,
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                justifyContent: "center",
-                gap: "20px",
-                padding: "8%",
-                opacity: showContent ? 1 : 0,
-                transform: showContent ? "translateY(0)" : "translateY(18px)",
-                transition: "opacity 0.7s ease, transform 0.7s ease",
-              }}
-            >
-              <h2
-                style={{
-                  fontFamily: "'Nunito', 'Trebuchet MS', sans-serif",
-                  fontWeight: 900,
-                  fontSize: "clamp(26px, 5.5vw, 64px)",
-                  lineHeight: 1.15,
-                  textAlign: "center",
-                  color: "#d4d8f0",
-                  margin: 0,
-                  letterSpacing: "-0.5px",
-                }}
-              >
-                <span style={{ background: "linear-gradient(135deg, #5B6AD0, #8b95e8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                  Smart tests.
-                </span>
-                <br />
-                Limitless learning.
-              </h2>
-
-              <p
-                style={{
-                  fontFamily: "'Nunito', sans-serif",
-                  fontSize: "clamp(12px, 1.7vw, 18px)",
-                  color: "#c8cce8",
-                  textAlign: "center",
-                  maxWidth: "680px",
-                  margin: 0,
-                  lineHeight: 1.6,
-                  fontWeight: 600,
-                  opacity: showContent ? 1 : 0,
-                  transition: "opacity 0.7s ease 0.25s",
-                }}
-              >
-                TestifyAI is redefining how people learn. Powered by AI, it instantly creates personalized tests, tracks your progress, and delivers exactly what you need to improve.
-                No wasted time, no irrelevant content — just efficient, adaptive learning built around you.
-              </p>
-
-              {/* ── 3 Stat cards ── */}
-              <div style={{
-                display: "flex",
-                gap: "clamp(16px, 3vw, 32px)",
-                marginTop: "4px",
-                opacity: showContent ? 1 : 0,
-                transition: "opacity 0.6s ease 0.5s",
-              }}>
-                {[
-                  { value: "3", label: "core roles in the product" },
-                  { value: "1", label: "unified flow for org + admin" },
-                  { value: "AI", label: "test generation from course content" },
-                ].map(({ value, label }) => (
-                  <div
-                    key={value}
-                    style={{
-                      flex: 1,
-                      background: "rgba(0, 151, 178, 0.07)",
-                      border: "1px solid rgba(0, 151, 178, 0.3)",
-                      borderRadius: "12px",
-                      padding: "clamp(10px, 1.5vw, 16px) clamp(10px, 1.5vw, 14px)",
-                      boxShadow: "0 0 18px rgba(0,151,178,0.25), 0 0 40px rgba(0,151,178,0.1), inset 0 1px 0 rgba(0,151,178,0.15)",
-                      display: "flex",
-                      flexDirection: "column" as const,
-                      alignItems: "center",
-                      gap: "6px",
-                      textAlign: "center" as const,
-                    }}
-                  >
-                    <span style={{
-                      fontFamily: "'Nunito', sans-serif",
-                      fontWeight: 900,
-                      fontSize: "clamp(18px, 2.8vw, 36px)",
-                      color: "#0097b2",
-                      lineHeight: 1,
-                      textShadow: "0 0 16px rgba(0,151,178,0.7)",
-                    }}>
-                      {value}
-                    </span>
-                    <span style={{
-                      fontFamily: "'Nunito', sans-serif",
-                      fontSize: "clamp(9px, 0.9vw, 11px)",
-                      color: "#7bbfcc",
-                      lineHeight: 1.35,
-                      fontWeight: 600,
-                    }}>
-                      {label}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
+            ))}
           </div>
         </div>
 
-        {/* Hinge */}
-        <div style={{ height: "clamp(8px, 2vw, 16px)", background: "linear-gradient(to bottom, #1c2540, #151d35)", borderRadius: "0 0 4px 4px", marginTop: "-1px" }} />
-
-        {/* Base */}
+        {/* Illustration */}
         <div
+          className="flex justify-center items-center order-first lg:order-last"
           style={{
-            height: "clamp(22px, 4.5vw, 44px)",
-            background: "linear-gradient(to bottom, #1c2540 0%, #131c30 60%, #0f1625 100%)",
-            borderRadius: "0 0 14px 14px",
-            boxShadow: "0 8px 30px rgba(0,0,0,0.6)",
-            position: "relative",
+            opacity: visible ? 1 : 0,
+            transform: `translateY(${scrollY * -0.04}px)`,
+            transition: "opacity 0.8s ease 0.15s",
           }}
         >
-          <div style={{ position: "absolute", top: "30%", left: "50%", transform: "translateX(-50%)", width: "20%", height: "50%", background: "rgba(255,255,255,0.04)", borderRadius: "4px", border: "1px solid rgba(255,255,255,0.06)" }} />
+          <DoodleScene />
         </div>
-
-        {/* Shadow */}
-        <div style={{ position: "absolute", bottom: "-30px", left: "10%", right: "10%", height: "30px", background: "radial-gradient(ellipse at center, rgba(0,0,0,0.5) 0%, transparent 70%)", filter: "blur(8px)" }} />
-
       </div>
 
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Fira+Code:wght@400;500&display=swap');
-      `}</style>
+      {/* Bottom wave */}
+      <div className="absolute bottom-0 left-0 right-0">
+        <svg viewBox="0 0 1440 60" fill="none" className="block">
+          <path d="M0 30 Q180 60 360 30 Q540 0 720 30 Q900 60 1080 30 Q1260 0 1440 30 L1440 60 L0 60 Z"
+            className="fill-cocoa"/>
+        </svg>
+      </div>
     </section>
   );
 }

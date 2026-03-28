@@ -1,52 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 
-/* ── Inline tokens — matches Hero.tsx palette exactly ── */
-const C = {
-  bg:          "#0b1032",
-  bgMid:       "#0f1729",
-  bgCard:      "#1a2235",
-  bgCardHover: "#1e2845",
-  border:      "#2a3560",
-  borderLight: "#2d3a58",
-  primary:     "#5B6AD0",
-  primaryLight:"#8b95e8",
-  accent:      "#0097b2",
-  textPrimary: "#d4d8f0",
-  textSecondary:"#8892b0",
-  textMuted:   "#5a6490",
-};
-
-const F = {
-  display: "'Nunito', 'Trebuchet MS', sans-serif",
-  body:    "'Nunito', sans-serif",
-  mono:    "'Fira Code', monospace",
-};
-
-const STEPS = [
-  {
-    step: "01",
-    title: "Create your organization",
-    desc: "Any user can create an organization and automatically becomes the first administrator.",
-  },
-  {
-    step: "02",
-    title: "Configure the platform",
-    desc: "The admin adds teachers, students and classes, then sets up the initial structure of the organization.",
-  },
-  {
-    step: "03",
-    title: "Teachers build courses",
-    desc: "Courses are built visually, and tests can be AI-generated and then edited before publishing.",
-  },
-  {
-    step: "04",
-    title: "Students study and practice",
-    desc: "Students go through the content, take tests and track their progress on each course.",
-  },
-];
-
-/* ── useInView hook (inline, no external dep) ── */
 function useInView(threshold = 0.15) {
   const ref = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
@@ -54,7 +8,7 @@ function useInView(threshold = 0.15) {
     const el = ref.current;
     if (!el) return;
     const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setInView(true); obs.disconnect(); } },
+      ([e]) => { if (e.isIntersecting) { setInView(true); obs.disconnect(); } },
       { threshold }
     );
     obs.observe(el);
@@ -63,181 +17,145 @@ function useInView(threshold = 0.15) {
   return { ref, inView };
 }
 
-export default function HowItWorksSection() {
+const STEPS = [
+  {
+    number: "01",
+    emoji: "🏢",
+    title: "Create your organization",
+    desc: "Register your school or institution and become its administrator. The whole setup takes under two minutes.",
+  },
+  {
+    number: "02",
+    emoji: "👥",
+    title: "Add teachers & students",
+    desc: "Invite teachers and students via email. They each receive a temporary password and can log in immediately.",
+  },
+  {
+    number: "03",
+    emoji: "📚",
+    title: "Build AI-powered courses",
+    desc: "Teachers create courses with rich content and let AI generate tests from the material — then review and publish.",
+  },
+  {
+    number: "04",
+    emoji: "🎯",
+    title: "Study, test, and grow",
+    desc: "Students work through courses, take tests, and track their real progress over time.",
+  },
+];
+
+function DoodleArrow() {
+  return (
+    <svg width="40" height="24" viewBox="0 0 48 24" fill="none" className="shrink-0 hidden xl:block">
+      <path d="M2 12 Q12 6 24 12 Q36 18 46 12"
+        stroke="#40352a" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.5"/>
+      <path d="M40 8 L46 12 L40 16"
+        stroke="#40352a" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.5"/>
+    </svg>
+  );
+}
+
+export default function HowItWorks() {
   const { ref, inView } = useInView();
-  const [activeStep, setActiveStep] = useState(0);
+  const [active, setActive] = useState(0);
 
   useEffect(() => {
     if (!inView) return;
-    const t = setInterval(() => setActiveStep(v => (v + 1) % STEPS.length), 2500);
+    const t = setInterval(() => setActive(v => (v + 1) % STEPS.length), 2600);
     return () => clearInterval(t);
   }, [inView]);
 
   return (
-    <section
-      id="how-it-works"
-      style={{ background: C.bgMid, padding: "120px 40px" }}
-    >
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Fira+Code:wght@400;500&display=swap');
-      `}</style>
+    <section id="how-it-works" className="bg-cocoa pt-24 pb-32 px-6 md:px-10 relative">
+      <div className="max-w-[1200px] mx-auto" ref={ref}>
 
-      <div style={{ maxWidth: "1200px", margin: "0 auto" }} ref={ref}>
-
-        {/* ── Section header ── */}
-        <div style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "16px",
-          textAlign: "center",
-          maxWidth: "680px",
-          margin: "0 auto",
-          opacity: inView ? 1 : 0,
-          transform: inView ? "translateY(0)" : "translateY(24px)",
-          transition: "opacity 0.6s ease, transform 0.6s ease",
-        }}>
-          <span style={{
-            fontFamily: F.mono,
-            fontSize: "11px",
-            letterSpacing: "0.15em",
-            color: C.primary,
-            textTransform: "uppercase" as const,
-            background: `rgba(91,106,208,0.12)`,
-            padding: "6px 14px",
-            borderRadius: "100px",
-            border: `1px solid rgba(91,106,208,0.25)`,
-          }}>
-            How it works
+        {/* Header */}
+        <div
+          className="text-center mb-14 md:mb-18 transition-all duration-700 ease-out"
+          style={{ opacity: inView ? 1 : 0, transform: inView ? "none" : "translateY(24px)" }}
+        >
+          <span className="font-hand text-lg font-semibold text-brand-light block mb-3">
+            ~ how it works ~
           </span>
-
-          <h2 style={{
-            fontFamily: F.display,
-            fontSize: "clamp(28px, 4vw, 52px)",
-            fontWeight: 900,
-            color: C.textPrimary,
-            margin: 0,
-            lineHeight: 1.1,
-            letterSpacing: "-0.5px",
-          }}>
-            A simple flow,{" "}
-            <span style={{
-              background: `linear-gradient(135deg, ${C.primary}, ${C.primaryLight})`,
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}>
-              from setup to progress
-            </span>
+          <h2
+            className="font-display font-black text-on-dark leading-[1.1] tracking-tight"
+            style={{ fontSize: "clamp(30px, 4.5vw, 56px)" }}
+          >
+            Four steps from setup
+            <br />
+            <span className="text-brand-light">to real progress</span>
           </h2>
-
-          <p style={{
-            fontFamily: F.body,
-            fontSize: "clamp(15px, 1.5vw, 18px)",
-            color: C.textSecondary,
-            margin: 0,
-            lineHeight: 1.7,
-            maxWidth: "560px",
-            fontWeight: 600,
-          }}>
-            The platform is designed as a clear path: admins configure
-            the organization, teachers build courses, and students learn.
-          </p>
         </div>
 
-        {/* ── Steps grid ── */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: "2px",
-          marginTop: "64px",
-          background: C.border,
-          borderRadius: "20px",
-          overflow: "hidden",
-          boxShadow: `0 0 60px rgba(91,106,208,0.08)`,
-        }}>
-          {STEPS.map(({ step, title, desc }, i) => {
-            const isActive = activeStep === i;
-            return (
+        {/* Steps — horizontal on xl, 2×2 grid on md, vertical on mobile */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:flex xl:items-start gap-4 xl:gap-0">
+          {STEPS.map((step, i) => (
+            <div key={step.number} className={`xl:flex xl:items-center ${i < STEPS.length - 1 ? "xl:flex-1" : ""}`}>
               <div
-                key={step}
-                onClick={() => setActiveStep(i)}
+                onClick={() => setActive(i)}
+                className={`rounded-2xl p-6 xl:p-7 cursor-pointer border transition-all duration-300 relative ${
+                  active === i
+                    ? "bg-cocoa-card border-brand -translate-y-1"
+                    : "bg-white/[0.04] border-cocoa-border"
+                }`}
                 style={{
-                  background: isActive ? C.bgCard : C.bg,
-                  padding: "40px 32px",
-                  cursor: "pointer",
-                  transition: "background 0.4s ease, opacity 0.5s ease, transform 0.5s ease",
-                  position: "relative",
                   opacity: inView ? 1 : 0,
-                  transform: inView ? "translateY(0)" : "translateY(30px)",
-                  transitionDelay: `${i * 100 + 200}ms`,
+                  transitionDelay: `${i * 120 + 200}ms`,
                 }}
               >
-                {/* Active top bar */}
-                <div style={{
-                  position: "absolute",
-                  top: 0, left: 0, right: 0,
-                  height: "3px",
-                  background: isActive
-                    ? `linear-gradient(90deg, ${C.primary}, ${C.accent})`
-                    : "transparent",
-                  transition: "background 0.4s",
-                }} />
-
-                {/* Step number */}
-                <div style={{
-                  fontFamily: F.mono,
-                  fontSize: "11px",
-                  color: isActive ? C.accent : C.textMuted,
-                  letterSpacing: "0.15em",
-                  marginBottom: "16px",
-                  transition: "color 0.4s",
-                }}>
-                  {step}
+                <div className={`absolute top-0 left-5 right-5 h-[3px] rounded-b-[4px] transition-all duration-300 ${
+                  active === i ? "bg-gradient-to-r from-brand to-terra" : "bg-transparent"
+                }`}/>
+                <div className="text-[34px] mb-3">{step.emoji}</div>
+                <div className={`font-hand text-[13px] tracking-wider mb-2 transition-colors duration-300 ${
+                  active === i ? "text-brand-light" : "text-subtle"
+                }`}>
+                  step {step.number}
                 </div>
-
-                {/* Title */}
-                <h3 style={{
-                  fontFamily: F.display,
-                  fontSize: "18px",
-                  fontWeight: 800,
-                  color: isActive ? C.textPrimary : C.textSecondary,
-                  margin: "0 0 12px",
-                  transition: "color 0.4s",
-                }}>
-                  {title}
+                <h3 className={`font-display font-extrabold text-[15px] mb-2 leading-snug transition-colors duration-300 ${
+                  active === i ? "text-on-dark" : "text-muted-dark"
+                }`}>
+                  {step.title}
                 </h3>
-
-                {/* Description */}
-                <p style={{
-                  fontFamily: F.body,
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  color: C.textSecondary,
-                  margin: 0,
-                  lineHeight: 1.65,
-                  opacity: isActive ? 1 : 0.55,
-                  transition: "opacity 0.4s",
-                }}>
-                  {desc}
+                <p className={`font-body font-semibold text-[13px] text-muted-dark leading-relaxed transition-opacity duration-300 ${
+                  active === i ? "opacity-100" : "opacity-55"
+                }`}>
+                  {step.desc}
                 </p>
-
-                {/* Active glow dot bottom-right */}
-                {isActive && (
-                  <div style={{
-                    position: "absolute",
-                    bottom: "20px",
-                    right: "24px",
-                    width: "8px",
-                    height: "8px",
-                    borderRadius: "50%",
-                    background: C.accent,
-                    boxShadow: `0 0 10px ${C.accent}`,
-                  }} />
-                )}
               </div>
-            );
-          })}
+
+              {i < STEPS.length - 1 && (
+                <div className="hidden xl:flex flex-1 justify-center">
+                  <DoodleArrow />
+                </div>
+              )}
+            </div>
+          ))}
         </div>
+
+        {/* Dot indicators */}
+        <div
+          className="flex justify-center gap-2 mt-8 transition-opacity duration-700 delay-700"
+          style={{ opacity: inView ? 1 : 0 }}
+        >
+          {STEPS.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setActive(i)}
+              className={`h-2 rounded-full border-none cursor-pointer transition-all duration-300 ${
+                active === i ? "w-6 bg-brand" : "w-2 bg-cocoa-border"
+              }`}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Bottom wave */}
+      <div className="absolute bottom-0 left-0 right-0">
+        <svg viewBox="0 0 1440 60" fill="none" className="block">
+          <path d="M0 40 Q360 10 720 40 Q1080 70 1440 40 L1440 60 L0 60 Z"
+            className="fill-cream dark:fill-cocoa-card"/>
+        </svg>
       </div>
     </section>
   );

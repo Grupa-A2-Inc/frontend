@@ -1,4 +1,6 @@
 import "./globals.css";
+import StoreProvider from "@/components/StoreProvider";
+import ThemeProvider from "@/components/ThemeProvider";
 
 export default function RootLayout({
   children,
@@ -6,9 +8,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="bg-[#0b1032] text-white">
-        {children}
+    <html lang="en" suppressHydrationWarning>
+      <body>
+        <StoreProvider>
+          <ThemeProvider>{children}</ThemeProvider>
+        </StoreProvider>
       </body>
     </html>
   );

@@ -1,254 +1,253 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import Navbar from "@/components/layout/Navbar";
+
+const inputClass =
+  "h-12 w-full px-4 rounded-xl border border-warm-border dark:border-cocoa-border bg-cream-card dark:bg-cocoa-card text-cocoa dark:text-on-dark font-body font-semibold text-[15px] placeholder:text-subtle outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 transition-all";
 
 export default function RegisterPage() {
-    const router = useRouter();
+  const router = useRouter();
 
-    // ----------------------------------------
-    // STATE ADMIN
-    // ----------------------------------------
-    const [adminFirstName, setAdminFirstName] = useState("");
-    const [adminLastName, setAdminLastName] = useState("");
-    const [adminEmail, setAdminEmail] = useState("");
-    const [adminPassword, setAdminPassword] = useState("");
+  const [adminFirstName, setAdminFirstName] = useState("");
+  const [adminLastName, setAdminLastName] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
 
-    // ----------------------------------------
-    // STATE ORGANIZATIE
-    // ----------------------------------------
-    const [organizationName, setOrganizationName] = useState("");
-    const [country, setCountry] = useState("");
-    const [city, setCity] = useState("");
-    const [organizationType, setOrganizationType] = useState("");
-    const [address, setAddress] = useState("");
-    const [phoneNumber, setPhoneNumber] = useState("");
+  const [organizationName, setOrganizationName] = useState("");
+  const [country, setCountry] = useState("");
+  const [city, setCity] = useState("");
+  const [organizationType, setOrganizationType] = useState("");
+  const [address, setAddress] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
 
-    // ----------------------------------------
-    // UI STATE
-    // ----------------------------------------
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
-    const [success, setSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
 
-    // ----------------------------------------
-    // HANDLE SUBMIT (FAKE BACKEND)
-    // ----------------------------------------
-    function handleSubmit(e: React.FormEvent) {
-        e.preventDefault();
-        setLoading(true);
-        setError("");
-        setSuccess(false);
+  function handleSubmit(e: React.SubmitEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setSuccess(false);
 
-        // VALIDARE CLIENT-SIDE
-        if (
-            !adminFirstName ||
-            !adminLastName ||
-            !adminEmail ||
-            !adminPassword ||
-            !organizationName ||
-            !country ||
-            !city ||
-            !organizationType
-        ) {
-            setError("Te rugăm să completezi toate câmpurile obligatorii.");
-            setLoading(false);
-            return;
-        }
-
-        // VALIDARE EMAIL
-        if (!adminEmail.includes("@")) {
-            setError("Email invalid.");
-            setLoading(false);
-            return;
-        }
-
-        // SIMULARE REQUEST
-        setTimeout(() => {
-            // Simulare erori business
-            if (adminEmail.includes("test")) {
-                setError("Acest email este deja folosit");
-                setLoading(false);
-                return;
-            }
-
-            if (organizationName.toLowerCase() === "demo") {
-                setError("Această organizație există deja.");
-                setLoading(false);
-                return;
-            }
-
-            // SUCCES
-            setSuccess(true);
-
-            // Salvam user-ul in localStorage (fake)
-            localStorage.setItem(
-                "user",
-                JSON.stringify({
-                    role: "admin",
-                    adminFirstName,
-                    adminLastName,
-                    adminEmail,
-                    organizationName,
-                })
-            );
-
-            setLoading(false);
-
-            // Redirect catre dashboard admin
-            router.push("/dashboard/admin");
-        }, 1200);
+    if (!adminFirstName || !adminLastName || !adminEmail || !adminPassword || !organizationName || !country || !city || !organizationType) {
+      setError("Te rugăm să completezi toate câmpurile obligatorii.");
+      setLoading(false);
+      return;
     }
 
-    return (
-        <div className="min-h-screen flex bg-gradient-to-br from-background to-secondary/10">
+    if (!adminEmail.includes("@")) {
+      setError("Email invalid.");
+      setLoading(false);
+      return;
+    }
 
-            {/* STANGA */}
-            <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-primary via-primary-dark to-secondary items-center justify-center p-10">
-                <Image 
-                    src="/regist.jpg"
-                    alt="Register Illustration"
-                    width={500}
-                    height={500}
-                    className="drop-shadow-2xl"
-                />
-            </div>
+    setTimeout(() => {
+      if (adminEmail.includes("test")) {
+        setError("Acest email este deja folosit.");
+        setLoading(false);
+        return;
+      }
+      if (organizationName.toLowerCase() === "demo") {
+        setError("Această organizație există deja.");
+        setLoading(false);
+        return;
+      }
 
-            {/* DREAPTA */}
-            <div className="flex w-full lg:w-1/2 items-center justify-center p-10">
-                <div className="bg-white/80 backdrop-blur-xl shadow-2xl rounded-3xl p-10 w-full max-w-xl border border-white/40">
+      setSuccess(true);
+      localStorage.setItem("user", JSON.stringify({ role: "admin", adminFirstName, adminLastName, adminEmail, organizationName }));
+      setLoading(false);
+      router.push("/dashboard/admin");
+    }, 1200);
+  }
 
-                    <h1 className="text-3xl font-bold text-text mb-6 font-[Fredoka]">
-                        Creează o organizație nouă
-                    </h1>
+  return (
+    <div className="min-h-screen bg-cream dark:bg-cocoa">
+      <Navbar />
 
-                    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <div className="min-h-screen flex items-center justify-center px-6 pt-[68px]">
+        <div className="w-full max-w-xl py-12">
 
-                        {/* ADMIN */}
-                        <div>
-                            <h2 className="text-lg font-semibold mb-2">Date Administrator</h2>
+          <span className="font-hand text-lg text-brand block mb-2">~ hai să începem ~</span>
+          <h1 className="font-display font-black text-cocoa dark:text-on-dark text-[32px] leading-tight mb-1">
+            Creează o organizație
+          </h1>
+          <p className="font-body font-semibold text-muted dark:text-muted-dark text-sm mb-8">
+            Ai deja cont?{" "}
+            <Link href="/login" className="text-brand hover:text-brand-dark font-bold no-underline transition-colors">
+              Autentifică-te
+            </Link>
+          </p>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <input 
-                                    type="text"
-                                    placeholder="Prenume Admin"
-                                    className="border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary outline-none"
-                                    value={adminFirstName}
-                                    onChange={(e) => setAdminFirstName(e.target.value)}
-                                />
+          <form onSubmit={handleSubmit} className="flex flex-col gap-6">
 
-                                <input 
-                                    type="text"
-                                    placeholder="Nume Admin"
-                                    className="border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary outline-none"
-                                    value={adminLastName}
-                                    onChange={(e) => setAdminLastName(e.target.value)}
-                                />
-                            </div>
+            {/* Date administrator */}
+            <div className="flex flex-col gap-4">
+              <h2 className="font-display font-extrabold text-base text-cocoa dark:text-on-dark">
+                Date administrator
+              </h2>
 
-                            <input 
-                                type="email"
-                                placeholder="Email Admin"
-                                className="mt-4 border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary outline-none w-full"
-                                value={adminEmail}
-                                onChange={(e) => setAdminEmail(e.target.value)}
-                            />
-
-                            <input 
-                                type="password"
-                                placeholder="Parolă Admin"
-                                className="mt-4 border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary outline-none w-full"
-                                value={adminPassword}
-                                onChange={(e) => setAdminPassword(e.target.value)}
-                            />
-                        </div>
-
-                        {/* ORGANIZATIE */}
-                        <div>
-                            <h2 className="text-lg font-semibold mb-2">Date Organizatie</h2>
-
-                            <input 
-                                type="text"
-                                placeholder="Nume Organizație"
-                                className="border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary outline-none w-full"
-                                value={organizationName}
-                                onChange={(e) => setOrganizationName(e.target.value)}
-                            />
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-                                <input 
-                                    type="text"
-                                    placeholder="Țara"
-                                    className="border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary outline-none"
-                                    value={country}
-                                    onChange={(e) => setCountry(e.target.value)}
-                                />
-
-                                <input 
-                                    type="text"
-                                    placeholder="Oraș"
-                                    className="border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary outline-none"
-                                    value={city}
-                                    onChange={(e) => setCity(e.target.value)}
-                                />
-                            </div>
-
-                            <input 
-                                type="text"
-                                placeholder="Tip Organizație (ex: Școală, Liceu)"
-                                className="mt-4 border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary outline-none w-full"
-                                value={organizationType}
-                                onChange={(e) => setOrganizationType(e.target.value)}
-                            />
-
-                            <input 
-                                type="text"
-                                placeholder="Adresă (opțional)"
-                                className="mt-4 border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary outline-none w-full"
-                                value={address}
-                                onChange={(e) => setAddress(e.target.value)}
-                            />
-
-                            <input  
-                                type="text"
-                                placeholder="Număr de telefon (opțional)"
-                                className="mt-4 border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary outline-none w-full"
-                                value={phoneNumber}
-                                onChange={(e) => setPhoneNumber(e.target.value)}
-                            />
-                        </div>
-
-                        {/* ERORI */}
-                        {error && (
-                            <p className="text-red-500 text-sm font-medium">{error}</p>
-                        )}
-
-                        {/*SUCCES */}
-                        {success && (
-                            <p className="text-green-600 text-sm font-medium">
-                                Organizația a fost creată cu succes! Redirecționăm ...
-                            </p>
-                        )}
-
-                        {/* SUBMIT */}
-                        <button 
-                            type="submit"
-                            disabled={loading}
-                            className="bg-primary hover:bg-primary-dark text-white py-3 rounded-2xl shadow-lg transition-all disabled:opacity-50"
-                        >
-                            {loading ? "Se procesează ..." : "Creează organizația"}
-                        </button>
-                    </form>
-
-                    <p className="text-sm text-gray-600 mt-4">
-                        Ai deja cont?{" "}
-                        <a href="/login" className="text-primary font-medium hover:underline">
-                            Autentifică-te 
-                        </a>
-                    </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-body text-sm font-bold text-cocoa dark:text-on-dark">Prenume *</label>
+                  <input
+                    type="text"
+                    placeholder="Ion"
+                    value={adminFirstName}
+                    onChange={(e) => setAdminFirstName(e.target.value)}
+                    className={inputClass}
+                  />
                 </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-body text-sm font-bold text-cocoa dark:text-on-dark">Nume *</label>
+                  <input
+                    type="text"
+                    placeholder="Popescu"
+                    value={adminLastName}
+                    onChange={(e) => setAdminLastName(e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="font-body text-sm font-bold text-cocoa dark:text-on-dark">Email *</label>
+                <input
+                  type="email"
+                  placeholder="admin@scoala.ro"
+                  value={adminEmail}
+                  onChange={(e) => setAdminEmail(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="font-body text-sm font-bold text-cocoa dark:text-on-dark">Parolă *</label>
+                <input
+                  type="password"
+                  placeholder="Minim 8 caractere"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
             </div>
+
+            {/* Divider */}
+            <div className="h-px bg-warm-border dark:bg-cocoa-border"/>
+
+            {/* Date organizatie */}
+            <div className="flex flex-col gap-4">
+              <h2 className="font-display font-extrabold text-base text-cocoa dark:text-on-dark">
+                Date organizație
+              </h2>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="font-body text-sm font-bold text-cocoa dark:text-on-dark">Nume organizație *</label>
+                <input
+                  type="text"
+                  placeholder="ex: Liceul Teoretic Nr. 1"
+                  value={organizationName}
+                  onChange={(e) => setOrganizationName(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-body text-sm font-bold text-cocoa dark:text-on-dark">Țară *</label>
+                  <input
+                    type="text"
+                    placeholder="România"
+                    value={country}
+                    onChange={(e) => setCountry(e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="font-body text-sm font-bold text-cocoa dark:text-on-dark">Oraș *</label>
+                  <input
+                    type="text"
+                    placeholder="București"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    className={inputClass}
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="font-body text-sm font-bold text-cocoa dark:text-on-dark">Tip organizație *</label>
+                <input
+                  type="text"
+                  placeholder="ex: Școală, Liceu, Universitate"
+                  value={organizationType}
+                  onChange={(e) => setOrganizationType(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="font-body text-sm font-bold text-cocoa dark:text-on-dark">
+                  Adresă <span className="font-semibold text-subtle">(opțional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Str. Exemplu nr. 10"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+
+              <div className="flex flex-col gap-1.5">
+                <label className="font-body text-sm font-bold text-cocoa dark:text-on-dark">
+                  Telefon <span className="font-semibold text-subtle">(opțional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="+40 700 000 000"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  className={inputClass}
+                />
+              </div>
+            </div>
+
+            {error && (
+              <div className="bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800/50 rounded-xl px-4 py-3">
+                <p className="font-body text-sm font-semibold text-red-600 dark:text-red-400">{error}</p>
+              </div>
+            )}
+
+            {success && (
+              <div className="bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-800/50 rounded-xl px-4 py-3">
+                <p className="font-body text-sm font-semibold text-green-700 dark:text-green-400">
+                  Organizația a fost creată cu succes! Redirecționăm...
+                </p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="h-12 rounded-xl bg-brand hover:bg-brand-dark text-on-dark font-body font-extrabold text-[15px] cursor-pointer shadow-[0_4px_16px_rgba(143,96,56,0.4)] hover:shadow-[0_6px_24px_rgba(143,96,56,0.5)] hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed disabled:translate-y-0"
+            >
+              {loading ? "Se procesează..." : "Creează organizația →"}
+            </button>
+          </form>
+
+          <p className="font-body text-xs font-semibold text-subtle text-center mt-6">
+            Prin înregistrare ești de acord cu{" "}
+            <a href="#" className="text-muted dark:text-muted-dark hover:text-brand no-underline transition-colors">Termenii</a>
+            {" "}și{" "}
+            <a href="#" className="text-muted dark:text-muted-dark hover:text-brand no-underline transition-colors">Politica de confidențialitate</a>.
+          </p>
         </div>
-    );
+      </div>
+    </div>
+  );
 }

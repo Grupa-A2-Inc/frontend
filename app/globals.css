@@ -1,26 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Caveat:wght@400;600;700&display=swap');
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
-:root {
-  --primary: #4F46E5;
-  --primary-dark: #3730A3;
-  --secondary: #06B6D4;
-  --background: #F9FAFB;
-  --text: #111827;
+* {
+  box-sizing: border-box;
 }
 
-@theme inline {
-  --color-primary: var(--primary);
-  --color-primary-dark: var(--primary-dark);
-  --color-secondary: var(--secondary);
-  --color-background: var(--background);
-  --color-text: var(--text);
-
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--text);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #eeead8;
+  color: #211d18;
+  font-family: 'Nunito', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.dark body {
+  background-color: #211d18;
+  color: #eeead8;
+}
+
+::selection {
+  background: rgba(143, 96, 56, 0.25);
+  color: #211d18;
+}
+
+.dark ::selection {
+  background: rgba(143, 96, 56, 0.4);
+  color: #eeead8;
 }
