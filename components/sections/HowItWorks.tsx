@@ -76,7 +76,7 @@ export default function HowItWorksSection() {
   return (
     <section
       id="how-it-works"
-      style={{ background: C.bgMid, padding: "120px 40px" }}
+      style={{ background: C.bgMid, padding: "120px 40px 60px" }}
     >
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Fira+Code:wght@400;500&display=swap');
@@ -149,7 +149,7 @@ export default function HowItWorksSection() {
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
           gap: "2px",
-          marginTop: "64px",
+          marginTop: "48px",
           background: C.border,
           borderRadius: "20px",
           overflow: "hidden",
