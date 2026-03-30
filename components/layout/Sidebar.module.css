@@ -149,6 +149,23 @@
     color: #22d3ee;
 }
 
+.sidebar.collapsed .navLink {
+    width: 48px;
+    min-width: 48px;
+    justify-content: center;
+    padding: 12px;
+    margin: 0 auto;
+}
+
+.sidebar.collapsed .navList {
+    padding: 0;
+}
+
+.sidebar.collapsed .navItem {
+    display: block;
+    width: 100%;
+}
+
 .navLabel {
     transition: opacity 0.3s ease;
     opacity: 1;
