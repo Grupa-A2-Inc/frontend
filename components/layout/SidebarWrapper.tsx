@@ -34,7 +34,7 @@ function NavItem({ icon, label, href, collapsed }: NavItemProps) {
           : { justifyContent: 'flex-start', padding: '12px 15px' }
         }
       >
-        <span className={`${styles.navIcon} material-symbols-rounded ${collapsed ? 'width-[100%]' : ''}`}>
+        <span className={`${styles.navIcon} material-symbols-rounded `}>
           {icon}
         </span>
         <span className={`${styles.navLabel} ${collapsed ? styles.navLabelHidden : ''}`}>
