@@ -1,158 +1,134 @@
 "use client";
-
 import { useState } from "react";
+import { useInView } from "@/hooks/useInView";
+import Image from "next/image";
 
-const roles = [
+const ROLES = [
   {
-    id: "01",
+    id: "01", 
     title: "Administrator",
-    subtitle: "Full control over the organization",
-    description:
-      "Creates and manages the organization, invites teachers and students, sets up classes, and monitors overall activity across the platform.",
-    features: [
-      "Create & manage organization",
-      "Invite teachers and students",
-      "Oversee classes and courses",
-      "View platform-wide analytics",
-    ],
-    color: "cyan",
+    imageDark: "/images/admin.png",  
+    imageLight: "/images/admin_l.png", 
+    desc: "Creates the organization, invites users, sets up classes, and monitors activity.",
+    features: ["Manage organization", "Invite members", "Oversee classes", "Analytics"],
   },
   {
-    id: "02",
+    id: "02", 
     title: "Teacher",
-    subtitle: "Build and publish courses",
-    description:
-      "Designs course content visually, generates AI-powered tests from course material, reviews them before publishing, and tracks student performance.",
-    features: [
-      "Build courses visually",
-      "AI-generate tests from content",
-      "Edit & publish assessments",
-      "Track student progress",
-    ],
-    color: "purple",
+    imageDark: "/images/teacher.png",
+    imageLight: "/images/teacher_l.png",
+    desc: "Designs course content, generates AI tests, and tracks student performance.",
+    features: ["Build courses", "AI test generation", "Publish assessments", "Track progress"],
   },
   {
-    id: "03",
+    id: "03", 
     title: "Student",
-    subtitle: "Learn, test, and improve",
-    description:
-      "Studies the course material, takes adaptive tests, receives instant feedback, and tracks their own learning progress over time.",
-    features: [
-      "Access course content",
-      "Take AI-generated tests",
-      "Get instant feedback",
-      "Monitor personal progress",
-    ],
-    color: "teal",
+    imageDark: "/images/student.png",
+    imageLight: "/images/student_l.png",
+    desc: "Studies material, takes adaptive tests, gets feedback, and tracks personal progress.",
+    features: ["Access content", "Take AI tests", "Instant feedback", "Monitor progress"],
   },
 ];
 
-const colorMap: Record<string, { accent: string; border: string; glow: string; bg: string }> = {
-  cyan: {
-    accent: "text-cyan-400",
-    border: "border-cyan-500/40",
-    glow: "shadow-cyan-500/20",
-    bg: "bg-cyan-500/10",
-  },
-  purple: {
-    accent: "text-purple-400",
-    border: "border-purple-500/40",
-    glow: "shadow-purple-500/20",
-    bg: "bg-purple-500/10",
-  },
-  teal: {
-    accent: "text-teal-400",
-    border: "border-teal-500/40",
-    glow: "shadow-teal-500/20",
-    bg: "bg-teal-500/10",
-  },
-};
-
-export default function RolesSection() {
+export default function Roles() {
   const [active, setActive] = useState(0);
+  const { ref, inView } = useInView();
 
   return (
-    <section className="relative py-28 px-6 overflow-hidden">
-      {/* Background grid */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_#0f172a_0%,_#020817_60%)] -z-10" />
-      <div
-        className="absolute inset-0 -z-10 opacity-20"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(6,182,212,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(6,182,212,0.08) 1px, transparent 1px)",
-          backgroundSize: "60px 60px",
-        }}
-      />
-
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-16">
-          <span className="inline-block text-xs font-semibold tracking-[0.2em] uppercase text-cyan-400 border border-cyan-500/30 rounded-full px-4 py-1.5 mb-6">
-            WHO IT&apos;S FOR
-          </span>
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-            Three roles,{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-purple-400">
-              one platform
-            </span>
+    <section className="py-24 px-6 bg-brand-mid transition-colors duration-300 overflow-hidden relative">
+      <div className="max-w-6xl mx-auto relative z-10" ref={ref}>
+        <div className={`text-center mb-12 transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}>
+          <h2 className="text-3xl md:text-5xl font-black text-brand-text mb-4">
+            Built for three key roles
           </h2>
-          <p className="text-slate-400 text-lg max-w-xl mx-auto">
-            TestifyAI is built around a clear structure. Each role has distinct
-            responsibilities and a tailored experience.
-          </p>
         </div>
 
-        {/* Tab selector */}
-        <div className="flex justify-center gap-2 mb-12">
-          {roles.map((role, i) => {
-            const c = colorMap[role.color];
-            return (
-              <button
-                key={role.id}
-                onClick={() => setActive(i)}
-                className={`px-5 py-2.5 rounded-full text-sm font-medium border transition-all duration-300 ${
-                  active === i
-                    ? `${c.border} ${c.bg} ${c.accent} shadow-lg ${c.glow}`
-                    : "border-slate-700 text-slate-500 hover:text-slate-300 hover:border-slate-500"
+        {/* Tabs */}
+        <div className="flex flex-wrap justify-center gap-3 mb-12">
+          {ROLES.map((r, i) => (
+            <button
+              key={r.id}
+              onClick={() => setActive(i)}
+              className={`px-8 py-3 rounded-full text-sm font-bold border transition-all duration-300 
+                ${active === i 
+                  ? "bg-brand-primary text-white border-brand-primary shadow-lg shadow-brand-primary/20 scale-105" 
+                  : "bg-brand-card text-brand-muted border-brand-border hover:border-brand-primary hover:text-brand-text"
                 }`}
-              >
-                {role.title}
-              </button>
-            );
-          })}
+            >
+              {r.title}
+            </button>
+          ))}
         </div>
 
-        {/* Card */}
-        <div className="max-w-3xl mx-auto">
-          {roles.map((role, i) => {
-            const c = colorMap[role.color];
-            if (i !== active) return null;
-            return (
-              <div
-                key={role.id}
-                className={`rounded-2xl border ${c.border} ${c.bg} p-8 md:p-12 shadow-2xl ${c.glow} transition-all duration-300`}
-              >
-                <div className="flex items-start gap-6 mb-8">
-                  <span className={`text-5xl font-black ${c.accent} opacity-30 leading-none`}>
-                    {role.id}
-                  </span>
-                  <div>
-                    <h3 className="text-2xl font-bold text-white">{role.title}</h3>
-                    <p className={`text-sm font-medium ${c.accent} mt-1`}>{role.subtitle}</p>
-                  </div>
-                </div>
-                <p className="text-slate-300 text-base leading-relaxed mb-8">{role.description}</p>
-                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {role.features.map((f) => (
-                    <li key={f} className="flex items-center gap-3 text-slate-300 text-sm">
-                      <span className={`w-1.5 h-1.5 rounded-full ${c.accent} bg-current flex-shrink-0`} />
-                      {f}
-                    </li>
-                  ))}
-                </ul>
+        {/* Main Card Container */}
+        <div className="bg-brand-card border border-brand-border rounded-[2.5rem] overflow-hidden shadow-2xl transition-all duration-500">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-0">
+            
+            {/* LEFT SIDE: Traits & Content */}
+            <div className="p-8 md:p-16 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-brand-border">
+              <div className="flex items-center gap-4 mb-6">
+                <span className="text-5xl font-black text-brand-primary/10">
+                  {ROLES[active].id}
+                </span>
+                <h3 className="text-3xl font-bold text-brand-text">{ROLES[active].title}</h3>
               </div>
-            );
-          })}
+              
+              <p className="text-brand-muted text-lg font-semibold mb-10 leading-relaxed">
+                {ROLES[active].desc}
+              </p>
+              
+              <ul className="grid grid-cols-1 sm:grid-cols-2 gap-y-5 gap-x-8">
+                {ROLES[active].features.map((f) => (
+                  <li key={f} className="flex items-center gap-3 text-brand-text font-bold text-sm group">
+                    <span className="w-2.5 h-2.5 rounded-full bg-brand-accent group-hover:scale-125 transition-transform" />
+                    {f}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* RIGHT SIDE: Illustrator Image */}
+            <div className="relative bg-brand-bg/20 min-h-[450px] flex items-center justify-center p-12 overflow-hidden border-t lg:border-t-0 lg:border-l border-brand-border/50">
+              
+              {/* Glow Effect - l-am făcut puțin mai discret pe Light mode prin opacitate */}
+              <div 
+                key={`glow-${active}`}
+                className="absolute w-64 h-64 rounded-full opacity-20 dark:opacity-30 blur-[100px] animate-pulse transition-colors duration-1000"
+                style={{ 
+                  backgroundColor: active === 1 ? '#0097B2' : '#5B6AD0' 
+                }}
+              />
+
+              {/* 2. CONTAINER ACTUALIZAT PENTRU IMAGINI DUBLE */}
+              <div 
+                key={active} 
+                className="relative z-10 w-[280px] h-[280px] md:w-[350px] md:h-[350px] animate-in fade-in zoom-in-95 animate-float duration-500"
+              >
+                
+                <Image 
+                  src={ROLES[active].imageLight} 
+                  alt={ROLES[active].title}
+                  fill
+                  sizes="(max-width: 768px) 280px, 350px"
+                  className="object-contain block dark:hidden filter drop-shadow-xl"
+                  priority
+                />
+
+                <Image 
+                  src={ROLES[active].imageDark} 
+                  alt={ROLES[active].title}
+                  fill
+                  sizes="(max-width: 768px) 280px, 350px"
+                  className="object-contain hidden dark:block filter drop-shadow-[0_0_20px_rgba(91,106,208,0.3)]"
+                  priority
+                />
+
+                <div className="absolute -bottom-10 left-1/2 -translate-x-1/2 w-40 h-6 bg-brand-primary/10 blur-2xl rounded-[100%] pointer-events-none" />
+              </div>
+
+            </div>
+
+          </div>
         </div>
       </div>
     </section>

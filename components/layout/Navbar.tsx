@@ -1,57 +1,59 @@
 "use client";
-
 import Link from "next/link";
 import { useState } from "react";
+import { useTheme } from "../ThemeProvider";
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   return (
-    <nav className="w-full bg-[#0B0F19]">
-      <div className="flex items-center justify-between h-20 md:h-32 px-6 md:px-[100px]">
+    <nav className="fixed w-full z-50 bg-brand-bg/80 backdrop-blur-md border-b border-brand-border transition-colors duration-300">
+      <div className="flex items-center justify-between h-20 px-6 md:px-16 max-w-7xl mx-auto">
         
-        {}
-        <h1 className="text-2xl md:text-[28px] font-extrabold tracking-tight">
-          <span className="text-[#4c57a9]">Testify</span>
-          <span className="text-[#a57ef1]">AI</span>
-        </h1>
+        {/* Logo */}
+        <Link href="/" className="text-2xl font-black tracking-tight flex gap-1">
+          <span className="text-brand-primary">Testify</span>
+          <span className="text-brand-accent">AI</span>
+        </Link>
+
+        {/* Desktop Menu */}
         <div className="hidden md:flex items-center gap-6">
-          <Link href="/login">
-            <button className="h-12 w-44 rounded-2xl bg-[#5B6AD0] text-white font-bold text-lg tracking-wide shadow-[0_4px_20px_rgba(91,106,208,0.5)] hover:shadow-[0_4px_28px_rgba(91,106,208,0.7)] hover:brightness-110 transition-all duration-200 cursor-pointer">
-              Log in
-            </button>
+          <button 
+            onClick={toggleTheme} 
+            className="p-2 rounded-full hover:bg-brand-mid transition-colors text-brand-text"
+            aria-label="Toggle Theme"
+          >
+            {theme === "dark" ? "☀️" : "🌙"}
+          </button>
+          
+          <Link href="/login" className="text-brand-text font-bold hover:text-brand-primary transition-colors">
+            Log in
           </Link>
-          <Link href="/register">
-            <button className="h-12 w-44 rounded-2xl bg-[#58A06C] text-white font-bold text-lg tracking-wide shadow-[0_4px_20px_rgba(88,160,108,0.5)] hover:shadow-[0_4px_28px_rgba(88,160,108,0.7)] hover:brightness-110 transition-all duration-200 cursor-pointer">
-              Get Started
-            </button>
+          <Link href="/register" className="px-6 py-2.5 rounded-xl bg-brand-primary text-white font-bold hover:brightness-110 transition-all shadow-[0_4px_20px_rgba(91,106,208,0.3)]">
+            Get Started
           </Link>
         </div>
 
-    
+        {/* Mobile Toggle */}
         <button
-          className="md:hidden flex flex-col justify-center items-center gap-1.5 w-10 h-10 cursor-pointer"
+          className="md:hidden flex flex-col justify-center gap-1.5 w-8 h-8 z-50"
           onClick={() => setOpen(!open)}
-          aria-label="Toggle menu"
         >
-          <span className={`block w-6 h-0.5 bg-white transition-all duration-300 ${open ? "rotate-45 translate-y-2" : ""}`} />
-          <span className={`block w-6 h-0.5 bg-white transition-all duration-300 ${open ? "opacity-0" : ""}`} />
-          <span className={`block w-6 h-0.5 bg-white transition-all duration-300 ${open ? "-rotate-45 -translate-y-2" : ""}`} />
+          <span className={`block w-6 h-0.5 bg-brand-text transition-all ${open ? "rotate-45 translate-y-2" : ""}`} />
+          <span className={`block w-6 h-0.5 bg-brand-text transition-all ${open ? "opacity-0" : ""}`} />
+          <span className={`block w-6 h-0.5 bg-brand-text transition-all ${open ? "-rotate-45 -translate-y-2" : ""}`} />
         </button>
       </div>
 
-      <div className={`md:hidden overflow-hidden transition-all duration-300 ${open ? "max-h-48" : "max-h-0"}`}>
-        <div className="flex flex-col items-center gap-4 pb-6 px-6">
-          <Link href="/login" className="w-full" onClick={() => setOpen(false)}>
-            <button className="w-full h-12 rounded-2xl bg-[#5B6AD0] text-white font-bold text-lg tracking-wide shadow-[0_4px_20px_rgba(91,106,208,0.5)] hover:brightness-110 transition-all duration-200 cursor-pointer">
-              Log in
-            </button>
-          </Link>
-          <Link href="/register" className="w-full" onClick={() => setOpen(false)}>
-            <button className="w-full h-12 rounded-2xl bg-[#58A06C] text-white font-bold text-lg tracking-wide shadow-[0_4px_20px_rgba(88,160,108,0.5)] hover:brightness-110 transition-all duration-200 cursor-pointer">
-              Get Started
-            </button>
-          </Link>
+      {/* Mobile Menu */}
+      <div className={`md:hidden absolute top-20 left-0 w-full bg-brand-bg border-b border-brand-border transition-all duration-300 overflow-hidden ${open ? "max-h-64" : "max-h-0"}`}>
+        <div className="flex flex-col gap-4 p-6">
+          <button onClick={toggleTheme} className="flex items-center gap-3 text-brand-text font-bold">
+            {theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode"}
+          </button>
+          <Link href="/login" className="text-brand-text font-bold" onClick={() => setOpen(false)}>Log in</Link>
+          <Link href="/register" className="text-brand-primary font-bold" onClick={() => setOpen(false)}>Get Started</Link>
         </div>
       </div>
     </nav>

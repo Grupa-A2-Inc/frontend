@@ -1,21 +1,22 @@
-import FAQ from "@/components/FAQ";
-import Navbar from "@/components/layout/Navbar";
 import Hero from "@/components/sections/Hero";
 import HowItWorks from "@/components/sections/HowItWorks";
 import WhatItDoes from "@/components/sections/WhatItDoes";
 import Roles from "@/components/sections/Roles";
-
-
+import FAQ from "@/components/sections/FAQ";
+import MeltingDivider from "@/components/MeltingDivider";
 
 export default function Home() {
   return (
-    <main>
-      <Navbar />
+    <>
       <Hero />
+      <MeltingDivider fromClass="from-brand-bg" toClass="to-brand-mid" />
       <HowItWorks />
-      <FAQ />
+      <MeltingDivider fromClass="from-brand-mid" toClass="to-brand-bg" />
       <WhatItDoes />
-      <Roles/>
-    </main>
+      <MeltingDivider fromClass="from-brand-bg" toClass="to-brand-mid" />
+      <Roles />
+      <MeltingDivider fromClass="from-brand-mid" toClass="to-brand-bg" />
+      <FAQ />
+    </>
   );
 }
