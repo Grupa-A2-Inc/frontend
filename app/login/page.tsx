@@ -2,9 +2,13 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
+
+
 
 export default function LoginPage() {
     // State pentru input-uri
+    const router = useRouter();
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
 
@@ -21,12 +25,19 @@ export default function LoginPage() {
 
         // Simulare login (fara backend)
         setTimeout(() => {
-            if (email === "" || password ==="") {
-                setError("Te rugăm să completezi toate câmpurile.");
-                setSuccess(""); // curatam succesul
+
+            if (email === "" || password === "") {
+              setError("Te rugăm să completezi toate câmpurile.");
+              setSuccess("");
+            } else if (email === "admin@test.com" && password === "admin123") {
+              setError("");
+              setSuccess("Autentificare reușită!");
+              setTimeout(() => {
+                router.push("/dashboard/admin");
+              }, 1000);
             } else {
-                setError(""); // curatam eroarea
-                setSuccess("Autentificare reușită!");
+              setError("Email sau parolă greșită.");
+              setSuccess("");
             }
             setLoading(false);
         }, 1200);
