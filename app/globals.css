@@ -90,4 +90,14 @@
 
 body {
   @apply bg-brand-bg text-brand-text font-display transition-colors duration-300;
+  
+  /* Setări tehnice aduse de pe Main în conflict */
+  min-width: 600px;
+  overflow-x: auto;
+}
+
+/* Clasă adusă de pe Main pentru Dashboard */
+.dashboard-body {
+  background: #060d1f;
+  color: #fff;
 }
