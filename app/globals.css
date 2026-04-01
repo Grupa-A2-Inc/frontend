@@ -1,31 +1,102 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --primary: #4F46E5;
-  --primary-dark: #3730A3;
-  --secondary: #06B6D4;
-  --background: #F9FAFB;
-  --text: #111827;
+@layer base {
+  :root {
+    --bg: 149, 190, 243;
+    --bg-mid: 232, 228, 252;
+    --bg-card: 255, 255, 255;
+    --text-primary: 15, 23, 42;
+    --text-secondary: 71, 85, 105;
+    --border: 232, 228, 252;
+    
+    --primary: 91, 106, 208;
+    --accent: 0, 151, 178;
+  }
+
+  .dark {
+    --bg: 7, 9, 27;
+    --bg-mid: 22, 6, 45;
+    --bg-card: 26, 34, 53;
+    --text-primary: 212, 216, 240;
+    --text-secondary: 136, 146, 176;
+    --border: 42, 53, 96;
+    
+    --primary: 91, 106, 208;
+    --accent: 0, 151, 178;
+  }
 }
 
-@theme inline {
-  --color-primary: var(--primary);
-  --color-primary-dark: var(--primary-dark);
-  --color-secondary: var(--secondary);
-  --color-background: var(--background);
-  --color-text: var(--text);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@layer utilities {
+  @keyframes rain-fall {
+    0% { transform: translateY(-150px); opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { transform: translateY(300px); opacity: 0; }
+  }
+
+  .animate-rain {
+    animation: rain-fall linear infinite;
+  }
+}
+
+@layer utilities {
+  @keyframes float {
+    0% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-25px); /* Ridică imaginea cu 15px */
+    }
+    100% {
+      transform: translateY(0px);
+    }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite; /* O mișcare lentă de 6 secunde, repetată infinit */
+  }
+}
+
+@layer utilities {
+  @keyframes float-cloud { 
+    0%, 100% { transform: translateY(0px); } 
+    50% { transform: translateY(-15px); } 
+  }
+  
+  @keyframes fly-bird { 
+    0%, 100% { transform: translateY(0px); } 
+    50% { transform: translateY(-8px); } 
+  }
+  
+  @keyframes spin-sun { 
+    0% { transform: rotate(0deg); } 
+    100% { transform: rotate(360deg); } 
+  }
+
+  .anim-cloud { 
+    animation: float-cloud var(--duration) infinite ease-in-out; 
+  }
+  
+  .anim-bird { 
+    animation: fly-bird var(--duration) infinite ease-in-out; 
+  }
+  
+  .anim-sun { 
+    animation: spin-sun 40s linear infinite; 
+  }
 }
 
 body {
-  background: var(--background);
-  color: var(--text);
-  font-family: Arial, Helvetica, sans-serif;
+  @apply bg-brand-bg text-brand-text font-display transition-colors duration-300;
+  
+  /* Setări tehnice aduse de pe Main în conflict */
   min-width: 600px;
   overflow-x: auto;
 }
 
+/* Clasă adusă de pe Main pentru Dashboard */
 .dashboard-body {
   background: #060d1f;
   color: #fff;

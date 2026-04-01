@@ -1,14 +1,23 @@
 import "./globals.css";
 import StoreProvider from "@/store/StoreProvider";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,0,0" />
+        <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet" />
       </head>
-      <body className="bg-[#0b1032] text-white">
-        <StoreProvider>{children}</StoreProvider>
+      <body className="bg-brand-bg text-brand-text antialiased">
+        <StoreProvider>
+          <ThemeProvider>
+            <Navbar />
+            <main>{children}</main>
+            <Footer />
+          </ThemeProvider>
+         </StoreProvider>
       </body>
     </html>
   );
