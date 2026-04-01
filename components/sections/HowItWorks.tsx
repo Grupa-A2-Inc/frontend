@@ -1,239 +1,71 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
-
-/* ── Inline tokens — matches Hero.tsx palette exactly ── */
-const C = {
-  bg:          "#0b1032",
-  bgMid:       "#0f1729",
-  bgCard:      "#1a2235",
-  bgCardHover: "#1e2845",
-  border:      "#2a3560",
-  borderLight: "#2d3a58",
-  primary:     "#5B6AD0",
-  primaryLight:"#8b95e8",
-  accent:      "#0097b2",
-  textPrimary: "#d4d8f0",
-  textSecondary:"#8892b0",
-  textMuted:   "#5a6490",
-};
-
-const F = {
-  display: "'Nunito', 'Trebuchet MS', sans-serif",
-  body:    "'Nunito', sans-serif",
-  mono:    "'Fira Code', monospace",
-};
+import { useEffect, useState } from "react";
+import { useInView } from "@/hooks/useInView";
 
 const STEPS = [
-  {
-    step: "01",
-    title: "Create your organization",
-    desc: "Any user can create an organization and automatically becomes the first administrator.",
-  },
-  {
-    step: "02",
-    title: "Configure the platform",
-    desc: "The admin adds teachers, students and classes, then sets up the initial structure of the organization.",
-  },
-  {
-    step: "03",
-    title: "Teachers build courses",
-    desc: "Courses are built visually, and tests can be AI-generated and then edited before publishing.",
-  },
-  {
-    step: "04",
-    title: "Students study and practice",
-    desc: "Students go through the content, take tests and track their progress on each course.",
-  },
+  { step: "01", title: "Create organization", desc: "User becomes the first admin automatically." },
+  { step: "02", title: "Configure platform", desc: "Admin adds teachers, students and classes." },
+  { step: "03", title: "Build courses", desc: "Generate AI tests and structure learning." },
+  { step: "04", title: "Study & practice", desc: "Take tests and track real-time progress." },
 ];
 
-/* ── useInView hook (inline, no external dep) ── */
-function useInView(threshold = 0.15) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [inView, setInView] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const obs = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setInView(true); obs.disconnect(); } },
-      { threshold }
-    );
-    obs.observe(el);
-    return () => obs.disconnect();
-  }, [threshold]);
-  return { ref, inView };
-}
-
-export default function HowItWorksSection() {
+export default function HowItWorks() {
   const { ref, inView } = useInView();
   const [activeStep, setActiveStep] = useState(0);
 
   useEffect(() => {
     if (!inView) return;
-    const t = setInterval(() => setActiveStep(v => (v + 1) % STEPS.length), 2500);
+    const t = setInterval(() => setActiveStep(v => (v + 1) % STEPS.length), 3000);
     return () => clearInterval(t);
   }, [inView]);
 
   return (
-    <section
-      id="how-it-works"
-      style={{ background: C.bgMid, padding: "120px 40px 60px" }}
-    >
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Fira+Code:wght@400;500&display=swap');
-      `}</style>
-
-      <div style={{ maxWidth: "1200px", margin: "0 auto" }} ref={ref}>
-
-        {/* ── Section header ── */}
-        <div style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: "16px",
-          textAlign: "center",
-          maxWidth: "680px",
-          margin: "0 auto",
-          opacity: inView ? 1 : 0,
-          transform: inView ? "translateY(0)" : "translateY(24px)",
-          transition: "opacity 0.6s ease, transform 0.6s ease",
-        }}>
-          <span style={{
-            fontFamily: F.mono,
-            fontSize: "11px",
-            letterSpacing: "0.15em",
-            color: C.primary,
-            textTransform: "uppercase" as const,
-            background: `rgba(91,106,208,0.12)`,
-            padding: "6px 14px",
-            borderRadius: "100px",
-            border: `1px solid rgba(91,106,208,0.25)`,
-          }}>
+    <section id="how-it-works" className="bg-brand-mid py-24 px-6 transition-colors duration-300">
+      <div className="max-w-6xl mx-auto" ref={ref}>
+        
+        <div className={`text-center max-w-2xl mx-auto mb-16 transition-all duration-700 ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}`}>
+          <span className="font-mono text-xs font-bold tracking-[0.2em] text-brand-primary uppercase bg-brand-primary/10 px-4 py-1.5 rounded-full border border-brand-primary/20">
             How it works
           </span>
-
-          <h2 style={{
-            fontFamily: F.display,
-            fontSize: "clamp(28px, 4vw, 52px)",
-            fontWeight: 900,
-            color: C.textPrimary,
-            margin: 0,
-            lineHeight: 1.1,
-            letterSpacing: "-0.5px",
-          }}>
+          <h2 className="text-4xl md:text-5xl font-black text-brand-text mt-6 mb-4 leading-tight">
             A simple flow,{" "}
-            <span style={{
-              background: `linear-gradient(135deg, ${C.primary}, ${C.primaryLight})`,
-              WebkitBackgroundClip: "text",
-              WebkitTextFillColor: "transparent",
-            }}>
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-primary to-brand-accent">
               from setup to progress
             </span>
           </h2>
-
-          <p style={{
-            fontFamily: F.body,
-            fontSize: "clamp(15px, 1.5vw, 18px)",
-            color: C.textSecondary,
-            margin: 0,
-            lineHeight: 1.7,
-            maxWidth: "560px",
-            fontWeight: 600,
-          }}>
-            The platform is designed as a clear path: admins configure
-            the organization, teachers build courses, and students learn.
+          <p className="text-brand-muted text-lg font-semibold">
+            The platform is designed as a clear path for admins, teachers, and students.
           </p>
         </div>
 
-        {/* ── Steps grid ── */}
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-          gap: "2px",
-          marginTop: "48px",
-          background: C.border,
-          borderRadius: "20px",
-          overflow: "hidden",
-          boxShadow: `0 0 60px rgba(91,106,208,0.08)`,
-        }}>
-          {STEPS.map(({ step, title, desc }, i) => {
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {STEPS.map((s, i) => {
             const isActive = activeStep === i;
             return (
-              <div
-                key={step}
+              <div 
+                key={s.step}
                 onClick={() => setActiveStep(i)}
-                style={{
-                  background: isActive ? C.bgCard : C.bg,
-                  padding: "40px 32px",
-                  cursor: "pointer",
-                  transition: "background 0.4s ease, opacity 0.5s ease, transform 0.5s ease",
-                  position: "relative",
-                  opacity: inView ? 1 : 0,
-                  transform: inView ? "translateY(0)" : "translateY(30px)",
-                  transitionDelay: `${i * 100 + 200}ms`,
-                }}
+                className={`relative p-8 rounded-2xl cursor-pointer border transition-all duration-500 overflow-hidden
+                  ${isActive 
+                    ? "bg-brand-card border-brand-primary shadow-[0_0_30px_rgba(91,106,208,0.15)] scale-[1.02]" 
+                    : "bg-transparent border-brand-border hover:bg-brand-card hover:border-brand-border"
+                  }
+                  ${inView ? "opacity-100 translate-y-0" : "opacity-0 translate-y-10"}
+                `}
+                style={{ transitionDelay: `${inView ? i * 150 : 0}ms` }}
               >
-                {/* Active top bar */}
-                <div style={{
-                  position: "absolute",
-                  top: 0, left: 0, right: 0,
-                  height: "3px",
-                  background: isActive
-                    ? `linear-gradient(90deg, ${C.primary}, ${C.accent})`
-                    : "transparent",
-                  transition: "background 0.4s",
-                }} />
-
-                {/* Step number */}
-                <div style={{
-                  fontFamily: F.mono,
-                  fontSize: "11px",
-                  color: isActive ? C.accent : C.textMuted,
-                  letterSpacing: "0.15em",
-                  marginBottom: "16px",
-                  transition: "color 0.4s",
-                }}>
-                  {step}
-                </div>
-
-                {/* Title */}
-                <h3 style={{
-                  fontFamily: F.display,
-                  fontSize: "18px",
-                  fontWeight: 800,
-                  color: isActive ? C.textPrimary : C.textSecondary,
-                  margin: "0 0 12px",
-                  transition: "color 0.4s",
-                }}>
-                  {title}
+                {/* Top glow line */}
+                <div className={`absolute top-0 left-0 w-full h-1 transition-all duration-500 ${isActive ? "bg-gradient-to-r from-brand-primary to-brand-accent" : "bg-transparent"}`} />
+                
+                <span className={`font-mono text-sm font-bold tracking-widest transition-colors ${isActive ? "text-brand-accent" : "text-brand-muted"}`}>
+                  {s.step}
+                </span>
+                <h3 className={`text-xl font-bold mt-4 mb-2 transition-colors ${isActive ? "text-brand-text" : "text-brand-muted"}`}>
+                  {s.title}
                 </h3>
-
-                {/* Description */}
-                <p style={{
-                  fontFamily: F.body,
-                  fontSize: "14px",
-                  fontWeight: 600,
-                  color: C.textSecondary,
-                  margin: 0,
-                  lineHeight: 1.65,
-                  opacity: isActive ? 1 : 0.55,
-                  transition: "opacity 0.4s",
-                }}>
-                  {desc}
+                <p className="text-sm text-brand-muted font-medium leading-relaxed">
+                  {s.desc}
                 </p>
-
-                {/* Active glow dot bottom-right */}
-                {isActive && (
-                  <div style={{
-                    position: "absolute",
-                    bottom: "20px",
-                    right: "24px",
-                    width: "8px",
-                    height: "8px",
-                    borderRadius: "50%",
-                    background: C.accent,
-                    boxShadow: `0 0 10px ${C.accent}`,
-                  }} />
-                )}
               </div>
             );
           })}
