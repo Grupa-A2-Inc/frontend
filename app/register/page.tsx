@@ -102,24 +102,24 @@ export default function RegisterPage() {
     }
 
     return (
-        <div className="min-h-screen flex bg-gradient-to-br from-background to-secondary/10">
+        <div className="min-h-screen flex bg-brand-bg font-display transition-colors duration-300">
 
             {/* STANGA */}
-            <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-primary via-primary-dark to-secondary items-center justify-center p-10">
+            <div className="hidden lg:flex w-1/2 items-center justify-center p-10">
                 <Image 
                     src="/regist.jpg"
                     alt="Register Illustration"
                     width={500}
                     height={500}
-                    className="drop-shadow-2xl"
+                    className="drop-shadow-2xl w-auto"
                 />
             </div>
 
             {/* DREAPTA */}
-            <div className="flex w-full lg:w-1/2 items-center justify-center p-10">
-                <div className="bg-white/80 backdrop-blur-xl shadow-2xl rounded-3xl p-10 w-full max-w-xl border border-white/40">
+            <div className="flex w-full bg-brand-mid lg:w-1/2 items-center justify-center p-10">
+                <div className="bg-brand-card/80 backdrop-blur-xl shadow-2xl rounded-3xl p-10 w-full max-w-xl border border-brand-border/50">
 
-                    <h1 className="text-3xl font-bold text-text mb-6 font-[Fredoka]">
+                    <h1 className="text-3xl font-bold text-brand-text mb-6">
                         Creează o organizație nouă
                     </h1>
 
@@ -127,13 +127,13 @@ export default function RegisterPage() {
 
                         {/* ADMIN */}
                         <div>
-                            <h2 className="text-lg font-semibold mb-2">Date Administrator</h2>
+                            <h2 className="text-lg font-semibold text-brand-text mb-2">Date Administrator</h2>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <input 
                                     type="text"
                                     placeholder="Prenume Admin"
-                                    className="border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary outline-none"
+                                    className="bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none transition-colors"
                                     value={adminFirstName}
                                     onChange={(e) => setAdminFirstName(e.target.value)}
                                 />
@@ -141,7 +141,7 @@ export default function RegisterPage() {
                                 <input 
                                     type="text"
                                     placeholder="Nume Admin"
-                                    className="border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary outline-none"
+                                    className="bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none transition-colors"
                                     value={adminLastName}
                                     onChange={(e) => setAdminLastName(e.target.value)}
                                 />
@@ -150,7 +150,7 @@ export default function RegisterPage() {
                             <input 
                                 type="email"
                                 placeholder="Email Admin"
-                                className="mt-4 border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary outline-none w-full"
+                                className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
                                 value={adminEmail}
                                 onChange={(e) => setAdminEmail(e.target.value)}
                             />
@@ -158,7 +158,7 @@ export default function RegisterPage() {
                             <input 
                                 type="password"
                                 placeholder="Parolă Admin"
-                                className="mt-4 border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary outline-none w-full"
+                                className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
                                 value={adminPassword}
                                 onChange={(e) => setAdminPassword(e.target.value)}
                             />
@@ -166,12 +166,12 @@ export default function RegisterPage() {
 
                         {/* ORGANIZATIE */}
                         <div>
-                            <h2 className="text-lg font-semibold mb-2">Date Organizatie</h2>
+                            <h2 className="text-lg font-semibold text-brand-text mb-2">Date Organizatie</h2>
 
                             <input 
                                 type="text"
                                 placeholder="Nume Organizație"
-                                className="border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary outline-none w-full"
+                                className="bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
                                 value={organizationName}
                                 onChange={(e) => setOrganizationName(e.target.value)}
                             />
@@ -180,7 +180,7 @@ export default function RegisterPage() {
                                 <input 
                                     type="text"
                                     placeholder="Țara"
-                                    className="border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary outline-none"
+                                    className="bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none transition-colors"
                                     value={country}
                                     onChange={(e) => setCountry(e.target.value)}
                                 />
@@ -188,7 +188,7 @@ export default function RegisterPage() {
                                 <input 
                                     type="text"
                                     placeholder="Oraș"
-                                    className="border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary outline-none"
+                                    className="bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none transition-colors"
                                     value={city}
                                     onChange={(e) => setCity(e.target.value)}
                                 />
@@ -197,7 +197,7 @@ export default function RegisterPage() {
                             <input 
                                 type="text"
                                 placeholder="Tip Organizație (ex: Școală, Liceu)"
-                                className="mt-4 border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary outline-none w-full"
+                                className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
                                 value={organizationType}
                                 onChange={(e) => setOrganizationType(e.target.value)}
                             />
@@ -205,7 +205,7 @@ export default function RegisterPage() {
                             <input 
                                 type="text"
                                 placeholder="Adresă (opțional)"
-                                className="mt-4 border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary outline-none w-full"
+                                className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
                                 value={address}
                                 onChange={(e) => setAddress(e.target.value)}
                             />
@@ -213,7 +213,7 @@ export default function RegisterPage() {
                             <input  
                                 type="text"
                                 placeholder="Număr de telefon (opțional)"
-                                className="mt-4 border border-gray-300 rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-primary outline-none w-full"
+                                className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
                                 value={phoneNumber}
                                 onChange={(e) => setPhoneNumber(e.target.value)}
                             />
@@ -226,7 +226,7 @@ export default function RegisterPage() {
 
                         {/*SUCCES */}
                         {success && (
-                            <p className="text-green-600 text-sm font-medium">
+                            <p className="text-brand-accent text-sm font-medium">
                                 Organizația a fost creată cu succes! Redirecționăm ...
                             </p>
                         )}
@@ -235,15 +235,15 @@ export default function RegisterPage() {
                         <button 
                             type="submit"
                             disabled={loading}
-                            className="bg-primary hover:bg-primary-dark text-white py-3 rounded-2xl shadow-lg transition-all disabled:opacity-50"
+                            className="bg-brand-primary hover:bg-brand-primary/90 text-white py-3 rounded-2xl shadow-lg transition-all disabled:opacity-50"
                         >
                             {loading ? "Se procesează ..." : "Creează organizația"}
                         </button>
                     </form>
 
-                    <p className="text-sm text-gray-600 mt-4">
+                    <p className="text-sm text-brand-muted mt-4">
                         Ai deja cont?{" "}
-                        <a href="/login" className="text-primary font-medium hover:underline">
+                        <a href="/login" className="text-brand-primary font-medium hover:underline">
                             Autentifică-te 
                         </a>
                     </p>

@@ -63,11 +63,11 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-background to-secondary/10">
+    <div className="min-h-screen flex bg-brand-bg font-display transition-colors duration-300">
       {/* -------------------- */}
       {/* SECIUNEA STANGA CU ILUSTRATIE */}
       {/* -------------------- */}
-      <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-primary via-primary-dark to-secondary items-center justify-center p-10">
+      <div className="hidden lg:flex w-1/2 items-center justify-center p-10">
         <Image
           src="/login-illustration.jpg"
           alt="Edu Illustration"
@@ -80,10 +80,10 @@ export default function LoginPage() {
       {/* -------------------- */}
       {/* SECTIUNEA DREAPTA CU FORMULARUL */}
       {/* -------------------- */}
-      <div className="flex w-full lg:w-1/2 items-center justify-center p-10">
-        <div className="bg-white/80 backdrop-blur-xl shadow-2xl rounded-3xl p-10 w-full max-w-md border border-white/40">
+      <div className="flex w-full bg-brand-mid lg:w-1/2 items-center justify-center p-10">
+        <div className="bg-brand-card/80 backdrop-blur-xl shadow-2xl rounded-3xl p-10 w-full max-w-md border border-brand-border/50">
           {/* TITLU */}
-          <h1 className="text-3xl font-bold text-text mb-6 font-[Fredoka]">
+          <h1 className="text-3xl font-bold text-brand-text mb-6">
             Bine ai revenit!
           </h1>
 
@@ -91,10 +91,10 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             {/* INPUT EMAIL */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-text">Email</label>
+              <label className="text-sm font-medium text-brand-text">Email</label>
               <input
                 type="email"
-                className="border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary outline-none"
+                className="bg-brand-bg/50 border border-brand-border text-brand-text rounded-xl px-4 py-2 focus:ring-2 focus:ring-brand-primary outline-none transition-colors"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="ex: elev@school.com"
@@ -103,10 +103,10 @@ export default function LoginPage() {
 
             {/* INPUT PAROLA */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-text">Parola</label>
+              <label className="text-sm font-medium text-brand-text">Parola</label>
               <input
                 type="password"
-                className="border border-gray-300 rounded-xl px-4 py-2 focus:ring-2 focus:ring-primary outline-none"
+                className="bg-brand-bg/50 border border-brand-border text-brand-text rounded-xl px-4 py-2 focus:ring-2 focus:ring-brand-primary outline-none transition-colors"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Introduceți parola"
@@ -120,25 +120,25 @@ export default function LoginPage() {
 
             {/*MESAJ DE SUCCES */}
             {success && (
-              <p className="text-green-600 text-sm font-medium">{success}</p>
+              <p className="text-brand-accent text-sm font-medium">{success}</p>
             )}
 
             {/* BUTON LOGIN */}
             <button
               type="submit"
               disabled={loading}
-              className="bg-primary hover:bg-primary-dark text-white py-3 rounded-2xl shadow-lg transition-all disabled:opacity-50"
+              className="bg-brand-primary hover:bg-brand-primary/90 text-white py-3 rounded-2xl shadow-lg transition-all disabled:opacity-50"
             >
               {loading ? "Se încarcă..." : "Autentifică-te"}
             </button>
           </form>
 
           {/* LINK CATRE REGISTER */}
-          <p className="text-sm text-gray-600 mt-4">
+          <p className="text-sm text-brand-muted mt-4">
             Nu ai cont?{" "}
             <a
               href="/register"
-              className="text-primary font-medium hover:underline"
+              className="text-brand-primary font-medium hover:underline"
             >
               Creează cont
             </a>
