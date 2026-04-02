@@ -102,12 +102,12 @@ export default function RegisterPage() {
     }
 
     return (
-        <div className="min-h-screen flex bg-brand-bg font-display transition-colors duration-300">
+        <div className="min-h-screen flex items-center bg-brand-bg font-display transition-colors duration-300">
 
             {/* STANGA */}
             <div className="hidden lg:flex w-1/2 items-center justify-center p-10">
                 <Image 
-                    src="/regist.jpg"
+                    src="/reg-image.jpg"
                     alt="Register Illustration"
                     width={500}
                     height={500}
@@ -116,8 +116,8 @@ export default function RegisterPage() {
             </div>
 
             {/* DREAPTA */}
-            <div className="flex w-full bg-brand-mid lg:w-1/2 items-center justify-center p-10">
-                <div className="bg-brand-card/80 backdrop-blur-xl shadow-2xl rounded-3xl p-10 w-full max-w-xl border border-brand-border/50">
+            <div className="flex w-full lg:w-1/2 items-center justify-center p-10">
+                <div className="bg-brand-card/80 backdrop-blur-xl shadow-2xl rounded-2xl p-10 w-full max-w-md border border-brand-border">
 
                     <h1 className="text-3xl font-bold text-brand-text mb-6">
                         Create a new organization
@@ -235,7 +235,7 @@ export default function RegisterPage() {
                         <button 
                             type="submit"
                             disabled={loading}
-                            className="bg-brand-primary hover:bg-brand-primary/90 text-white py-3 rounded-2xl shadow-lg transition-all disabled:opacity-50"
+                            className="bg-brand-primary hover:bg-brand-primary/90 text-white py-3 rounded-xl shadow-lg transition-all disabled:opacity-50"
                         >
                             {loading ? "Processing..." : "Create organization"}
                         </button>
@@ -243,7 +243,7 @@ export default function RegisterPage() {
 
                     <p className="text-sm text-brand-muted mt-4">
                         Already have an account?{" "}
-                        <a href="/login" className="text-brand-primary font-medium hover:underline">
+                        <a href="/login" className="text-brand-primary font-medium hover:opacity-80">
                             Log in
                         </a>
                     </p>
