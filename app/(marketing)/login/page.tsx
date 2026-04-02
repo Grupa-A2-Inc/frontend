@@ -24,7 +24,7 @@ export default function LoginPage() {
     // Simulare login (fara backend)
     setTimeout(() => {
         if (email === "" || password === "") {
-            setError("Te rugăm să completezi toate câmpurile.");
+            setError("Please fill in all fields.");
             setSuccess("");
             
         } else if (email === "admin@test.com" && password === "admin123") {
@@ -33,7 +33,7 @@ export default function LoginPage() {
             JSON.stringify({ role: "admin", name: "Admin User", email }),
             );
             
-            setSuccess("Autentificare reușită!");
+            setSuccess("Login successful!");
             setTimeout(() => router.push("/dashboard/admin"), 1000);
 
         } else if (email === "teacher@test.com" && password === "teacher123") {
@@ -42,7 +42,7 @@ export default function LoginPage() {
             JSON.stringify({ role: "teacher", name: "Teacher User", email }),
             );
 
-            setSuccess("Autentificare reușită!");
+            setSuccess("Login successful!");
             setTimeout(() => router.push("/dashboard/teacher"), 1000);
         
         } else if (email === "student@test.com" && password === "student123") {
@@ -51,11 +51,11 @@ export default function LoginPage() {
             JSON.stringify({ role: "student", name: "Student User", email }),
             );
             
-            setSuccess("Autentificare reușită!");
+            setSuccess("Login successful!");
             setTimeout(() => router.push("/dashboard/student"), 1000);
         
         } else {
-            setError("Email sau parolă greșită.");
+            setError("Invalid email or password.");
             setSuccess("");
         }
       setLoading(false);
@@ -84,7 +84,7 @@ export default function LoginPage() {
         <div className="bg-brand-card/80 backdrop-blur-xl shadow-2xl rounded-3xl p-10 w-full max-w-md border border-brand-border/50">
           {/* TITLU */}
           <h1 className="text-3xl font-bold text-brand-text mb-6">
-            Bine ai revenit!
+            Welcome back!
           </h1>
 
           {/* FORMULAR */}
@@ -97,19 +97,19 @@ export default function LoginPage() {
                 className="bg-brand-bg/50 border border-brand-border text-brand-text rounded-xl px-4 py-2 focus:ring-2 focus:ring-brand-primary outline-none transition-colors"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="ex: elev@school.com"
+                placeholder="e.g. student@school.com"
               />
             </div>
 
             {/* INPUT PAROLA */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-brand-text">Parola</label>
+              <label className="text-sm font-medium text-brand-text">Password</label>
               <input
                 type="password"
                 className="bg-brand-bg/50 border border-brand-border text-brand-text rounded-xl px-4 py-2 focus:ring-2 focus:ring-brand-primary outline-none transition-colors"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Introduceți parola"
+                placeholder="Enter your password"
               />
             </div>
 
@@ -129,18 +129,18 @@ export default function LoginPage() {
               disabled={loading}
               className="bg-brand-primary hover:bg-brand-primary/90 text-white py-3 rounded-2xl shadow-lg transition-all disabled:opacity-50"
             >
-              {loading ? "Se încarcă..." : "Autentifică-te"}
+              {loading ? "Loading..." : "Log in"}
             </button>
           </form>
 
           {/* LINK CATRE REGISTER */}
           <p className="text-sm text-brand-muted mt-4">
-            Nu ai cont?{" "}
+            Don't have an account?{" "}
             <a
               href="/register"
               className="text-brand-primary font-medium hover:underline"
             >
-              Creează cont
+              Create account
             </a>
           </p>
         </div>

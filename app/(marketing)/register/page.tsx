@@ -52,14 +52,14 @@ export default function RegisterPage() {
             !city ||
             !organizationType
         ) {
-            setError("Te rugăm să completezi toate câmpurile obligatorii.");
+            setError("Please fill in all required fields.");
             setLoading(false);
             return;
         }
 
         // VALIDARE EMAIL
         if (!adminEmail.includes("@")) {
-            setError("Email invalid.");
+            setError("Invalid email.");
             setLoading(false);
             return;
         }
@@ -68,13 +68,13 @@ export default function RegisterPage() {
         setTimeout(() => {
             // Simulare erori business
             if (adminEmail.includes("test")) {
-                setError("Acest email este deja folosit");
+                setError("This email is already in use.");
                 setLoading(false);
                 return;
             }
 
             if (organizationName.toLowerCase() === "demo") {
-                setError("Această organizație există deja.");
+                setError("This organization already exists.");
                 setLoading(false);
                 return;
             }
@@ -120,19 +120,19 @@ export default function RegisterPage() {
                 <div className="bg-brand-card/80 backdrop-blur-xl shadow-2xl rounded-3xl p-10 w-full max-w-xl border border-brand-border/50">
 
                     <h1 className="text-3xl font-bold text-brand-text mb-6">
-                        Creează o organizație nouă
+                        Create a new organization
                     </h1>
 
                     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
 
                         {/* ADMIN */}
                         <div>
-                            <h2 className="text-lg font-semibold text-brand-text mb-2">Date Administrator</h2>
+                            <h2 className="text-lg font-semibold text-brand-text mb-2">Administrator Details</h2>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <input 
                                     type="text"
-                                    placeholder="Prenume Admin"
+                                    placeholder="Admin First Name"
                                     className="bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none transition-colors"
                                     value={adminFirstName}
                                     onChange={(e) => setAdminFirstName(e.target.value)}
@@ -140,7 +140,7 @@ export default function RegisterPage() {
 
                                 <input 
                                     type="text"
-                                    placeholder="Nume Admin"
+                                    placeholder="Admin Last Name"
                                     className="bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none transition-colors"
                                     value={adminLastName}
                                     onChange={(e) => setAdminLastName(e.target.value)}
@@ -149,7 +149,7 @@ export default function RegisterPage() {
 
                             <input 
                                 type="email"
-                                placeholder="Email Admin"
+                                placeholder="Admin Email"
                                 className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
                                 value={adminEmail}
                                 onChange={(e) => setAdminEmail(e.target.value)}
@@ -157,7 +157,7 @@ export default function RegisterPage() {
 
                             <input 
                                 type="password"
-                                placeholder="Parolă Admin"
+                                placeholder="Admin Password"
                                 className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
                                 value={adminPassword}
                                 onChange={(e) => setAdminPassword(e.target.value)}
@@ -166,11 +166,11 @@ export default function RegisterPage() {
 
                         {/* ORGANIZATIE */}
                         <div>
-                            <h2 className="text-lg font-semibold text-brand-text mb-2">Date Organizatie</h2>
+                            <h2 className="text-lg font-semibold text-brand-text mb-2">Organization Details</h2>
 
                             <input 
                                 type="text"
-                                placeholder="Nume Organizație"
+                                placeholder="Organization Name"
                                 className="bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
                                 value={organizationName}
                                 onChange={(e) => setOrganizationName(e.target.value)}
@@ -179,7 +179,7 @@ export default function RegisterPage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                                 <input 
                                     type="text"
-                                    placeholder="Țara"
+                                    placeholder="Country"
                                     className="bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none transition-colors"
                                     value={country}
                                     onChange={(e) => setCountry(e.target.value)}
@@ -187,7 +187,7 @@ export default function RegisterPage() {
 
                                 <input 
                                     type="text"
-                                    placeholder="Oraș"
+                                    placeholder="City"
                                     className="bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none transition-colors"
                                     value={city}
                                     onChange={(e) => setCity(e.target.value)}
@@ -196,7 +196,7 @@ export default function RegisterPage() {
 
                             <input 
                                 type="text"
-                                placeholder="Tip Organizație (ex: Școală, Liceu)"
+                                placeholder="Organization Type (e.g. School, High School)"
                                 className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
                                 value={organizationType}
                                 onChange={(e) => setOrganizationType(e.target.value)}
@@ -204,7 +204,7 @@ export default function RegisterPage() {
 
                             <input 
                                 type="text"
-                                placeholder="Adresă (opțional)"
+                                placeholder="Address (optional)"
                                 className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
                                 value={address}
                                 onChange={(e) => setAddress(e.target.value)}
@@ -212,7 +212,7 @@ export default function RegisterPage() {
 
                             <input  
                                 type="text"
-                                placeholder="Număr de telefon (opțional)"
+                                placeholder="Phone Number (optional)"
                                 className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
                                 value={phoneNumber}
                                 onChange={(e) => setPhoneNumber(e.target.value)}
@@ -227,7 +227,7 @@ export default function RegisterPage() {
                         {/*SUCCES */}
                         {success && (
                             <p className="text-brand-accent text-sm font-medium">
-                                Organizația a fost creată cu succes! Redirecționăm ...
+                                Organization created successfully! Redirecting...
                             </p>
                         )}
 
@@ -237,14 +237,14 @@ export default function RegisterPage() {
                             disabled={loading}
                             className="bg-brand-primary hover:bg-brand-primary/90 text-white py-3 rounded-2xl shadow-lg transition-all disabled:opacity-50"
                         >
-                            {loading ? "Se procesează ..." : "Creează organizația"}
+                            {loading ? "Processing..." : "Create organization"}
                         </button>
                     </form>
 
                     <p className="text-sm text-brand-muted mt-4">
-                        Ai deja cont?{" "}
+                        Already have an account?{" "}
                         <a href="/login" className="text-brand-primary font-medium hover:underline">
-                            Autentifică-te 
+                            Log in
                         </a>
                     </p>
                 </div>
