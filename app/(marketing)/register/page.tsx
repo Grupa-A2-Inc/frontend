@@ -14,6 +14,7 @@ export default function RegisterPage() {
     const [adminLastName, setAdminLastName] = useState("");
     const [adminEmail, setAdminEmail] = useState("");
     const [adminPassword, setAdminPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
 
     // ----------------------------------------
     // STATE ORGANIZATIE
@@ -60,6 +61,13 @@ export default function RegisterPage() {
         // VALIDARE EMAIL
         if (!adminEmail.includes("@")) {
             setError("Invalid email.");
+            setLoading(false);
+            return;
+        }
+
+        // VALIDARE CONFIRM PASSWORD
+        if (adminPassword !== confirmPassword) {
+            setError("Passwords do not match.");
             setLoading(false);
             return;
         }
@@ -161,6 +169,14 @@ export default function RegisterPage() {
                                 className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
                                 value={adminPassword}
                                 onChange={(e) => setAdminPassword(e.target.value)}
+                            />
+
+                            <input 
+                                type="password"
+                                placeholder="Confirm Password"
+                                className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
                             />
                         </div>
 
