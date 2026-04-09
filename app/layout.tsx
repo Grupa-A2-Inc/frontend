@@ -1,19 +1,26 @@
+import type { Metadata } from "next";
 import "./globals.css";
-import StoreProvider from "@/store/StoreProvider";
-import { ThemeProvider } from "@/components/ThemeProvider";
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+// Importăm StoreProvider-ul creat anterior.
+// Acesta este un component client care învelește aplicația în Redux Provider.
+import { StoreProvider } from "@/store/StoreProvider";
+
+export const metadata: Metadata = {
+  title: "My App",
+  description: "Authentication system with Redux Toolkit"
+};
+
+export default function RootLayout({
+  children
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <head>
-        <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
-      </head>
-      <body className="bg-brand-bg text-brand-text antialiased">
+    <html lang="en">
+      <body>
+        {/* StoreProvider activează Redux în întreaga aplicație */}
         <StoreProvider>
-          <ThemeProvider>
-            {children}
-          </ThemeProvider>
+          {children}
         </StoreProvider>
       </body>
     </html>

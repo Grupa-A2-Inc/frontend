@@ -1,65 +1,47 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+
+// Importuri Redux
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { loginUser } from "@/store/thunks/authThunks";
 
 export default function LoginPage() {
   // State pentru input-uri
   const router = useRouter();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // State pentru UI
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  // Extragem starea din Redux
+  const { loading, error, user } = useAppSelector((state) => state.auth);
+
+  // Dispatch pentru a trimite actiuni catre Redux
+  const dispatch = useAppDispatch();
+
+  // Redirect automat dupa login reusit
+  useEffect(() => {
+    if (user) {
+      if (user.role == "admin")
+        router.push("/dashboard/admin");
+
+      else if (user.role == "teacher")
+        router.push("/dashboard/teacher");
+
+      else if (user.role == "student")
+        router.push("/dashboard/student");
+
+      else 
+        router.push("/dashboard");
+    }
+  }, [user, router]);
 
   // Functia apelata la submit (simulam login-ul)
   function handleSubmit(e: React.FormEvent) {
-    e.preventDefault(); // prevenim refresh-ul paginii
-    setLoading(true);
-    setError("");
-
-    // Simulare login (fara backend)
-    setTimeout(() => {
-        if (email === "" || password === "") {
-            setError("Please fill in all fields.");
-            setSuccess("");
-            
-        } else if (email === "admin@test.com" && password === "admin123") {
-            localStorage.setItem(
-            "user",
-            JSON.stringify({ role: "admin", name: "Admin User", email }),
-            );
-            
-            setSuccess("Login successful!");
-            setTimeout(() => router.push("/dashboard/admin"), 1000);
-
-        } else if (email === "teacher@test.com" && password === "teacher123") {
-            localStorage.setItem(
-            "user",
-            JSON.stringify({ role: "teacher", name: "Teacher User", email }),
-            );
-
-            setSuccess("Login successful!");
-            setTimeout(() => router.push("/dashboard/teacher"), 1000);
-        
-        } else if (email === "student@test.com" && password === "student123") {
-            localStorage.setItem(
-            "user",
-            JSON.stringify({ role: "student", name: "Student User", email }),
-            );
-            
-            setSuccess("Login successful!");
-            setTimeout(() => router.push("/dashboard/student"), 1000);
-        
-        } else {
-            setError("Invalid email or password.");
-            setSuccess("");
-        }
-      setLoading(false);
-    }, 1200);
+    e.preventDefault();
+    dispatch(loginUser({ email, password }));
   }
 
   return (
