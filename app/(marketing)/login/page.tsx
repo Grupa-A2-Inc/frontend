@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+
+import { loginUser } from "@/store/slices/authSlice";
 
 export default function LoginPage() {
   // State pentru input-uri
@@ -10,56 +14,23 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // State pentru UI
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  // Redux Toolkit
+  const dispatch = useAppDispatch();
+  const { loading, error, user, token } = useAppSelector((state) => state.auth);
 
-  // Functia apelata la submit (simulam login-ul)
+  // redirect automat dupa login reusit
+  useEffect(() => {
+    if (user && token) {
+      router.push("/dashboard");
+    }
+  }, [user, token, router]);
+
+  // Functia apelata la submit - trimitem datele catre backend
   function handleSubmit(e: React.FormEvent) {
-    e.preventDefault(); // prevenim refresh-ul paginii
-    setLoading(true);
-    setError("");
+    e.preventDefault();
 
-    // Simulare login (fara backend)
-    setTimeout(() => {
-        if (email === "" || password === "") {
-            setError("Please fill in all fields.");
-            setSuccess("");
-            
-        } else if (email === "admin@test.com" && password === "admin123") {
-            localStorage.setItem(
-            "user",
-            JSON.stringify({ role: "admin", name: "Admin User", email }),
-            );
-            
-            setSuccess("Login successful!");
-            setTimeout(() => router.push("/dashboard/admin"), 1000);
-
-        } else if (email === "teacher@test.com" && password === "teacher123") {
-            localStorage.setItem(
-            "user",
-            JSON.stringify({ role: "teacher", name: "Teacher User", email }),
-            );
-
-            setSuccess("Login successful!");
-            setTimeout(() => router.push("/dashboard/teacher"), 1000);
-        
-        } else if (email === "student@test.com" && password === "student123") {
-            localStorage.setItem(
-            "user",
-            JSON.stringify({ role: "student", name: "Student User", email }),
-            );
-            
-            setSuccess("Login successful!");
-            setTimeout(() => router.push("/dashboard/student"), 1000);
-        
-        } else {
-            setError("Invalid email or password.");
-            setSuccess("");
-        }
-      setLoading(false);
-    }, 1200);
+    // Trimitem datele catre backend prin Redux Toolkit
+    dispatch(loginUser({ email, password }));
   }
 
   return (
@@ -114,14 +85,9 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* MESAJ DE EROARE */}
+            {/* Afisam eroarea reala din backend */}
             {error && (
               <p className="text-red-500 text-sm font-medium">{error}</p>
-            )}
-
-            {/*MESAJ DE SUCCES */}
-            {success && (
-              <p className="text-brand-accent text-sm font-medium">{success}</p>
             )}
 
             {/* BUTON LOGIN */}
@@ -129,7 +95,7 @@ export default function LoginPage() {
               type="submit"
               disabled={loading}
               className="w-full py-3 bg-brand-primary hover:bg-brand-primary/90 transition rounded-xl font-semibold text-white disabled:opacity-50"
-            >              
+            >
               {loading ? "Loading..." : "Log in"}
             </button>
           </form>

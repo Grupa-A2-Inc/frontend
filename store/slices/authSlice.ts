@@ -1,138 +1,108 @@
-import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-import { loginUser, registerOrganization } from "@/lib/mockApi";
-import type { LoginPayload, RegisterOrgPayload } from "@/lib/mockApi";
+// Importam utilitatile Redux Toolkit
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// Importam serviciul care trimite request-ul catre backend
+import { loginService } from "@/features/auth/authService";
 
-export type UserRole = "ADMIN" | "TEACHER" | "STUDENT";
-export type UserStatus = "ACTIVE" | "INACTIVE";
+// Importam tipurile folosite in Login
+import { LoginRequest, LoginResponse, User } from "@/features/auth/authTypes";
 
-export interface User {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: UserRole;
-  status: UserStatus;
-  organizationId: string;
-  profilePicture?: string;
-  classId?: string; // students only
-}
-
-export interface Organization {
-  id: string;
-  name: string;
-  type: string;
-  country: string;
-  city: string;
-}
-
+// ------------------------------
+// Definim forma starii de autentificare
+// ------------------------------
 interface AuthState {
   user: User | null;
-  organization: Organization | null;
-  accessToken: string | null; // in-memory only, never persisted
-  isAuthenticated: boolean;
+  token: string | null;
   loading: boolean;
   error: string | null;
 }
 
-// ─── Initial state ────────────────────────────────────────────────────────────
-
+// ------------------------------
+// Starea initiala
+// ------------------------------
 const initialState: AuthState = {
   user: null,
-  organization: null,
-  accessToken: null,
-  isAuthenticated: false,
+  token: null,
   loading: false,
   error: null,
 };
 
-// ─── Thunks ───────────────────────────────────────────────────────────────────
-
-export const login = createAsyncThunk(
+// ------------------------------
+// Thunk asincron pentru login
+// createAsyncThunk gestioneaza automat: pending, fulfilled, rejected
+// ------------------------------
+export const loginUser = createAsyncThunk<
+  LoginResponse,    // tipul valorii returnate la succes
+  LoginRequest,   // tipul argumentului primit
+  { rejectValue: string }   // tipul erorii returnate
+>(
   "auth/login",
-  async (payload: LoginPayload, { rejectWithValue }) => {
+  async (data, { rejectWithValue }) => {
     try {
-      return await loginUser(payload);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Login failed";
-      return rejectWithValue(message);
+      // Apelam serviciul care trimite request-ul catre backend
+      return await loginService(data);
+    } catch (err: any) {
+      // Daca backend-ul trimite eroare, o returnam catre slice
+      return rejectWithValue(err.message);
     }
   }
 );
 
-export const registerOrg = createAsyncThunk(
-  "auth/registerOrg",
-  async (payload: RegisterOrgPayload, { rejectWithValue }) => {
-    try {
-      return await registerOrganization(payload);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Registration failed";
-      return rejectWithValue(message);
-    }
-  }
-);
-
-// ─── Slice ────────────────────────────────────────────────────────────────────
-
+// ------------------------------
+// Slice-ul propriu-zis
+// ------------------------------
 const authSlice = createSlice({
   name: "auth",
   initialState,
+
+  // Reduceri sincrone (ex: logout)
   reducers: {
-    logout(state) {
+    logout: (state) => {
       state.user = null;
-      state.organization = null;
-      state.accessToken = null;
-      state.isAuthenticated = false;
+      state.token = null;
       state.error = null;
-    },
-    clearError(state) {
-      state.error = null;
-    },
-    // Called by the refresh-token flow when a new access token is issued.
-    // The refresh token itself is handled as an HttpOnly cookie by the backend.
-    setAccessToken(state, action: PayloadAction<string>) {
-      state.accessToken = action.payload;
     },
   },
-  extraReducers: (builder) => {
-    // login
-    builder
-      .addCase(login.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(login.fulfilled, (state, action) => {
-        state.loading = false;
-        state.user = action.payload.user;
-        state.organization = action.payload.organization;
-        state.accessToken = action.payload.accessToken;
-        state.isAuthenticated = true;
-      })
-      .addCase(login.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
-      });
 
-    // registerOrg
-    builder
-      .addCase(registerOrg.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+  // Reduceri pentru actiunile asincrone (loginUser)
+  extraReducers: (builder) => {
+    builder 
+
+      // ------------------------------
+      // LOGIN - pending
+      // ------------------------------
+      .addCase(loginUser.pending, (state) => {
+        state.loading = true;   // pornim indicatorul de loading
+        state.error = null;   // resetam erorile
       })
-      .addCase(registerOrg.fulfilled, (state, action) => {
+
+      // ------------------------------
+      // LOGIN - success
+      // ------------------------------
+      .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
+
+        // Salvam user-ul primit de la backend
         state.user = action.payload.user;
-        state.organization = action.payload.organization;
-        state.accessToken = action.payload.accessToken;
-        state.isAuthenticated = true;
+
+        // Salvam token-ul JWT
+        state.token = action.payload.access_token;
       })
-      .addCase(registerOrg.rejected, (state, action) => {
+
+      // ------------------------------
+      // LOGIN - eroare
+      // ------------------------------
+      .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string;
+
+        // Salvam mesajul de eroare
+        state.error = action.payload || "Login failed";
       });
   },
 });
 
-export const { logout, clearError, setAccessToken } = authSlice.actions;
+// Exportam actiunile sincrone (ex: logout)
+export const { logout } = authSlice.actions;
+
+// Exportam reducer-ul pentru a fi folosit in store
 export default authSlice.reducer;
