@@ -96,14 +96,8 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* MESAJ DE EROARE */}
             {error && (
               <p className="text-red-500 text-sm font-medium">{error}</p>
-            )}
-
-            {/*MESAJ DE SUCCES */}
-            {success && (
-              <p className="text-brand-accent text-sm font-medium">{success}</p>
             )}
 
             {/* BUTON LOGIN */}
