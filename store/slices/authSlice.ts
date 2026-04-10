@@ -5,7 +5,7 @@ const API_URL = "https://backend-for-render-ws6z.onrender.com";
 
 // ---------- Types ----------
 
-export type UserRole = "ADMIN" | "TEACHER" | "STUDENT";
+export type UserRole = "ORGANIZATION_ADMIN" | "TEACHER" | "STUDENT";
 
 export type UserStatus = "ACTIVE" | "INACTIVE";
 
@@ -73,13 +73,20 @@ export const login = createAsyncThunk(
         headers: {
           "Content-Type": "application/json",
         },
+
+        credentials: "include",
         body: JSON.stringify(payload), // trimitem email + password 
       });
 
       // Daca backend-ul raspunde cu eroare
       if (!response.ok) {
-        const errorData = await response.json();
-        return rejectWithValue(errorData.message || "Login failed");
+        // Incercam sa parsam JSON, dar daca backend-ul trimite text simplu, prindem eroarea
+        try {
+          const errorData = await response.json();
+          return rejectWithValue(errorData.message || "Login failed");
+        } catch {
+          return rejectWithValue(`Eroare server: ${response.status}`);
+        }
       }
 
       // Daca login-ul reuseste, extragem datele
