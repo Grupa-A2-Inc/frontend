@@ -19,7 +19,7 @@ export function proxy(request: NextRequest) {
 
     // Redirect automat in functie de rol cand intra pe /dashboard
     if (pathname === "/dashboard" && role) {
-        if (role === "ADMIN") {
+        if (role === "ORGANIZATION_ADMIN") {
             return NextResponse.redirect(new URL("/dashboard/admin", request.url));
         }
 
@@ -33,7 +33,7 @@ export function proxy(request: NextRequest) {
     }
 
     // Blocam accesul la dashboard-ul altui rol
-    if (pathname.startsWith("/dashboard/admin") && role !== "ADMIN") {
+    if (pathname.startsWith("/dashboard/admin") && role !== "ORGANIZATION_ADMIN") {
         return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 

@@ -4,11 +4,6 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
-<<<<<<< HEAD:app/login/page.tsx
-// Redux Toolkit hooks
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { login, clearError } from "@/store/slices/authSlice";
-=======
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ||
   "https://backend-for-render-ws6z.onrender.com";
@@ -32,44 +27,13 @@ type LoginResponse = {
     organizationAddress?: string;
   };
 };
->>>>>>> b9f5decb0ddd8976e86bafd396564e36a4ea7707:app/(marketing)/login/page.tsx
 
 export default function LoginPage() {
   const router = useRouter();
-<<<<<<< HEAD:app/login/page.tsx
-  const dispatch = useAppDispatch();
-
-  // Extragem state-ul din Redux
-  const { loading, error } = useAppSelector(
-    (state) => state.auth 
-  );
-=======
->>>>>>> b9f5decb0ddd8976e86bafd396564e36a4ea7707:app/(marketing)/login/page.tsx
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-<<<<<<< HEAD:app/login/page.tsx
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault(); // prevenim refresh-ul paginii
-
-    dispatch(clearError());
-
-    const result = await dispatch(login({ email, password }));
-
-    if (!login.fulfilled.match(result)) 
-      return;
-    const role = result.payload.user.role;
-
-    if (role === "ADMIN") 
-      router.push("/dashboard/admin");
-
-    if (role === "TEACHER") 
-      router.push("/dashboard/teacher");
-
-    if (role === "STUDENT") 
-      router.push("/dashboard/student");
-=======
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -144,7 +108,6 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
->>>>>>> b9f5decb0ddd8976e86bafd396564e36a4ea7707:app/(marketing)/login/page.tsx
   }
 
   return (
@@ -175,8 +138,8 @@ export default function LoginPage() {
               </label>
               <input
                 type="email"
-                className="bg-brand-bg/50 border border-brand-border text-brand-text rounded-xl px-4 py-2 placeholder-brand-muted focus:outline-none focus:border-brand-primary transition"
                 value={email}
+                className="bg-brand-bg/50 border border-brand-border text-brand-text rounded-xl px-4 py-2 placeholder-brand-muted focus:outline-none focus:border-brand-primary transition"                
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="e.g. student@school.com"
               />
@@ -188,17 +151,13 @@ export default function LoginPage() {
               </label>
               <input
                 type="password"
-                className="bg-brand-bg/50 border border-brand-border text-brand-text rounded-xl px-4 py-2 placeholder-brand-muted focus:outline-none focus:border-brand-primary transition"
                 value={password}
+                className="bg-brand-bg/50 border border-brand-border text-brand-text rounded-xl px-4 py-2 placeholder-brand-muted focus:outline-none focus:border-brand-primary transition"                
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
               />
             </div>
 
-<<<<<<< HEAD:app/login/page.tsx
-            {/* MESAJ DE EROARE */}
-            {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
-=======
             {error && (
               <p className="text-red-500 text-sm font-medium">{error}</p>
             )}
@@ -206,7 +165,6 @@ export default function LoginPage() {
             {success && (
               <p className="text-brand-accent text-sm font-medium">{success}</p>
             )}
->>>>>>> b9f5decb0ddd8976e86bafd396564e36a4ea7707:app/(marketing)/login/page.tsx
 
             <button
               type="submit"
