@@ -1,25 +1,52 @@
-// Importam utilitatile Redux Toolkit
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 
-// Importam serviciul care trimite request-ul catre backend
-import { loginService } from "@/features/auth/authService";
+// URL-ul backend-ului
+const API_URL = "https://backend-for-render-ws6z.onrender.com";
 
-// Importam tipurile folosite in Login
-import { LoginRequest, LoginResponse, User } from "@/features/auth/authTypes";
+// ---------- Types ----------
 
-// ------------------------------
-// Definim forma starii de autentificare
-// ------------------------------
+export type UserRole = "ADMIN" | "TEACHER" | "STUDENT";
+
+export type UserStatus = "ACTIVE" | "INACTIVE";
+
+export interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  role: UserRole;
+  status: UserStatus;
+  organizationId: string;
+  organizationName: string;
+  organizationType: string;
+  country: string;
+  city: string;
+  organizationPhoneNumber: string;
+  organizationAddress: string;
+}
+
+// Structura organizatiei
+export interface Organization {
+  id: string;
+  name: string;
+  type: string;
+  country: string;
+  city: string;
+  phoneNumber: string;
+  address: string;
+}
+
+// Structura state-ului de autentificare
 interface AuthState {
   user: User | null;
-  token: string | null;
+  organization: Organization | null;
+  accessToken: string | null;
+  isAuthenticated: boolean;
   loading: boolean;
   error: string | null;
 }
 
-// ------------------------------
-// Starea initiala
-// ------------------------------
+// ---------- Initial state ----------
 const initialState: AuthState = {
   user: null,
   token: null,
@@ -27,82 +54,155 @@ const initialState: AuthState = {
   error: null,
 };
 
-// ------------------------------
-// Thunk asincron pentru login
-// createAsyncThunk gestioneaza automat: pending, fulfilled, rejected
-// ------------------------------
-export const loginUser = createAsyncThunk<
-  LoginResponse,    // tipul valorii returnate la succes
-  LoginRequest,   // tipul argumentului primit
-  { rejectValue: string }   // tipul erorii returnate
->(
-  "auth/login",
-  async (data, { rejectWithValue }) => {
+
+// ---------- Thunks ----------
+
+// LOGIN
+export const login = createAsyncThunk(
+  "auth/loginThunk",
+  async (
+    payload: { email: string; password: string },
+    { rejectWithValue }
+  ) => {
     try {
-      // Apelam serviciul care trimite request-ul catre backend
-      return await loginService(data);
-    } catch (err: any) {
-      // Daca backend-ul trimite eroare, o returnam catre slice
-      return rejectWithValue(err.message);
+      // Trimitem request-ul catre backend
+      const response = await fetch(`${API_URL}/api/v1/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(payload), // trimitem email + password 
+      });
+
+      // Daca backend-ul raspunde cu eroare
+      if (!response.ok) {
+        const errorData = await response.json();
+        return rejectWithValue(errorData.message || "Login failed");
+      }
+
+      // Daca login-ul reuseste, extragem datele
+      const data = await response.json();
+
+      // Returnam datele catre reducer
+      return data;
+    } catch (err) {
+      return rejectWithValue("Network error");
     }
   }
 );
 
-// ------------------------------
-// Slice-ul propriu-zis
-// ------------------------------
+// ---------- Slice  ----------
 const authSlice = createSlice({
   name: "auth",
   initialState,
 
   // Reduceri sincrone (ex: logout)
   reducers: {
-    logout: (state) => {
+    // Logout - sterge toate datele din state
+    logout(state) {
       state.user = null;
       state.token = null;
       state.error = null;
+
+      // Stergem token-ul din cookies pentru proxy
+      document.cookie = "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+
+      // Stergem rolul din cookies
+      document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
     },
+
+    // Curatam erorile manual
+    clearError(state) {
+      state.error = null;
+    },
+
+    // Setam un accessToken nou 
+    setAccessToken(state, action: PayloadAction<string>) {
+      state.accessToken = action.payload;
+    },
+
+    // AUTO - LOGIN
+    loadUserFromStorage(state) {
+      const token = localStorage.getItem("accessToken") ;
+      const user = localStorage.getItem("user");
+
+      // Daca nu exista token sau user, nu facem nimic
+      if (!token || !user)
+        return;
+
+      // Convertim user-ul din string in obiect
+      const parsedUser = JSON.parse(user);
+
+      // Restauram datele in Redux
+      state.accessToken = token;
+      state.user = parsedUser;
+      state.isAuthenticated = true;
+
+      // Reconstruim organizatia din campurile useru-ului
+      state.organization = {
+        id: parsedUser.organizationId,
+        name: parsedUser.organizationName,
+        type: parsedUser.organizationType,
+        country: parsedUser.country,
+        city: parsedUser.city,
+        phoneNumber: parsedUser.organizationPhoneNumber,
+        address: parsedUser.organizationAddress,
+      };
+    }
   },
 
-  // Reduceri pentru actiunile asincrone (loginUser)
   extraReducers: (builder) => {
-    builder 
+    // LOGIN - pending
+    builder.addCase(login.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
 
-      // ------------------------------
-      // LOGIN - pending
-      // ------------------------------
-      .addCase(loginUser.pending, (state) => {
-        state.loading = true;   // pornim indicatorul de loading
-        state.error = null;   // resetam erorile
-      })
+    // LOGIN - success
+    builder.addCase(login.fulfilled, (state, action) => {
+      state.loading = false;
 
-      // ------------------------------
-      // LOGIN - success
-      // ------------------------------
-      .addCase(loginUser.fulfilled, (state, action) => {
-        state.loading = false;
+      // Extragem user-ul din raspuns
+      state.user = action.payload.user;
 
-        // Salvam user-ul primit de la backend
-        state.user = action.payload.user;
+      // Reconstruim organization din campurile user-ului
+      state.organization = {
+        id: action.payload.user.organizationId,
+        name: action.payload.user.organizationName,
+        type: action.payload.user.organizationType,
+        country: action.payload.user.country,
+        city: action.payload.user.city,
+        phoneNumber: action.payload.user.organizationPhoneNumber,
+        address: action.payload.user.organizationAddress,
+      };
 
-        // Salvam token-ul JWT
-        state.token = action.payload.access_token;
-      })
+      // Salvam accessToken-ul
+      state.accessToken = action.payload.accessToken;
 
-      // ------------------------------
-      // LOGIN - eroare
-      // ------------------------------
-      .addCase(loginUser.rejected, (state, action) => {
-        state.loading = false;
+      // Salvam token-ul si in cookies pentru proxy
+      document.cookie = `accessToken=${action.payload.accessToken}; path=/;`;
+      // Salvam rolul in cookies pentru proxy
+      document.cookie = `role=${action.payload.user.role}; path=/;`;
 
-        // Salvam mesajul de eroare
-        state.error = action.payload || "Login failed";
-      });
+      localStorage.setItem("accessToken", action.payload.accessToken);
+      localStorage.setItem("user", JSON.stringify(action.payload.user));
+
+
+      // Marcam utilizatorul ca autentificat
+      state.isAuthenticated = true;
+    });
+
+    // LOGIN - error
+    builder.addCase(login.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload as string;
+    });
   },
 });
 
-// Exportam actiunile sincrone (ex: logout)
-export const { logout } = authSlice.actions;
+// Exportam actiunile 
+export const { logout, clearError, setAccessToken, loadUserFromStorage } = 
+  authSlice.actions;
 
-// Exportam reducer-ul pentru a fi folosit in store
+// Exportam reducerul
 export default authSlice.reducer;

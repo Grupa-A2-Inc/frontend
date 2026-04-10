@@ -1,36 +1,45 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
+// Redux Toolkit hooks
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-
-import { loginUser } from "@/store/slices/authSlice";
+import { login, clearError } from "@/store/slices/authSlice";
 
 export default function LoginPage() {
   // State pentru input-uri
   const router = useRouter();
+  const dispatch = useAppDispatch();
+
+  // Extragem state-ul din Redux
+  const { loading, error } = useAppSelector(
+    (state) => state.auth 
+  );
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // Redux Toolkit
-  const dispatch = useAppDispatch();
-  const { loading, error, user, token } = useAppSelector((state) => state.auth);
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault(); // prevenim refresh-ul paginii
 
-  // redirect automat dupa login reusit
-  useEffect(() => {
-    if (user && token) {
-      router.push("/dashboard");
-    }
-  }, [user, token, router]);
+    dispatch(clearError());
 
-  // Functia apelata la submit - trimitem datele catre backend
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+    const result = await dispatch(login({ email, password }));
 
-    // Trimitem datele catre backend prin Redux Toolkit
-    dispatch(loginUser({ email, password }));
+    if (!login.fulfilled.match(result)) 
+      return;
+    const role = result.payload.user.role;
+
+    if (role === "ADMIN") 
+      router.push("/dashboard/admin");
+
+    if (role === "TEACHER") 
+      router.push("/dashboard/teacher");
+
+    if (role === "STUDENT") 
+      router.push("/dashboard/student");
   }
 
   return (
@@ -85,17 +94,15 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Afisam eroarea reala din backend */}
-            {error && (
-              <p className="text-red-500 text-sm font-medium">{error}</p>
-            )}
+            {/* MESAJ DE EROARE */}
+            {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
 
             {/* BUTON LOGIN */}
             <button
               type="submit"
               disabled={loading}
               className="w-full py-3 bg-brand-primary hover:bg-brand-primary/90 transition rounded-xl font-semibold text-white disabled:opacity-50"
-            >
+            >              
               {loading ? "Loading..." : "Log in"}
             </button>
           </form>
