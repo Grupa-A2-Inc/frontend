@@ -36,6 +36,21 @@ export interface Organization {
   address: string;
 }
 
+// Strucutura payload-ului pentru register
+export interface RegisterPayload {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  organizationName: string;
+  country: string;
+  city: string;
+  organizationType: string;
+  address?: string;
+  phoneNumber?: string;
+}
+
 // Structura state-ului de autentificare
 interface AuthState {
   user: User | null;
@@ -88,6 +103,42 @@ export const login = createAsyncThunk(
       }
 
       // Daca login-ul reuseste, extragem datele
+      const data = await response.json();
+
+      // Returnam datele catre reducer
+      return data;
+    } catch (err) {
+      return rejectWithValue("Network error");
+    }
+  }
+);
+
+// REGISTER
+export const register = createAsyncThunk(
+  "auth/registerThunk",
+  async (payload: RegisterPayload, { rejectWithValue }) => {
+    try {
+      // Trimitem request-ul catre backend
+      const response = await fetch (`${API_URL}/api/v1/auth/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+          credentials: "include",
+          body: JSON.stringify(payload),
+      });
+
+      // Daca backend-ul raspunde cu eroarea
+      if (!response.ok) {
+        try {
+          const errorData = await response.json();
+          return rejectWithValue(errorData.message || "Register failed");
+        } catch {
+          return rejectWithValue(`Eroare server: ${response.status}`);
+        }
+      }
+
+      // Daca register-ul reuseste, extragem datele 
       const data = await response.json();
 
       // Returnam datele catre reducer
@@ -201,6 +252,51 @@ const authSlice = createSlice({
 
     // LOGIN - error
     builder.addCase(login.rejected, (state, action) => {
+      state.loading = false;
+      state.error = action.payload as string;
+    });
+
+    // REGISTER - pending
+    builder.addCase(register.pending, (state) => {
+      state.loading = true;
+      state.error = null;
+    });
+
+    // REGISTER - success
+    builder.addCase(register.fulfilled, (state, action) => {
+      state.loading = false;
+
+      // Extragem user-ul din raspuns
+      state.user = action.payload.user;
+
+      // Reconstruim organization din campurile user-ului
+      state.organization = {
+        id: action.payload.user.organizationId,
+        name: action.payload.user.organizationName,
+        type: action.payload.user.organizationType,
+        country: action.payload.user.country,
+        city: action.payload.user.city,
+        phoneNumber: action.payload.user.organizationPhoneNumber,
+        address: action.payload.user.organizationAddress,
+      };
+
+      // Salvam accessToken-ul
+      state.accessToken = action.payload.accessToken;
+
+      // Salvam token-ul si in cookies pentru proxy
+      document.cookie = `accessToken=${action.payload.accessToken}; path=/;`;
+      // Salvam rolul in cookies pentru proxy
+      document.cookie = `role=${action.payload.user.role}; path=/;`;
+
+      localStorage.setItem("accessToken", action.payload.accessToken);
+      localStorage.setItem("user", JSON.stringify(action.payload.user));
+
+      // Marcam utilizatorul ca autentificat
+      state.isAuthenticated = true;
+    });
+
+    // REGISTER - error
+    builder.addCase(register.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload as string;
     });

@@ -4,38 +4,25 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://backend-for-render-ws6z.onrender.com";
-
-type RegisterResponse = {
-  message?: string;
-  accessToken: string;
-  user: {
-    id?: string;
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    role?: string;
-    status?: string;
-    organizationId?: string | number;
-    organizationName?: string;
-    organizationType?: string;
-    country?: string;
-    city?: string;
-    organizationPhoneNumber?: string;
-    organizationAddress?: string;
-  };
-};
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { register, clearError } from "@/store/slices/authSlice";
 
 export default function RegisterPage() {
   const router = useRouter();
 
-  const [adminFirstName, setAdminFirstName] = useState("");
-  const [adminLastName, setAdminLastName] = useState("");
-  const [adminEmail, setAdminEmail] = useState("");
-  const [adminPassword, setAdminPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+    const dispatch = useAppDispatch();
+
+    // Extragem loading si error din Redux
+    const { loading, error } = useAppSelector((state) => state.auth);
+
+    // ----------------------------------------
+    // STATE ADMIN
+    // ----------------------------------------
+    const [adminFirstName, setAdminFirstName] = useState("");
+    const [adminLastName, setAdminLastName] = useState("");
+    const [adminEmail, setAdminEmail] = useState("");
+    const [adminPassword, setAdminPassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
 
   const [organizationName, setOrganizationName] = useState("");
   const [country, setCountry] = useState("");
@@ -44,30 +31,76 @@ export default function RegisterPage() {
   const [address, setAddress] = useState("");
   const [phoneNumber, setPhoneNumber] = useState("");
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState(false);
+    // ----------------------------------------
+    // UI STATE
+    // ----------------------------------------
+    const [success, setSuccess] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setSuccess(false);
+    // Erori de validare client-side
+    const [validationError, setValidationError] = useState("");
 
-    if (
-      !adminFirstName.trim() ||
-      !adminLastName.trim() ||
-      !adminEmail.trim() ||
-      !adminPassword.trim() ||
-      !confirmPassword.trim() ||
-      !organizationName.trim() ||
-      !country.trim() ||
-      !city.trim() ||
-      !organizationType.trim()
-    ) {
-      setError("Please fill in all required fields.");
-      setLoading(false);
-      return;
+    // ----------------------------------------
+    // HANDLE SUBMIT 
+    // ----------------------------------------
+    async function handleSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        dispatch(clearError());
+        setValidationError("");
+        setSuccess(false);
+
+        // VALIDARE CLIENT-SIDE
+        if (
+            !adminFirstName ||
+            !adminLastName ||
+            !adminEmail ||
+            !adminPassword ||
+            !organizationName ||
+            !country ||
+            !city ||
+            !organizationType
+        ) {
+            setValidationError("Please fill in all required fields.");
+            return;
+        }
+
+        // VALIDARE EMAIL
+        if (!adminEmail.includes("@")) {
+            setValidationError("Invalid email.");
+            return;
+        }
+
+        // VALIDARE CONFIRM PASSWORD
+        if (adminPassword !== confirmPassword) {
+            setValidationError("Passwords do not match.");
+            return;
+        }
+
+        // Trimitem datele catre Redux thunk
+        const result = await dispatch(register({
+            firstName: adminFirstName.trim(),
+            lastName: adminLastName.trim(),
+            email: adminEmail.trim(),
+            password: adminPassword,
+            confirmPassword,
+            organizationName: organizationName.trim(),
+            country: country.trim(),
+            city: city.trim(),
+            organizationType: organizationType.trim(),
+            address: address.trim(),
+            phoneNumber: phoneNumber.trim(),
+        }));
+
+        // Daca register-ul a esuat, oprim
+        if (!register.fulfilled.match(result)) {
+            return;
+        }
+
+        // Daca register-ul a reusit
+        setSuccess(true);
+
+        setTimeout(() => {
+            router.push("/dashboard/admin");
+        }, 800);
     }
 
     if (!adminEmail.includes("@")) {
@@ -257,13 +290,120 @@ const data: RegisterResponse | null = text ? JSON.parse(text) : null;
                 onChange={(e) => setAddress(e.target.value)}
               />
 
-              <input
-                type="text"
-                placeholder="Phone Number (optional)"
-                className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-              />
+                            <input 
+                                type="email"
+                                placeholder="Admin Email"
+                                className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
+                                value={adminEmail}
+                                onChange={(e) => setAdminEmail(e.target.value)}
+                            />
+
+                            <input 
+                                type="password"
+                                placeholder="Admin Password"
+                                className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
+                                value={adminPassword}
+                                onChange={(e) => setAdminPassword(e.target.value)}
+                            />
+
+                            <input 
+                                type="password"
+                                placeholder="Confirm Password"
+                                className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
+                                value={confirmPassword}
+                                onChange={(e) => setConfirmPassword(e.target.value)}
+                            />
+                        </div>
+
+                        {/* ORGANIZATIE */}
+                        <div>
+                            <h2 className="text-lg font-semibold text-brand-text mb-2">Organization Details</h2>
+
+                            <input 
+                                type="text"
+                                placeholder="Organization Name"
+                                className="bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
+                                value={organizationName}
+                                onChange={(e) => setOrganizationName(e.target.value)}
+                            />
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                <input 
+                                    type="text"
+                                    placeholder="Country"
+                                    className="bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none transition-colors"
+                                    value={country}
+                                    onChange={(e) => setCountry(e.target.value)}
+                                />
+
+                                <input 
+                                    type="text"
+                                    placeholder="City"
+                                    className="bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none transition-colors"
+                                    value={city}
+                                    onChange={(e) => setCity(e.target.value)}
+                                />
+                            </div>
+
+                            <input 
+                                type="text"
+                                placeholder="Organization Type (e.g. School, High School)"
+                                className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
+                                value={organizationType}
+                                onChange={(e) => setOrganizationType(e.target.value)}
+                            />
+
+                            <input 
+                                type="text"
+                                placeholder="Address (optional)"
+                                className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
+                                value={address}
+                                onChange={(e) => setAddress(e.target.value)}
+                            />
+
+                            <input  
+                                type="text"
+                                placeholder="Phone Number (optional)"
+                                className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
+                                value={phoneNumber}
+                                onChange={(e) => setPhoneNumber(e.target.value)}
+                            />
+                        </div>
+
+                        {/* ERORI VALIDARE CLIENT-SIDE */}
+                        {validationError && (
+                            <p className="text-red-500 text-sm font-medium">{validationError}</p>
+                        )}
+                        
+                        {/* ERORI BCKEND */}
+                        {error && (
+                            <p className="text-red-500 text-sm font-medium">{error}</p>
+                        )}
+
+                        {/*SUCCES */}
+                        {success && (
+                            <p className="text-brand-accent text-sm font-medium">
+                                Organization created successfully! Redirecting...
+                            </p>
+                        )}
+
+                        {/* SUBMIT */}
+                        <button 
+                            type="submit"
+                            disabled={loading}
+                            className="bg-brand-primary hover:bg-brand-primary/90 text-white py-3 rounded-xl shadow-lg transition-all disabled:opacity-50"
+                        >
+                            {loading ? "Processing..." : "Create organization"}
+                        </button>
+                    </form>
+
+                    <p className="text-sm text-brand-muted mt-4">
+                        Already have an account?{" "}
+                        <a href="/login" className="text-brand-primary font-medium hover:opacity-80">
+                            Log in
+                        </a>
+                    </p>
+                </div>
             </div>
 
             {error && (
