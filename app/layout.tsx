@@ -1,6 +1,9 @@
+"use client";
+
 import "./globals.css";
 import StoreProvider from "@/store/StoreProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import AutoLogin from "./AutoLogin";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -11,6 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body className="bg-brand-bg text-brand-text antialiased">
         <StoreProvider>
+          <AutoLogin />
           <ThemeProvider>
             {children}
           </ThemeProvider>

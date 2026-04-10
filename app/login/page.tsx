@@ -4,62 +4,42 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
+// Redux Toolkit hooks
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { login, clearError } from "@/store/slices/authSlice";
+
 export default function LoginPage() {
   // State pentru input-uri
   const router = useRouter();
+  const dispatch = useAppDispatch();
+
+  // Extragem state-ul din Redux
+  const { loading, error } = useAppSelector(
+    (state) => state.auth 
+  );
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
-  // State pentru UI
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
-
-  // Functia apelata la submit (simulam login-ul)
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); // prevenim refresh-ul paginii
-    setLoading(true);
-    setError("");
 
-    // Simulare login (fara backend)
-    setTimeout(() => {
-        if (email === "" || password === "") {
-            setError("Please fill in all fields.");
-            setSuccess("");
-            
-        } else if (email === "admin@test.com" && password === "admin123") {
-            localStorage.setItem(
-            "user",
-            JSON.stringify({ role: "admin", name: "Admin User", email }),
-            );
-            
-            setSuccess("Login successful!");
-            setTimeout(() => router.push("/dashboard/admin"), 1000);
+    dispatch(clearError());
 
-        } else if (email === "teacher@test.com" && password === "teacher123") {
-            localStorage.setItem(
-            "user",
-            JSON.stringify({ role: "teacher", name: "Teacher User", email }),
-            );
+    const result = await dispatch(login({ email, password }));
 
-            setSuccess("Login successful!");
-            setTimeout(() => router.push("/dashboard/teacher"), 1000);
-        
-        } else if (email === "student@test.com" && password === "student123") {
-            localStorage.setItem(
-            "user",
-            JSON.stringify({ role: "student", name: "Student User", email }),
-            );
-            
-            setSuccess("Login successful!");
-            setTimeout(() => router.push("/dashboard/student"), 1000);
-        
-        } else {
-            setError("Invalid email or password.");
-            setSuccess("");
-        }
-      setLoading(false);
-    }, 1200);
+    if (!login.fulfilled.match(result)) 
+      return;
+    const role = result.payload.user.role;
+
+    if (role === "ADMIN") 
+      router.push("/dashboard/admin");
+
+    if (role === "TEACHER") 
+      router.push("/dashboard/teacher");
+
+    if (role === "STUDENT") 
+      router.push("/dashboard/student");
   }
 
   return (
@@ -115,14 +95,7 @@ export default function LoginPage() {
             </div>
 
             {/* MESAJ DE EROARE */}
-            {error && (
-              <p className="text-red-500 text-sm font-medium">{error}</p>
-            )}
-
-            {/*MESAJ DE SUCCES */}
-            {success && (
-              <p className="text-brand-accent text-sm font-medium">{success}</p>
-            )}
+            {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
 
             {/* BUTON LOGIN */}
             <button
