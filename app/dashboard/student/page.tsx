@@ -1,3 +1,5 @@
-export default function StudentHome() {
-  return <h1 style={{ color: '#fff' }}>Courses</h1>;
+import AdminDashboardPage from "@/components/admin-dashboard/AdminDashboardPage";
+
+export default function AdminDashboard() {
+  return <AdminDashboardPage />;
 }

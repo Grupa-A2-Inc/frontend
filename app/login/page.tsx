@@ -4,23 +4,52 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
+<<<<<<< HEAD:app/login/page.tsx
 // Redux Toolkit hooks
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { login, clearError } from "@/store/slices/authSlice";
+=======
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ||
+  "https://backend-for-render-ws6z.onrender.com";
+
+type LoginResponse = {
+  message?: string;
+  accessToken: string;
+  user: {
+    id?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    role?: string;
+    status?: string;
+    organizationId?: string | number;
+    organizationName?: string;
+    organizationType?: string;
+    country?: string;
+    city?: string;
+    organizationPhoneNumber?: string;
+    organizationAddress?: string;
+  };
+};
+>>>>>>> b9f5decb0ddd8976e86bafd396564e36a4ea7707:app/(marketing)/login/page.tsx
 
 export default function LoginPage() {
-  // State pentru input-uri
   const router = useRouter();
+<<<<<<< HEAD:app/login/page.tsx
   const dispatch = useAppDispatch();
 
   // Extragem state-ul din Redux
   const { loading, error } = useAppSelector(
     (state) => state.auth 
   );
+=======
+>>>>>>> b9f5decb0ddd8976e86bafd396564e36a4ea7707:app/(marketing)/login/page.tsx
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+<<<<<<< HEAD:app/login/page.tsx
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); // prevenim refresh-ul paginii
 
@@ -40,13 +69,86 @@ export default function LoginPage() {
 
     if (role === "STUDENT") 
       router.push("/dashboard/student");
+=======
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setLoading(true);
+    setError("");
+    setSuccess("");
+
+    if (!email.trim() || !password.trim()) {
+      setError("Please fill in all fields.");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${API_BASE}/api/v1/auth/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+        }),
+      });
+
+      const text = await response.text();
+      const data: LoginResponse | null = text ? JSON.parse(text) : null;
+
+      if (!response.ok) {
+        throw new Error(
+          data?.message || "Login failed. Please check your credentials."
+        );
+      }
+
+      const normalizedUser = {
+        ...data?.user,
+        role: String(data?.user?.role || "").toLowerCase(),
+        organizationId: data?.user?.organizationId
+          ? String(data.user.organizationId)
+          : undefined,
+      };
+
+      if (!data?.accessToken) {
+        throw new Error("Access token was not returned by the server.");
+      }
+
+      localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
+
+      setSuccess("Login successful!");
+
+      const normalizedRole = normalizedUser.role;
+
+      setTimeout(() => {
+        if (normalizedRole === "admin") {
+          router.push("/dashboard/admin");
+        } else if (normalizedRole === "teacher") {
+          router.push("/dashboard/teacher");
+        } else if (normalizedRole === "student") {
+          router.push("/dashboard/student");
+        } else {
+          router.push("/");
+        }
+      }, 800);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Something went wrong during login."
+      );
+    } finally {
+      setLoading(false);
+    }
+>>>>>>> b9f5decb0ddd8976e86bafd396564e36a4ea7707:app/(marketing)/login/page.tsx
   }
 
   return (
-    <div className="min-h-screen flex bg-brand-bg font-display transition-colors">      
-      {/* -------------------- */}
-      {/* SECIUNEA STANGA CU ILUSTRATIE */}
-      {/* -------------------- */}
+    <div className="min-h-screen flex bg-brand-bg font-display transition-colors">
       <div className="hidden lg:flex w-1/2 items-center justify-center p-10">
         <Image
           src="/log-image.jpg"
@@ -57,63 +159,70 @@ export default function LoginPage() {
         />
       </div>
 
-      {/* -------------------- */}
-      {/* SECTIUNEA DREAPTA CU FORMULARUL */}
-      {/* -------------------- */}
       <div className="flex w-full lg:w-1/2 items-center justify-center p-10">
-        <div className="bg-brand-card/80 backdrop-blur-xl shadow-2xl rounded-2xl p-10 w-full max-w-md border border-brand-border">          
-        {/* TITLU */}
-          <h1 className="text-3xl font-bold text-brand-text mb-2">            
+        <div className="bg-brand-card/80 backdrop-blur-xl shadow-2xl rounded-2xl p-10 w-full max-w-md border border-brand-border">
+          <h1 className="text-3xl font-bold text-brand-text mb-2">
             Welcome back!
           </h1>
-          <p className="text-brand-muted mb-6">            
+          <p className="text-brand-muted mb-6">
             Log in to continue your learning journey
           </p>
 
-          {/* FORMULAR */}
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {/* INPUT EMAIL */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-brand-text">Email</label>
+              <label className="text-sm font-medium text-brand-text">
+                Email
+              </label>
               <input
                 type="email"
-                className="bg-brand-bg/50 border border-brand-border text-brand-text rounded-xl px-4 py-2 placeholder-brand-muted focus:outline-none focus:border-brand-primary transition"                
+                className="bg-brand-bg/50 border border-brand-border text-brand-text rounded-xl px-4 py-2 placeholder-brand-muted focus:outline-none focus:border-brand-primary transition"
+                value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="e.g. student@school.com"
               />
             </div>
 
-            {/* INPUT PAROLA */}
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium text-brand-text">Password</label>
+              <label className="text-sm font-medium text-brand-text">
+                Password
+              </label>
               <input
                 type="password"
-                className="bg-brand-bg/50 border border-brand-border text-brand-text rounded-xl px-4 py-2 placeholder-brand-muted focus:outline-none focus:border-brand-primary transition"                
+                className="bg-brand-bg/50 border border-brand-border text-brand-text rounded-xl px-4 py-2 placeholder-brand-muted focus:outline-none focus:border-brand-primary transition"
+                value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
               />
             </div>
 
+<<<<<<< HEAD:app/login/page.tsx
             {/* MESAJ DE EROARE */}
             {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
+=======
+            {error && (
+              <p className="text-red-500 text-sm font-medium">{error}</p>
+            )}
 
-            {/* BUTON LOGIN */}
+            {success && (
+              <p className="text-brand-accent text-sm font-medium">{success}</p>
+            )}
+>>>>>>> b9f5decb0ddd8976e86bafd396564e36a4ea7707:app/(marketing)/login/page.tsx
+
             <button
               type="submit"
               disabled={loading}
               className="w-full py-3 bg-brand-primary hover:bg-brand-primary/90 transition rounded-xl font-semibold text-white disabled:opacity-50"
-            >              
+            >
               {loading ? "Loading..." : "Log in"}
             </button>
           </form>
 
-          {/* LINK CATRE REGISTER */}
-          <p className="text-sm text-brand-muted text-center mt-4">            
-            Don't have an account?
+          <p className="text-sm text-brand-muted text-center mt-4">
+            Don&apos;t have an account?
             <a
               href="/register"
               className="text-brand-primary hover:opacity-80 ml-1"
-            >              
+            >
               Create account
             </a>
           </p>
