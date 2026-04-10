@@ -4,8 +4,16 @@ import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { register, clearError } from "@/store/slices/authSlice";
+
 export default function RegisterPage() {
     const router = useRouter();
+
+    const dispatch = useAppDispatch();
+
+    // Extragem loading si error din Redux
+    const { loading, error } = useAppSelector((state) => state.auth);
 
     // ----------------------------------------
     // STATE ADMIN
@@ -29,17 +37,18 @@ export default function RegisterPage() {
     // ----------------------------------------
     // UI STATE
     // ----------------------------------------
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState("");
     const [success, setSuccess] = useState(false);
 
+    // Erori de validare client-side
+    const [validationError, setValidationError] = useState("");
+
     // ----------------------------------------
-    // HANDLE SUBMIT (FAKE BACKEND)
+    // HANDLE SUBMIT 
     // ----------------------------------------
-    function handleSubmit(e: React.FormEvent) {
+    async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        setLoading(true);
-        setError("");
+        dispatch(clearError());
+        setValidationError("");
         setSuccess(false);
 
         // VALIDARE CLIENT-SIDE
@@ -53,60 +62,48 @@ export default function RegisterPage() {
             !city ||
             !organizationType
         ) {
-            setError("Please fill in all required fields.");
-            setLoading(false);
+            setValidationError("Please fill in all required fields.");
             return;
         }
 
         // VALIDARE EMAIL
         if (!adminEmail.includes("@")) {
-            setError("Invalid email.");
-            setLoading(false);
+            setValidationError("Invalid email.");
             return;
         }
 
         // VALIDARE CONFIRM PASSWORD
         if (adminPassword !== confirmPassword) {
-            setError("Passwords do not match.");
-            setLoading(false);
+            setValidationError("Passwords do not match.");
             return;
         }
 
-        // SIMULARE REQUEST
+        // Trimitem datele catre Redux thunk
+        const result = await dispatch(register({
+            firstName: adminFirstName.trim(),
+            lastName: adminLastName.trim(),
+            email: adminEmail.trim(),
+            password: adminPassword,
+            confirmPassword,
+            organizationName: organizationName.trim(),
+            country: country.trim(),
+            city: city.trim(),
+            organizationType: organizationType.trim(),
+            address: address.trim(),
+            phoneNumber: phoneNumber.trim(),
+        }));
+
+        // Daca register-ul a esuat, oprim
+        if (!register.fulfilled.match(result)) {
+            return;
+        }
+
+        // Daca register-ul a reusit
+        setSuccess(true);
+
         setTimeout(() => {
-            // Simulare erori business
-            if (adminEmail.includes("test")) {
-                setError("This email is already in use.");
-                setLoading(false);
-                return;
-            }
-
-            if (organizationName.toLowerCase() === "demo") {
-                setError("This organization already exists.");
-                setLoading(false);
-                return;
-            }
-
-            // SUCCES
-            setSuccess(true);
-
-            // Salvam user-ul in localStorage (fake)
-            localStorage.setItem(
-                "user",
-                JSON.stringify({
-                    role: "admin",
-                    adminFirstName,
-                    adminLastName,
-                    adminEmail,
-                    organizationName,
-                })
-            );
-
-            setLoading(false);
-
-            // Redirect catre dashboard admin
             router.push("/dashboard/admin");
-        }, 1200);
+        }, 800);
     }
 
     return (
@@ -235,7 +232,12 @@ export default function RegisterPage() {
                             />
                         </div>
 
-                        {/* ERORI */}
+                        {/* ERORI VALIDARE CLIENT-SIDE */}
+                        {validationError && (
+                            <p className="text-red-500 text-sm font-medium">{validationError}</p>
+                        )}
+                        
+                        {/* ERORI BCKEND */}
                         {error && (
                             <p className="text-red-500 text-sm font-medium">{error}</p>
                         )}
