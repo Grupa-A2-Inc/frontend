@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState } from "react";
@@ -13,13 +12,13 @@ type LoginResponse = {
   message?: string;
   accessToken: string;
   user: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    role: string;
+    id?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    role?: string;
     status?: string;
-    organizationId?: string;
+    organizationId?: string | number;
     organizationName?: string;
     organizationType?: string;
     country?: string;
@@ -57,37 +56,39 @@ export default function LoginPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include",
         body: JSON.stringify({
           email: email.trim(),
           password,
         }),
       });
 
-      let data: LoginResponse | { message?: string } | null = null;
-
-      try {
-        data = await response.json();
-      } catch {
-        data = null;
-      }
+      const text = await response.text();
+      const data: LoginResponse | null = text ? JSON.parse(text) : null;
 
       if (!response.ok) {
-        const message =
-          data && "message" in data && data.message
-            ? data.message
-            : "Login failed. Please check your credentials.";
-        throw new Error(message);
+        throw new Error(
+          data?.message || "Login failed. Please check your credentials."
+        );
       }
 
-      const loginData = data as LoginResponse;
+      const normalizedUser = {
+        ...data?.user,
+        role: String(data?.user?.role || "").toLowerCase(),
+        organizationId: data?.user?.organizationId
+          ? String(data.user.organizationId)
+          : undefined,
+      };
 
-      localStorage.setItem("accessToken", loginData.accessToken);
-      localStorage.setItem("user", JSON.stringify(loginData.user));
+      if (!data?.accessToken) {
+        throw new Error("Access token was not returned by the server.");
+      }
+
+      localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
 
       setSuccess("Login successful!");
 
-      const normalizedRole = String(loginData.user.role || "").toLowerCase();
+      const normalizedRole = normalizedUser.role;
 
       setTimeout(() => {
         if (normalizedRole === "admin") {

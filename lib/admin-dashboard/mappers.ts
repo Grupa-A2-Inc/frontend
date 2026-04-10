@@ -1,37 +1,29 @@
 import {
-    AdminDashboardStats,
-    OrganizationProfile,
-    UpdateOrganizationPayload,
+  OrganizationProfile,
+  UpdateOrganizationPayload,
 } from "./types";
 
-export function mapOrganizationResponse(data : any): OrganizationProfile {
-    return {
-        id : String(data?.id ?? ""),
-        organizationName : data?.name ?? "",
-        organizationType : data?.organizationType ?? "",
-        country : data?.country ?? "",
-        city: data?.city ?? "",
-        address: data?.address ?? "",
-        phoneNumber: data?.phoneNumber ?? "",
-    };
+export function mapOrganizationResponse(data: any): OrganizationProfile {
+  return {
+    id: String(data?.id ?? ""),
+    organizationName: String(data?.name ?? ""),
+    organizationType: String(data?.organizationType ?? ""),
+    country: String(data?.country ?? ""),
+    city: String(data?.city ?? ""),
+    address: String(data?.address ?? ""),
+    phoneNumber: String(data?.phoneNumber ?? ""),
+  };
 }
 
-export function mapUpdateOrganizationPayload(organization : OrganizationProfile):
-UpdateOrganizationPayload {
-    return {
-        name : organization.organizationName,
-        organizationType: organization.organizationType,
-        country: organization.country,
-        city: organization.city,
-        address: organization.address ?? "",
-        phoneNumber: organization.phoneNumber ?? "",
-    };
-}
-export function mapFallbackStats(): AdminDashboardStats {
-    return {
-        totalStudents : 0, 
-        totalteachers : 0,
-        totalClasses : 0,
-        totalCourses : 0,
-    };
+export function mapUpdateOrganizationPayload(
+  organization: OrganizationProfile
+): UpdateOrganizationPayload {
+  return {
+    name: organization.organizationName.trim(),
+    organizationType: organization.organizationType.trim(),
+    country: organization.country.trim(),
+    city: organization.city.trim(),
+    address: organization.address.trim(),
+    phoneNumber: organization.phoneNumber.trim(),
+  };
 }

@@ -12,13 +12,13 @@ type RegisterResponse = {
   message?: string;
   accessToken: string;
   user: {
-    id: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    role: string;
+    id?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    role?: string;
     status?: string;
-    organizationId?: string;
+    organizationId?: string | number;
     organizationName?: string;
     organizationType?: string;
     country?: string;
@@ -84,46 +84,48 @@ export default function RegisterPage() {
 
     try {
       const response = await fetch(`${API_BASE}/api/v1/auth/register`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          firstName: adminFirstName.trim(),
-          lastName: adminLastName.trim(),
-          email: adminEmail.trim(),
-          password: adminPassword,
-          confirmPassword,
-          organizationName: organizationName.trim(),
-          country: country.trim(),
-          city: city.trim(),
-          organizationType: organizationType.trim(),
-          address: address.trim(),
-          phoneNumber: phoneNumber.trim(),
-        }),
-      });
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    firstName: adminFirstName.trim(),
+    lastName: adminLastName.trim(),
+    email: adminEmail.trim(),
+    password: adminPassword,
+    confirmPassword,
+    organizationName: organizationName.trim(),
+    country: country.trim(),
+    city: city.trim(),
+    organizationType: organizationType.trim(),
+    address: address.trim(),
+    phoneNumber: phoneNumber.trim(),
+  }),
+});
 
-      let data: RegisterResponse | { message?: string } | null = null;
 
-      try {
-        data = await response.json();
-      } catch {
-        data = null;
-      }
+const text = await response.text();
+const data: RegisterResponse | null = text ? JSON.parse(text) : null;
+
 
       if (!response.ok) {
-        const message =
-          data && "message" in data && data.message
-            ? data.message
-            : "Failed to create organization.";
-        throw new Error(message);
+        throw new Error(data?.message || "Failed to create organization.");
       }
 
-      const registerData = data as RegisterResponse;
+      const normalizedUser = {
+        ...data?.user,
+        role: String(data?.user?.role || "").toLowerCase(),
+        organizationId: data?.user?.organizationId
+          ? String(data.user.organizationId)
+          : undefined,
+      };
 
-      localStorage.setItem("accessToken", registerData.accessToken);
-      localStorage.setItem("user", JSON.stringify(registerData.user));
+      if (!data?.accessToken) {
+        throw new Error("Access token was not returned by the server.");
+      }
+
+      localStorage.setItem("accessToken", data.accessToken);
+      localStorage.setItem("user", JSON.stringify(normalizedUser));
 
       setSuccess(true);
 

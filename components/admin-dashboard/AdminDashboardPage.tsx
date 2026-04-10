@@ -6,6 +6,7 @@ import {
   getDashboardStats,
   getOrganizationById,
   getOrganizationIdFromStorage,
+  getAccessToken,
 } from "@/lib/admin-dashboard/api";
 import AdminKpiGrid from "./AdminKpiGrid";
 import OrganizationSummaryCard from "./OrganizationSummaryCard";
@@ -23,7 +24,12 @@ export default function AdminDashboardPage() {
       setIsLoading(true);
       setErrorMessage("");
 
+      const token = getAccessToken();
       const organizationId = getOrganizationIdFromStorage();
+    
+       if (!token) {
+      throw new Error("Access token was not found. Please sign in again.");
+    }
 
       if (!organizationId) {
         throw new Error(
@@ -129,3 +135,7 @@ export default function AdminDashboardPage() {
     </div>
   );
 }
+
+
+
+

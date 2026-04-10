@@ -139,18 +139,26 @@ export default function SidebarWrapper({ children }: any) {
     if (saved !== null) setCollapsed(JSON.parse(saved));
   }, []);
 
-  useEffect(() => {
-    const saved = localStorage.getItem("user");
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      setUser({
-        name: parsed.name || `${parsed.adminFirstName} ${parsed.adminLastName}`,
-        email: parsed.email || parsed.adminEmail,
-        role: parsed.role || "admin",
-      });
-    }
-  }, []);
+useEffect(() => {
+  const saved = localStorage.getItem("user");
 
+  if (saved) {
+    const parsed = JSON.parse(saved);
+
+    const fullName =
+      parsed.name ||
+      `${parsed.firstName ?? ""} ${parsed.lastName ?? ""}`.trim() ||
+      `${parsed.adminFirstName ?? ""} ${parsed.adminLastName ?? ""}`.trim() ||
+      "John Doe";
+
+    setUser({
+      name: fullName,
+      email: parsed.email || parsed.adminEmail || "john@example.com",
+      role: String(parsed.role || "admin").toLowerCase(),
+    });
+  }
+}, []);
+  
   const toggleSidebar = () => {
     const next = !collapsed;
     setCollapsed(next);
