@@ -64,7 +64,9 @@ interface AuthState {
 // ---------- Initial state ----------
 const initialState: AuthState = {
   user: null,
-  token: null,
+  organization: null,
+  accessToken: null,
+  isAuthenticated: false,
   loading: false,
   error: null,
 };
@@ -153,13 +155,13 @@ export const register = createAsyncThunk(
 const authSlice = createSlice({
   name: "auth",
   initialState,
-
-  // Reduceri sincrone (ex: logout)
   reducers: {
     // Logout - sterge toate datele din state
     logout(state) {
       state.user = null;
-      state.token = null;
+      state.organization = null;
+      state.accessToken = null;
+      state.isAuthenticated = false;
       state.error = null;
 
       // Stergem token-ul din cookies pentru proxy
