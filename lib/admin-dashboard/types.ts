@@ -4,6 +4,7 @@ export type AdminDashboardStats = {
     totalClasses : number;
     totalCourses : number;
 
+    warnings?: string[];
 };
 
 export type OrganizationProfile = {
