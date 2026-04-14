@@ -32,7 +32,7 @@ export default function LoginPage() {
       return;
     const role = result.payload.user.role;
 
-    if (role === "ADMIN") 
+    if (role === "ORGANIZATION_ADMIN") 
       router.push("/dashboard/admin");
 
     if (role === "TEACHER") 
@@ -77,6 +77,7 @@ export default function LoginPage() {
               <label className="text-sm font-medium text-brand-text">Email</label>
               <input
                 type="email"
+                value={email}
                 className="bg-brand-bg/50 border border-brand-border text-brand-text rounded-xl px-4 py-2 placeholder-brand-muted focus:outline-none focus:border-brand-primary transition"                
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="e.g. student@school.com"
@@ -88,6 +89,7 @@ export default function LoginPage() {
               <label className="text-sm font-medium text-brand-text">Password</label>
               <input
                 type="password"
+                value={password}
                 className="bg-brand-bg/50 border border-brand-border text-brand-text rounded-xl px-4 py-2 placeholder-brand-muted focus:outline-none focus:border-brand-primary transition"                
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
