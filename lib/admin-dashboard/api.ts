@@ -1,6 +1,5 @@
 import {
   mapOrganizationResponse,
-  mapUpdateOrganizationPayload,
 } from "./mappers";
 import {
   AdminDashboardStats,
@@ -146,31 +145,44 @@ export async function getDashboardStats(): Promise<AdminDashboardStats> {
         headers: getAuthHeaders(),
         cache: "no-store",
       }),
-      fetch(`${API_BASE}/api/courses`, {
+      fetch(`${API_BASE}/api/courses/public`, {
         headers: getAuthHeaders(),
         cache: "no-store",
       }),
     ]);
 
-    // Users
     let totalStudents = 0;
     let totalTeachers = 0;
 
     if (usersRes.ok) {
       const users = await usersRes.json();
-      const list = Array.isArray(users) ? users : users.data ?? [];
-      totalStudents = list.filter((u: any) => u.roleName === "STUDENT").length;
-      totalTeachers = list.filter((u: any) => u.roleName === "TEACHER").length;
+      const list = Array.isArray(users)
+        ? users
+        : Array.isArray(users?.data)
+        ? users.data
+        : [];
+
+      totalStudents = list.filter(
+        (u: any) => String(u.roleName ?? u.role ?? "").toUpperCase() === "STUDENT"
+      ).length;
+
+      totalTeachers = list.filter(
+        (u: any) => String(u.roleName ?? u.role ?? "").toUpperCase() === "TEACHER"
+      ).length;
     } else {
       warnings.push("Could not load users data.");
     }
 
-    // Courses
     let totalCourses = 0;
 
     if (coursesRes.ok) {
       const courses = await coursesRes.json();
-      const list = Array.isArray(courses) ? courses : courses.data ?? [];
+      const list = Array.isArray(courses)
+        ? courses
+        : Array.isArray(courses?.data)
+        ? courses.data
+        : [];
+
       totalCourses = list.length;
     } else {
       warnings.push("Could not load courses data.");
@@ -179,9 +191,9 @@ export async function getDashboardStats(): Promise<AdminDashboardStats> {
     return {
       totalStudents,
       totalTeachers,
-      totalClasses: 0, // nu există endpoint pentru classes în backend momentan
+      totalClasses: 0,
       totalCourses,
-      ...(warnings.length > 0 ? { warnings } : {}),
+      warnings,
     };
   } catch (error) {
     if (error instanceof Error) throw error;

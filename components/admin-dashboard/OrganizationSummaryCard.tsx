@@ -4,21 +4,20 @@ import { useState } from "react";
 import { OrganizationProfile } from "@/lib/admin-dashboard/types";
 import OrganizationInlineEditForm from "./OrganizationInlineEditForm";
 
-import { useDashboardStore } from "@/lib/admin-dashboard/store";
 import { getOrganizationById } from "@/lib/admin-dashboard/api";
 
 type Props = {
   organization: OrganizationProfile; // datele organizatiei afisate in card
+  onOrganizationUpdated: (org: OrganizationProfile) => void;
 };
 
 export default function OrganizationSummaryCard({
   organization,
+  onOrganizationUpdated,
 }: Props) {
   const [isEditing, setIsEditing] = useState(false);
   // Controleaza daca afisam formularul de editare sau doar informatiile
   // false = modeul de vizualizare, true = modul de editare
-
-  const { setOrganization } = useDashboardStore();
 
   return (
     <div 
@@ -70,7 +69,7 @@ export default function OrganizationSummaryCard({
             const id = updatedOrganization.id;
             const fresh = await getOrganizationById(id);
 
-            setOrganization(fresh);
+            onOrganizationUpdated(fresh);
           }}
         />
       ) : (
