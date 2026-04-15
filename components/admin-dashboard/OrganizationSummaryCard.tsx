@@ -47,6 +47,13 @@ export default function OrganizationSummaryCard({
               border-[rgb(var(--border))] 
               text-[rgb(var(--text-primary))]
               px-3 py-2 text-sm font-medium 
+
+              cursor-pointer
+              transition
+              duration-150
+              ease-out
+              hover:scale-[1.02]
+
               hover:bg-[rgb(var(--bg-card-hover))]
               hover:border-[rgb(var(--border-hover))]  
             "
