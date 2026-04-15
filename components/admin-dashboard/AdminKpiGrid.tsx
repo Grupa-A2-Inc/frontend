@@ -1,13 +1,10 @@
 import { AdminDashboardStats } from "@/lib/admin-dashboard/types";
 import AdminKpiCard from "./AdminKpiCard";
 
-import { useDashboardStore } from "@/lib/admin-dashboard/store";
-
 // Componenta AdminKpiGrid este responasbila doar pentru layout
-export default function AdminKpiGrid() {
-  const { stats } = useDashboardStore();
-
-  if (!stats) return null;
+export default function AdminKpiGrid({ stats }: { stats: AdminDashboardStats }) {
+  if (!stats) 
+    return null;
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">

@@ -1,6 +1,5 @@
 import {
   mapOrganizationResponse,
-  mapUpdateOrganizationPayload,
 } from "./mappers";
 import {
   AdminDashboardStats,

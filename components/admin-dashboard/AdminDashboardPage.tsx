@@ -3,9 +3,6 @@
 import { useEffect, useState } from "react";
 // Importam hook urile React pentru state si efecte
 
-import { AdminDashboardStats, OrganizationProfile } from "@/lib/admin-dashboard/types";
-// Tipurile Typescript pentru datele pe care le primim din backend
-
 import {
   getDashboardStats,
   getOrganizationById,
@@ -18,19 +15,13 @@ import AdminKpiGrid from "./AdminKpiGrid";
 import OrganizationSummaryCard from "./OrganizationSummaryCard";
 import AdminQuickLinks from "./AdminQuickLinks";
 import AdminStatusBanner from "./AdminStatusBanner";
+import { AdminDashboardStats, OrganizationProfile } from "@/lib/admin-dashboard/types";
 // Componente vizuale ale dashboard-ului
-
-import { useDashboardStore } from "@/lib/admin-dashboard/store";
 
 export default function AdminDashboardPage() {
 
-  // Folosim store-ul global
-  const {
-    stats, 
-    organization,
-    setStats,
-    setOrganization,
-  } = useDashboardStore();
+  const [stats, setStats] = useState<AdminDashboardStats | null>(null);
+  const [organization, setOrganization] = useState<OrganizationProfile | null>(null);
 
   const [isInitialLoading, setIsInitialLoading] = useState(false);
 
@@ -109,7 +100,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* KPI Grid */}
-      <AdminKpiGrid />
+      <AdminKpiGrid stats={stats} />
 
       {/* Banner de warning (daca exista) */}
       {(stats.warnings?.length ?? 0) > 0 && (
@@ -122,6 +113,7 @@ export default function AdminDashboardPage() {
       <div className="grid gap-10 xl:grid-cols-[1.35fr_1fr]">
         <OrganizationSummaryCard
           organization={organization}
+          onOrganizationUpdated={(fresh: OrganizationProfile) => setOrganization(fresh)}
         />
         <AdminQuickLinks />
       </div>
