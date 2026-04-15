@@ -11,23 +11,31 @@ type Props = {
 export default function AdminStatusBanner({ variant, message }: Props) {
   // Mapam fiecare varianta la stilurile ei vizuale in dark mode
   const classes = {
-    success: "bg-green-500/10 border-green-500/30 text-green-300",
-    error: "bg-red-500/10 border-red-500/30 text-red-300",
-    warning: "bg-yellow-500/10 border-yellow-500/30 text-yellow-300",
+    success: 
+      "bg-[rgb(var(--success-bg))] border-[rgb(var(--success-border))] text-[rgb(var(--success-text))]",
+    error: 
+      "bg-[rgb(var(--error-bg))] border-[rgb(var(--error-border))] text-[rgb(var(--error-text))]",
+    warning: 
+      "bg-[rgb(var(--warning-bg))] border-[rgb(var(--warning-border))] text-[rgb(var(--warning-text))]",
   };
 
   // Mapam fiecare varianta la iconita ei
   const icons = {
-    success: <FiCheckCircle className="text-green-400 text-xl" />,
-    error: <FiXCircle className="text-red-400 text-xl" />,
-    warning: <FiAlertTriangle className="text-yellow-400 text-xl" />,
+    success: (
+      <FiCheckCircle className="text-[rgb(var(--success-text))] text-xl" />
+    ),
+    error: <FiXCircle className="text-[rgb(var(--error-text))] text-xl" />,
+    warning: (
+      <FiAlertTriangle className="text-[rgb(var(--warning-text))] text-xl" />
+    ),
   };
 
   return (
     <div 
       className={`
         rounded-xl 
-        border 
+        border-[rgb(var(--border))] 
+        bg-[rgb(var(--bg-card))]
         p-4
         flex
         items-center

@@ -1,4 +1,3 @@
-import { dashboardStatsFallback } from "./mock";
 import {
   mapOrganizationResponse,
   mapUpdateOrganizationPayload,
@@ -7,6 +6,7 @@ import {
   AdminDashboardStats,
   OrganizationProfile,
   StoredUser,
+  UpdateOrganizationPayload,
 } from "./types";
 
 const API_BASE =
@@ -46,7 +46,7 @@ function getAuthHeaders(): HeadersInit {
 }
 
 export async function getOrganizationById(
-  organizationId: string
+  organizationId: string,
 ): Promise<OrganizationProfile> {
   const token = getAccessToken();
 
@@ -93,15 +93,13 @@ export async function getOrganizationById(
 
 export async function updateOrganizationById(
   organizationId: string,
-  organization: OrganizationProfile
+  payload: UpdateOrganizationPayload
 ): Promise<void> {
   const token = getAccessToken();
 
   if (!token) {
     throw new Error("Access token was not found. Please sign in again.");
   }
-
-  const payload = mapUpdateOrganizationPayload(organization);
 
   try {
     const response = await fetch(
@@ -134,5 +132,59 @@ export async function updateOrganizationById(
 }
 
 export async function getDashboardStats(): Promise<AdminDashboardStats> {
-  return dashboardStatsFallback;
+  const token = getAccessToken();
+
+  if (!token) {
+    throw new Error("Access token was not found. Please sign in again.");
+  }
+
+  const warnings: string[] = [];
+
+  try {
+    const [usersRes, coursesRes] = await Promise.all([
+      fetch(`${API_BASE}/api/v1/users`, {
+        headers: getAuthHeaders(),
+        cache: "no-store",
+      }),
+      fetch(`${API_BASE}/api/courses`, {
+        headers: getAuthHeaders(),
+        cache: "no-store",
+      }),
+    ]);
+
+    // Users
+    let totalStudents = 0;
+    let totalTeachers = 0;
+
+    if (usersRes.ok) {
+      const users = await usersRes.json();
+      const list = Array.isArray(users) ? users : users.data ?? [];
+      totalStudents = list.filter((u: any) => u.roleName === "STUDENT").length;
+      totalTeachers = list.filter((u: any) => u.roleName === "TEACHER").length;
+    } else {
+      warnings.push("Could not load users data.");
+    }
+
+    // Courses
+    let totalCourses = 0;
+
+    if (coursesRes.ok) {
+      const courses = await coursesRes.json();
+      const list = Array.isArray(courses) ? courses : courses.data ?? [];
+      totalCourses = list.length;
+    } else {
+      warnings.push("Could not load courses data.");
+    }
+
+    return {
+      totalStudents,
+      totalTeachers,
+      totalClasses: 0, // nu există endpoint pentru classes în backend momentan
+      totalCourses,
+      ...(warnings.length > 0 ? { warnings } : {}),
+    };
+  } catch (error) {
+    if (error instanceof Error) throw error;
+    throw new Error("Failed to fetch dashboard stats.");
+  }
 }

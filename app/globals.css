@@ -12,6 +12,32 @@
     
     --primary: 91, 106, 208;
     --accent: 0, 151, 178;
+
+    /* Success */
+    --success-bg: 34 197 94 / 0.1;
+    --success-border: 34 197 94 / 0.3;
+    --success-text: 34 197 94;
+
+    /* Error */
+    --error-bg: 239 68 68 / 0.1;
+    --error-border: 239 68 68 / 0.3;
+    --error-text: 239 68 68;
+
+    /* Warning */
+    --warning-bg: 234 179 8 / 0.1;
+    --warning-border: 234 179 8 / 0.3;
+    --warning-text: 234 179 8;
+
+    /* Skeleton */
+    --skeleton-bg-1: 255 255 255 / 0.10;
+    --skeleton-bg-2: 255 255 255 / 0.05;
+
+    /* Buttons */
+    --button-primary-bg: 0 0 0;
+    --button-primary-text: 255 255 255;
+
+    --bg-card-hover: 245, 245, 255;
+    --border-hover: 210, 210, 240;
   }
 
   .dark {
@@ -24,6 +50,32 @@
     
     --primary: 91, 106, 208;
     --accent: 0, 151, 178;
+
+    /* Success (dark mode) */
+    --success-bg: 34 197 94 / 0.15;
+    --success-border: 34 197 94 / 0.4;
+    --success-text: 134 239 172;
+
+    /* Error (dark mode) */
+    --error-bg: 239 68 68 / 0.15;
+    --error-border: 239 68 68 / 0.4;
+    --error-text: 248 113 113;
+
+    /* Warning (dark mode) */
+    --warning-bg: 234 179 8 / 0.15;
+    --warning-border: 234 179 8 / 0.4;
+    --warning-text: 253 224 71;
+
+    /* Skeleton (dark mode) */
+    --skeleton-bg-1: 255 255 255 / 0.08;
+    --skeleton-bg-2: 255 255 255 / 0.04;
+
+    /* Buttons (dark mode) */
+    --button-primary-bg: 255 255 255;
+    --button-primary-text: 0 0 0;
+
+    --bg-card-hover: 32, 40, 60;
+    --border-hover: 60, 70, 110;
   }
 }
 
@@ -97,6 +149,6 @@ body {
 
 /* Clasă adusă de pe Main pentru Dashboard */
 .dashboard-body {
-  background: #060d1f;
-  color: #fff;
+  background: rgb(var(--bg));
+  color: rgb(var(--text-primary));
 }

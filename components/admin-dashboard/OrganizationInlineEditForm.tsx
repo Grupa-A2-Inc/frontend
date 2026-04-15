@@ -2,16 +2,24 @@
 
 import { useState } from "react";
 import { OrganizationProfile } from "@/lib/admin-dashboard/types";
+// Tipul de date pentru profilul organizatiei
+
+import { UpdateOrganizationPayload } from "@/lib/admin-dashboard/types";
+
 import {
   getOrganizationIdFromStorage,
   updateOrganizationById,
 } from "@/lib/admin-dashboard/api";
-import AdminStatusBanner from "./AdminStatusBanner";
+// Functii care citesc ID-ul organizatiei si trimit update-uir catre backend
 
+import AdminStatusBanner from "./AdminStatusBanner";
+// Componenta reutilizabila pentru afisarea mesajelor de eroare/succes
+
+// Tipurile primite ca props
 type Props = {
   initialValues: OrganizationProfile;
   onCancel: () => void;
-  onSuccess: () => void;
+  onSuccess: (updatedOrganization: OrganizationProfile) => void;
 };
 
 export default function OrganizationInlineEditForm({
@@ -21,9 +29,11 @@ export default function OrganizationInlineEditForm({
 }: Props) {
   const [form, setForm] = useState<OrganizationProfile>(initialValues);
   const [isSaving, setIsSaving] = useState(false);
+
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
+  // Functie generica pentru actualizarea campurilor din formular
   function setField<K extends keyof OrganizationProfile>(
     field: K,
     value: OrganizationProfile[K]
@@ -34,6 +44,7 @@ export default function OrganizationInlineEditForm({
     }));
   }
 
+  // Validare simpla a campurilor obligatorii
   function validate() {
     if (!form.organizationName.trim()) {
       return "Organization name is required.";
@@ -54,20 +65,23 @@ export default function OrganizationInlineEditForm({
     return "";
   }
 
+  // Handler pentru submit-ul formularului
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
+    // Resetam mesajele
     setErrorMessage("");
     setSuccessMessage("");
 
+    // Validare
     const validationError = validate();
     if (validationError) {
       setErrorMessage(validationError);
       return;
     }
 
+    // Obtinem ID-ul organizatiei
     const organizationId = getOrganizationIdFromStorage();
-
     if (!organizationId) {
       setErrorMessage("Organization ID was not found in the current session.");
       return;
@@ -76,13 +90,28 @@ export default function OrganizationInlineEditForm({
     setIsSaving(true);
 
     try {
-      await updateOrganizationById(organizationId, form);
+      // Trimitem update-ul catre backend
+      const payload: UpdateOrganizationPayload = {
+        name: form.organizationName,
+        organizationType: form.organizationType,
+        country: form.country,
+        city: form.city,
+        address: form.address,
+        phoneNumber: form.phoneNumber,
+
+      };
+
+      await updateOrganizationById(organizationId, payload);
+
+      // Afisam mesaj de succes
       setSuccessMessage("Organization details were updated successfully.");
 
+      // Asteptam putin si notificam componenta parinte
       setTimeout(() => {
-        onSuccess();
+        onSuccess(form);
       }, 500);
     } catch (error) {
+      // Gestionam erorile 
       setErrorMessage(
         error instanceof Error
           ? error.message
@@ -95,14 +124,18 @@ export default function OrganizationInlineEditForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+
+      {/* Banner pentru erori */}
       {errorMessage ? (
         <AdminStatusBanner variant="error" message={errorMessage} />
       ) : null}
 
+      {/* Banner pentru succes */}
       {successMessage ? (
         <AdminStatusBanner variant="success" message={successMessage} />
       ) : null}
 
+      {/* Grid cu campurile formularului */}
       <div className="grid gap-4 sm:grid-cols-2">
         <Field
           label="Organization Name"
@@ -140,20 +173,36 @@ export default function OrganizationInlineEditForm({
         />
       </div>
 
+      {/* Butoane de actiune */}
       <div className="flex flex-wrap gap-3 pt-2">
+
+        {/* Butonul de salvare */}
         <button
           type="submit"
           disabled={isSaving}
-          className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white disabled:cursor-not-allowed disabled:opacity-50"
+          className="
+            rounded-lg 
+            bg-[rgb(var(--button-primary-bg))] 
+            px-4 py-2 text-sm font-medium 
+            text-[rgb(var(--button-primary-text))] 
+            disabled:cursor-not-allowed disabled:opacity-50
+          "
         >
           {isSaving ? "Saving..." : "Save Changes"}
         </button>
 
+        { /* Butonul de anulare */}
         <button
           type="button"
           onClick={onCancel}
           disabled={isSaving}
-          className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+          className="
+            rounded-lg 
+            border-[rgb(var(--border))] 
+            px-4 py-2 text-sm font-medium 
+            hover:bg-[rgb(var(--bg-card))]/80 
+            disabled:cursor-not-allowed disabled:opacity-50
+          "
         >
           Cancel
         </button>
@@ -162,6 +211,7 @@ export default function OrganizationInlineEditForm({
   );
 }
 
+// Componenta mica si reutilizabila pentru campurile formularului
 type FieldProps = {
   label: string;
   value: string;
@@ -172,14 +222,25 @@ type FieldProps = {
 function Field({ label, value, onChange, required }: FieldProps) {
   return (
     <label className="space-y-2">
-      <span className="text-sm font-medium text-gray-700">
+
+      {/* Label-ul campului */}
+      <span className="text-sm font-medium text-[rgb(var(--text-primary))]">
         {label}
         {required ? " *" : ""}
       </span>
+
+      {/* Input-ul propriu-zis */}
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-lg border px-3 py-2.5 text-sm outline-none transition focus:border-black"
+        className="
+          w-full rounded-lg 
+          border-[rgb(var(--border))]
+          bg-[rgb(var(--bg-card))] 
+          text-[rgb(var(--text-secondary))]
+          px-3 py-2.5 text-sm outline-none transition 
+          focus:border-[rgb(var(--text-primary))]
+        "
       />
     </label>
   );

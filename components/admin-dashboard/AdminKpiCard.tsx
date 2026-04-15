@@ -9,31 +9,30 @@ export default function AdminKpiCard({ label, value, helperText }: Props) {
   return (
     <div 
       className="
-        rounded-2xl 
-        border 
-        border-white/10
-        bg-white/5 
+        rounded-2xl
+        border-[rgb(var(--border))]
+        bg-[rgb(var(--bg-card))]
         backdrop-blur-sm
         p-5
         shadow-sm
         transition
-        hover:bg-white/10
-        hover:border-white/20
+        hover:bg-[rgb(var(--bg-card-hover))]
+        hover:border-[rgb(var(--border-hover))]
       "
     >
       {/* Label-ul KPI-ului */}
-      <p className="text-sm font-medium text-gray-400">
+      <p className="text-sm font-medium text-[rgb(var(--text-secondary))]">
         {label}
       </p>
 
       {/* Valoarea KPI-ului */}
-      <p className="mt-3 text-3xl font-semibold tracking-tight text-white">
+      <p className="mt-3 text-3xl font-semibold tracking-tight text-[rgb(var(--text-primary))]">
         {value}
       </p>
 
       {/* Text optional afisat sub valoare, doar daca exista */}
       {helperText ? (
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="mt-2 text-xs text-[rgb(var(--text-secondary))]">
           {helperText}
         </p>
       ) : null}

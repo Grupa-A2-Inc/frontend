@@ -53,19 +53,19 @@ function NavItem({ item, collapsed, pathname }: any) {
             ${collapsed ? "justify-center py-2.5 px-2" : "gap-3 px-4 py-2.5"}
             ${
               isActive
-                ? "bg-[#7c6fcd]/25 text-white"
-                : "text-white/70 hover:text-white hover:bg-[#7c6fcd]/15"
+                ? "bg-[rgb(var(--primary))]/25 text-[rgb(var(--text-primary))]"
+                : "text-[rgb(var(--text-secondary))] hover:text-[rgb(var(--text-primary))] hover:bg-[rgb(var(--primary))]/15"
             }
           `}
         >
           <div className="relative flex items-center justify-center w-6 h-6 flex-shrink-0">
-            <span className="material-symbols-rounded text-[#7c6fcd] text-xl leading-none">
+            <span className="material-symbols-rounded text-[rgb(var(--primary))] text-xl leading-none">
               {item.icon}
             </span>
             {isActive && (
               <motion.div
                 layoutId="activeDot"
-                className="absolute -left-2.5 w-1.5 h-1.5 rounded-full bg-[#7c6fcd]"
+                className="absolute -left-2.5 w-1.5 h-1.5 rounded-full bg-[rgb(var(--primary))]"
               />
             )}
           </div>
@@ -93,7 +93,12 @@ function NavItem({ item, collapsed, pathname }: any) {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -6 }}
             transition={{ duration: 0.15 }}
-            className="fixed z-[9999] px-3 py-1.5 rounded-lg bg-[#1a2540] text-xs text-white shadow-xl whitespace-nowrap border border-[#7c6fcd]/30 pointer-events-none"
+            className="fixed z-[9999] px-3 py-1.5 rounded-lg 
+                        bg-[rgb(var(--bg-card))] 
+                        text-xs text-[rgb(var(--text-primary))] 
+                        shadow-xl whitespace-nowrap 
+                        border border-[rgb(var(--border))]/30 
+                        pointer-events-none"
             style={{
               top: "var(--tooltip-top)",
               left: "var(--tooltip-left)",
@@ -174,16 +179,16 @@ useEffect(() => {
   const navItems = navConfig[user.role as keyof typeof navConfig] || [];
 
   return (
-    <div className="flex min-h-screen bg-[#0a0f1f]">
+    <div className="flex min-h-screen bg-[rgb(var(--bg))] text-[rgb(var(--text-primary))]">
       {/* SIDEBAR */}
       <motion.aside
         animate={{ width: sidebarWidth }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="fixed top-0 left-0 h-screen bg-[#0d1528] flex flex-col"
+        className="fixed top-0 left-0 h-screen bg-[rgb(var(--bg-mid))] text-[rgb(var(--text-primary))] flex flex-col"
       >
         {/* HEADER */}
         <div
-          className={`flex items-center border-b border-[#7c6fcd]/15 flex-shrink-0 ${
+          className={`flex items-center border-b border-[rgb(var(--border))]/20 flex-shrink-0 ${
             collapsed
               ? "flex-col gap-3 p-3 justify-center"
               : "justify-between px-4 py-4"
@@ -205,9 +210,9 @@ useEffect(() => {
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: -10 }}
                   transition={{ duration: 0.2 }}
-                  className="text-white font-semibold text-lg whitespace-nowrap"
+                  className="text-[rgb(var(--text-primary))] font-semibold text-lg whitespace-nowrap"
                 >
-                  Testify<span className="text-[#7c6fcd]">AI</span>
+                  Testify<span className="text-[rgb(var(--primary))]">AI</span>
                 </motion.span>
               )}
             </AnimatePresence>
@@ -215,7 +220,11 @@ useEffect(() => {
 
           <button
             onClick={toggleSidebar}
-            className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg bg-[#7c6fcd]/15 text-[#7c6fcd] hover:bg-[#7c6fcd]/30 transition-colors"
+            className="w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg 
+                        bg-[rgb(var(--primary))]/15 
+                        text-[rgb(var(--primary))] 
+                        hover:bg-[rgb(var(--primary))]/25 
+                        transition-colors"
             style={{ border: "none", cursor: "pointer" }}
           >
             <motion.span
@@ -274,14 +283,14 @@ useEffect(() => {
                     className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-[#7c6fcd]/15 transition-colors no-underline"
                     style={{ background: "rgba(124, 111, 205, 0.08)" }}
                   >
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7c6fcd] to-[#22d3ee] flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[rgb(var(--primary))] to-[rgb(var(--accent))] flex items-center justify-center text-[rgb(var(--text-primary))] text-sm font-bold flex-shrink-0">
                       {user.name.charAt(0).toUpperCase()}
                     </div>
                     <div className="flex flex-col overflow-hidden">
-                      <span className="text-white text-sm font-semibold whitespace-nowrap overflow-hidden text-ellipsis">
+                      <span className="text-[rgb(var(--text-primary))] text-sm font-semibold">
                         {user.name}
                       </span>
-                      <span className="text-white/40 text-xs whitespace-nowrap overflow-hidden text-ellipsis">
+                      <span className="text-[rgb(var(--text-secondary))] text-xs">
                         {user.email}
                       </span>
                     </div>
@@ -297,7 +306,7 @@ useEffect(() => {
                   className="flex justify-center"
                 >
                   <Link href="/dashboard/admin/profile">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7c6fcd] to-[#22d3ee] flex items-center justify-center text-white text-sm font-bold hover:opacity-80 transition-opacity cursor-pointer">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[rgb(var(--primary))] to-[rgb(var(--accent))] flex items-center justify-center text-[rgb(var(--text-primary))] text-sm font-bold hover:opacity-80 transition-opacity cursor-pointer">
                       {user.name.charAt(0).toUpperCase()}
                     </div>
                   </Link>
@@ -316,7 +325,7 @@ useEffect(() => {
                 whileTap={{ scale: 0.98 }}
                 transition={{ duration: 0.15 }}
                 onClick={handleLogout}
-                className={`flex items-center w-full rounded-xl text-white/50 hover:text-red-400 hover:bg-red-400/10 transition-colors text-sm font-medium ${
+                className={`flex items-center w-full rounded-xl text-[rgb(var(--text-secondary))] hover:text-red-400 hover:bg-red-400/10 transition-colors text-sm font-medium ${
                   collapsed ? "justify-center p-2.5" : "gap-2.5 px-3 py-2.5"
                 }`}
                 style={{
@@ -354,7 +363,12 @@ useEffect(() => {
                     animate={{ opacity: 1, x: 0 }}
                     exit={{ opacity: 0, x: -6 }}
                     transition={{ duration: 0.15 }}
-                    className="fixed z-[9999] px-3 py-1.5 rounded-lg bg-[#1a2540] text-xs text-white shadow-xl whitespace-nowrap border border-[#7c6fcd]/30 pointer-events-none"
+                    className="fixed z-[9999] px-3 py-1.5 rounded-lg 
+                                bg-[rgb(var(--bg-card))] 
+                                text-xs text-[rgb(var(--text-primary))] 
+                                shadow-xl whitespace-nowrap 
+                                border border-[rgb(var(--border))]/30 
+                                pointer-events-none"
                     ref={(el) => {
                       if (el) {
                         const parent = el.closest(".relative");
