@@ -107,9 +107,7 @@ export default function OrganizationInlineEditForm({
       setSuccessMessage("Organization details were updated successfully.");
 
       // Asteptam putin si notificam componenta parinte
-      setTimeout(() => {
-        onSuccess(form);
-      }, 500);
+      onSuccess(form);
     } catch (error) {
       // Gestionam erorile 
       setErrorMessage(

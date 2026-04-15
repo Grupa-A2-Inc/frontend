@@ -14,20 +14,25 @@ export default function AdminKpiGrid({ stats }: { stats: AdminDashboardStats }) 
         helperText="Awaiting backend statistics integration"
       />
       <AdminKpiCard
-        label="Total Teachers"
-        value={stats.totalTeachers}
-        helperText="Awaiting backend statistics integration"
-      />
-      <AdminKpiCard
-        label="Total Classes"
-        value={stats.totalClasses}
-        helperText="Awaiting backend statistics integration"
-      />
-      <AdminKpiCard
-        label="Total Courses"
-        value={stats.totalCourses}
-        helperText="Awaiting backend statistics integration"
-      />
+  label="Total Students"
+  value={stats.totalStudents}
+  helperText="Calculated from the current users list."
+/>
+<AdminKpiCard
+  label="Total Teachers"
+  value={stats.totalTeachers}
+  helperText="Calculated from the current users list."
+/>
+<AdminKpiCard
+  label="Total Classes"
+  value={stats.totalClasses}
+  helperText="Pending backend support."
+/>
+<AdminKpiCard
+  label="Total Courses"
+  value={stats.totalCourses}
+  helperText="Based on currently available courses endpoint."
+/>
     </div>
   );
 }
