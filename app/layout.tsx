@@ -4,7 +4,6 @@ import "./globals.css";
 import StoreProvider from "@/store/StoreProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import AutoLogin from "./AutoLogin";
-import Navbar from "@/components/layout/Navbar";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -17,7 +16,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <StoreProvider>
           <AutoLogin />
           <ThemeProvider>
-            <Navbar />
             {children}
           </ThemeProvider>
         </StoreProvider>
