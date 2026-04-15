@@ -145,7 +145,7 @@ export async function getDashboardStats(): Promise<AdminDashboardStats> {
         headers: getAuthHeaders(),
         cache: "no-store",
       }),
-      fetch(`${API_BASE}/api/courses`, {
+      fetch(`${API_BASE}/api/courses/public`, {
         headers: getAuthHeaders(),
         cache: "no-store",
       }),
