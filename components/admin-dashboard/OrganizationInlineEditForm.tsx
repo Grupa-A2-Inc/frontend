@@ -184,6 +184,13 @@ export default function OrganizationInlineEditForm({
             px-4 py-2 text-sm font-medium 
             text-[rgb(var(--button-primary-text))] 
             disabled:cursor-not-allowed disabled:opacity-50
+
+            cursor-pointer
+            transition
+            duration-150
+            ease-out
+            hover:scale-[1.02]
+            hover:bg-[rgb(var(--button-primary-bg-hover))]
           "
         >
           {isSaving ? "Saving..." : "Save Changes"}
@@ -198,8 +205,15 @@ export default function OrganizationInlineEditForm({
             rounded-lg 
             border-[rgb(var(--border))] 
             px-4 py-2 text-sm font-medium 
-            hover:bg-[rgb(var(--bg-card))]/80 
+            hover:bg-[rgb(var(--bg-card))]
             disabled:cursor-not-allowed disabled:opacity-50
+
+            cursor-pointer
+            transition
+            duration-150
+            ease-out
+            hover:scale-[1.02]
+            hover:border-[rgb(var(--border-hover))]
           "
         >
           Cancel

@@ -38,7 +38,21 @@ export default function AdminQuickLinks() {
           <Link
             key={item.href}
             href={item.href}
-            className="block rounded-xl border-[rgb(var(--border))] p-4 transition hover:bg-[rgb(var(--bg-card))]/80"
+            className="
+              block 
+              rounded-xl 
+              border-[rgb(var(--border))] 
+              p-4 
+              transition 
+
+              cursor-pointer
+              hover:scale-[1.02]
+              hover:bg-[rgb(var(--bg-card-hover))]
+              hover:border-[rgb(var(--border-hover))]
+
+              duration-150
+              ease-out
+            "
           >
             {/* Titlul link-ului */}
             <p className="font-medium text-[rgb(var(--text-primary))]">

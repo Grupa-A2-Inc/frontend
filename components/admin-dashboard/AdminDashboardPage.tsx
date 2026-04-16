@@ -122,7 +122,7 @@ if (!stats || !organization) {
   return null;
 }
 
-  // ---------- MAIN DASHBOARD UI
+  // ---------- MAIN DASHBOARD UI ----------
   return (
     <div className="w-full px-6 py-10 space-y-10">
       {/* Titlu */}
