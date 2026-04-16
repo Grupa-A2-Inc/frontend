@@ -3,8 +3,6 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import Navbar from "@/components/layout/Navbar";
-
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { register, clearError } from "@/store/slices/authSlice";
 
@@ -109,7 +107,6 @@ export default function RegisterPage() {
 
     return (
         <>
-            <Navbar />
             <div className="min-h-screen flex items-center bg-brand-bg font-display transition-colors duration-300">
 
                 {/* STANGA */}

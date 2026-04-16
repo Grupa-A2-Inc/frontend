@@ -3,8 +3,6 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import Navbar from "@/components/layout/Navbar";
-
 // Redux Toolkit hooks
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { login, clearError } from "@/store/slices/authSlice";
@@ -45,8 +43,6 @@ export default function LoginPage() {
 
   return (
     <>
-      <Navbar /> 
-
       <div className="min-h-screen flex bg-brand-bg font-display transition-colors">      
         {/* -------------------- */}
         {/* SECIUNEA STANGA CU ILUSTRATIE */}
