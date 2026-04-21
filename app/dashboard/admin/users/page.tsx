@@ -1,3 +1,5 @@
-export default function UsersPage() {
-  return <h1 style={{ color: '#fff' }}>User Management</h1>;
+import UsersPage from "@/components/admin-dashboard/UsersPage";
+
+export default function UsersPageRoute() {
+  return <UsersPage />;
 }
