@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   fetchClassrooms,
@@ -196,9 +197,12 @@ export default function ClassesPage() {
             >
               {/* Name + grade badge */}
               <div className="flex items-start justify-between gap-3">
-                <h3 className="text-brand-text font-semibold text-sm leading-snug flex-1">
+                <Link
+                  href={`/dashboard/admin/classes/${classroom.id}`}
+                  className="text-brand-text font-semibold text-sm leading-snug flex-1 hover:text-brand-primary transition-colors"
+                >
                   {classroom.name}
-                </h3>
+                </Link>
                 <span className="flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-medium bg-brand-primary/15 text-brand-primary">
                   {classroom.grade}
                 </span>
