@@ -23,18 +23,17 @@ export default function StudentList({ students, studentCount, onAddClick, onRemo
     <div className="rounded-2xl border border-brand-border bg-brand-card overflow-hidden">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-brand-border px-5 py-4">
         <div>
-          <h2 className="text-sm font-black text-brand-text">Students</h2>
-          <p className="text-xs text-brand-muted mt-0.5">{studentCount} enrolled</p>
-        </div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-brand-muted mb-1.5">Elevi</p>
+<p className="text-sm text-brand-text mt-0.5">{studentCount} elevi înscriși</p>        </div>
         <div className="flex items-center gap-2">
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search students…"
+            placeholder="Caută elev…"
             className="w-52 rounded-xl border border-brand-border bg-brand-mid px-4 py-2 text-sm text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/30 transition"
           />
           <button onClick={onAddClick} className="bg-brand-primary hover:opacity-90 transition text-white rounded-xl px-4 py-2 text-sm font-bold">
-            Add student
+           Adaugă elev
           </button>
         </div>
       </div>
@@ -42,6 +41,7 @@ export default function StudentList({ students, studentCount, onAddClick, onRemo
       {filteredStudents.length === 0 ? (
         <div className="py-12 text-center text-sm text-brand-muted">No students found.</div>
       ) : (
+        <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
         <ul className="divide-y divide-brand-border">
           {filteredStudents.map((student) => (
             <li key={student.id} className="flex items-center justify-between gap-4 px-5 py-3.5 hover:bg-brand-mid/40 transition group">
@@ -64,6 +64,7 @@ export default function StudentList({ students, studentCount, onAddClick, onRemo
             </li>
           ))}
         </ul>
+        </div>
       )}
     </div>
   );

@@ -1,4 +1,6 @@
 "use client";
+import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { useState, useEffect, useCallback, use } from "react";
 import { useAppSelector } from "@/store/hooks";
 import { ClassDetails, Student } from "@/lib/classes/types";
@@ -76,11 +78,18 @@ export default function ClassManagementPage({ params }: { params: Promise<{ clas
         
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
+            <Link 
+          href="/dashboard/admin/classes" 
+          className="flex items-center gap-1 text-sm font-medium text-brand-muted hover:text-brand-text transition-colors mb-4 w-fit"
+>
+          <ChevronLeft size={16} />
+          Classes
+          </Link>
             <h1 className="text-2xl font-black tracking-tight text-brand-text">{cls.name}</h1>
             <p className="text-sm text-brand-muted">{cls.subject} · {cls.grade} · {cls.year}</p>
           </div>
           <button onClick={() => setEditing(!editing)} className="rounded-xl border border-brand-border px-4 py-2 text-sm font-semibold text-brand-text hover:bg-brand-mid transition">
-            Edit info
+            Editează
           </button>
         </div>
 
@@ -90,7 +99,7 @@ export default function ClassManagementPage({ params }: { params: Promise<{ clas
 
         {cls.description && (
           <div className="rounded-2xl border border-brand-border bg-brand-card px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-brand-muted mb-1.5">Description</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-brand-muted mb-1.5">DESCRIERE</p>
             <p className="text-sm text-brand-text">{cls.description}</p>
           </div>
         )}

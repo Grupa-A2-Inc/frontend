@@ -40,18 +40,34 @@ export default function EditInfoPanel({ cls, token, onSaved, onCancel }: Props) 
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
-          <label className="text-xs font-semibold uppercase text-brand-muted mb-1 block">Class name</label>
+          <label className="text-xs font-semibold uppercase text-brand-muted mb-1 block">Numele clasei</label>
           <input className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         </div>
         <div>
-          <label className="text-xs font-semibold uppercase text-brand-muted mb-1 block">Subject</label>
+          <label className="text-xs font-semibold uppercase text-brand-muted mb-1 block">Materie</label>
           <input className={inputCls} value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
         </div>
         <div>
-          <label className="text-xs font-semibold uppercase text-brand-muted mb-1 block">Grade</label>
+    <label className="text-xs font-semibold uppercase text-brand-muted mb-1 block">An Academic</label>
+    <input 
+      className={inputCls} 
+      value={form.year} 
+      onChange={(e) => setForm({ ...form, year: e.target.value })} 
+    />
+  </div>
+        <div>
+          <label className="text-xs font-semibold uppercase text-brand-muted mb-1 block">Clasa</label>
           <input className={inputCls} value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })} />
         </div>
       </div>
+      <div className="sm:col-span-2">
+    <label className="text-xs font-semibold uppercase text-brand-muted mb-1 block">Descriere</label>
+    <textarea 
+      className={`${inputCls} min-h-[100px] resize-none`} 
+      value={form.description} 
+      onChange={(e) => setForm({ ...form, description: e.target.value })} 
+    />
+  </div>
 
       {error && <div className="text-[rgb(var(--error-text))] text-sm">{error}</div>}
 

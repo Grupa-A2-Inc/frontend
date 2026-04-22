@@ -2,7 +2,7 @@ export default function Avatar({ name, size = "md" }: { name: string; size?: "sm
   // Am corectat n pentru a extrage doar prima literă a fiecărui nume
   const initials = name
     .split(" ")
-    .map((n) => n)
+    .map((n) => n[0])
     .slice(0, 2)
     .join("")
     .toUpperCase();
