@@ -9,9 +9,9 @@ type Props = {
 
 export default function ClassSelector({ selectedClasses, onToggle }: Props) {
   // Luam clasele din classesSlice care deja exista in store
-  const { courses } = useAppSelector((state) => state.classes);
+  const { classrooms } = useAppSelector((state) => state.classes);
 
-  if (courses.length === 0) {
+  if (classrooms.length === 0) {
     return (
       <div className="flex flex-col gap-1.5">
         <label className="text-xs font-medium text-brand-text/60">
@@ -32,7 +32,7 @@ export default function ClassSelector({ selectedClasses, onToggle }: Props) {
         <span className="text-brand-text/30 font-normal ml-1">(optional)</span>
       </label>
       <div className="flex flex-col gap-2 bg-brand-mid border border-brand-primary/20 rounded-xl p-3">
-        {courses.map((cls) => (
+        {classrooms.map((cls) => (
           <label key={cls.id} className="flex items-center gap-3 cursor-pointer group">
             <div
               onClick={() => onToggle(cls.id)}
@@ -49,7 +49,7 @@ export default function ClassSelector({ selectedClasses, onToggle }: Props) {
               )}
             </div>
             <span className="text-sm text-brand-text/70 group-hover:text-brand-text transition-colors">
-              {cls.title}
+              {cls.name}
             </span>
           </label>
         ))}
