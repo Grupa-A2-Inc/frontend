@@ -2,19 +2,16 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
 const API_URL = "https://backend-for-render-ws6z.onrender.com";
 
-// ---------- Types ----------
 
-export type CourseStatus = "DRAFT" | "PUBLISHED";
-export type CourseVisibility = "PRIVATE" | "PUBLIC";
-
-export interface Course {
+export interface Classroom {
   id: string;
-  title: string;
+  name: string;
+  grade: string;
   description: string;
-  category: string;
-  status: CourseStatus;
-  visibility: CourseVisibility;
-  createdBy: string;
+  teacherId?: string;
+  teacherName?: string;
+  studentCount: number;
+  createdAt: string;
 }
 
 export interface Teacher {
@@ -25,46 +22,72 @@ export interface Teacher {
 }
 
 interface ClassesState {
-  courses: Course[];
+  classrooms: Classroom[];
   teachers: Teacher[];
   loading: boolean;
   creating: boolean;
-  deleting: string | null;   // holds the id being deleted
+  updating: string | null;
+  deleting: string | null;
   error: string | null;
   createError: string | null;
-  deleteError: string | null;
+  updateError: string | null;
 }
 
-// ---------- Initial state ----------
+
+const STORAGE_KEY = "mock_classrooms";
+
+const seedClassrooms: Classroom[] = [
+  {
+    id: "mock-1",
+    name: "10th Grade A",
+    grade: "10th",
+    description: "Main classroom for 10th grade group A",
+    studentCount: 28,
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "mock-2",
+    name: "11th Grade B",
+    grade: "11th",
+    description: "Advanced sciences group",
+    studentCount: 24,
+    createdAt: new Date().toISOString(),
+  },
+];
+
+function loadMockClassrooms(): Classroom[] {
+  if (typeof window === "undefined") return seedClassrooms;
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) return JSON.parse(saved);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(seedClassrooms));
+  return seedClassrooms;
+}
+
+function saveMockClassrooms(classrooms: Classroom[]) {
+  if (typeof window !== "undefined") {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(classrooms));
+  }
+}
+
 
 const initialState: ClassesState = {
-  courses: [],
+  classrooms: [],
   teachers: [],
   loading: false,
   creating: false,
+  updating: null,
   deleting: null,
   error: null,
   createError: null,
-  deleteError: null,
+  updateError: null,
 };
 
-// ---------- Thunks ----------
 
-export const fetchCourses = createAsyncThunk(
-  "classes/fetchCourses",
-  async (token: string, { rejectWithValue }) => {
-    try {
-      const response = await fetch(`${API_URL}/api/courses/my-courses`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) {
-        const err = await response.json();
-        return rejectWithValue(err.message || "Failed to load courses");
-      }
-      return await response.json();
-    } catch {
-      return rejectWithValue("Network error");
-    }
+export const fetchClassrooms = createAsyncThunk(
+  "classes/fetchClassrooms",
+  async () => {
+    await new Promise((r) => setTimeout(r, 300));
+    return loadMockClassrooms();
   }
 );
 
@@ -87,71 +110,95 @@ export const fetchTeachers = createAsyncThunk(
   }
 );
 
-export const createCourse = createAsyncThunk(
-  "classes/createCourse",
+export const createClassroom = createAsyncThunk(
+  "classes/createClassroom",
   async (
     payload: {
-      token: string;
-      data: {
-        title: string;
-        description: string;
-        category: string;
-        status: CourseStatus;
-        teacherId?: string;
-      };
+      name: string;
+      grade: string;
+      description: string;
+      studentCount: number;
+      teacherId?: string;
+      teacherName?: string;
     },
     { rejectWithValue }
   ) => {
     try {
-      const { token, data } = payload;
-      const body: Record<string, unknown> = {
-        title: data.title,
-        description: data.description,
-        category: data.category,
-        status: data.status,
-        chapters: [],
+      await new Promise((r) => setTimeout(r, 300));
+      const existing = loadMockClassrooms();
+      const duplicate = existing.some(
+        (c) => c.name.trim().toLowerCase() === payload.name.trim().toLowerCase()
+      );
+      if (duplicate) return rejectWithValue("A classroom with this name already exists.");
+
+      const newClassroom: Classroom = {
+        id: `mock-${Date.now()}`,
+        name: payload.name,
+        grade: payload.grade,
+        description: payload.description,
+        teacherId: payload.teacherId,
+        teacherName: payload.teacherName,
+        studentCount: payload.studentCount,
+        createdAt: new Date().toISOString(),
       };
-      if (data.teacherId) body.teacherId = data.teacherId;
-
-      const response = await fetch(`${API_URL}/api/courses`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
-      });
-      if (!response.ok) {
-        const err = await response.json();
-        return rejectWithValue(err.message || "Failed to create course");
-      }
-      return await response.json();
+      const updated = [...existing, newClassroom];
+      saveMockClassrooms(updated);
+      return newClassroom;
     } catch {
-      return rejectWithValue("Network error");
+      return rejectWithValue("Failed to create classroom.");
     }
   }
 );
 
-export const deleteCourse = createAsyncThunk(
-  "classes/deleteCourse",
-  async (payload: { token: string; id: string }, { rejectWithValue }) => {
+export const updateClassroom = createAsyncThunk(
+  "classes/updateClassroom",
+  async (
+    payload: {
+      id: string;
+      name: string;
+      grade: string;
+      description: string;
+      studentCount: number;
+      teacherId?: string;
+      teacherName?: string;
+    },
+    { rejectWithValue }
+  ) => {
     try {
-      const response = await fetch(`${API_URL}/api/courses/${payload.id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${payload.token}` },
-      });
-      if (!response.ok) {
-        const err = await response.json();
-        return rejectWithValue(err.message || "Failed to delete course");
-      }
-      return payload.id;
+      await new Promise((r) => setTimeout(r, 300));
+      const existing = loadMockClassrooms();
+      const duplicate = existing.some(
+        (c) => c.id !== payload.id && c.name.trim().toLowerCase() === payload.name.trim().toLowerCase()
+      );
+      if (duplicate) return rejectWithValue("A classroom with this name already exists.");
+
+      const updated = existing.map((c) =>
+        c.id === payload.id
+          ? { ...c, name: payload.name, grade: payload.grade, description: payload.description, studentCount: payload.studentCount, teacherId: payload.teacherId, teacherName: payload.teacherName }
+          : c
+      );
+      saveMockClassrooms(updated);
+      return updated.find((c) => c.id === payload.id)!;
     } catch {
-      return rejectWithValue("Network error");
+      return rejectWithValue("Failed to update classroom.");
     }
   }
 );
 
-// ---------- Slice ----------
+export const deleteClassroom = createAsyncThunk(
+  "classes/deleteClassroom",
+  async (id: string, { rejectWithValue }) => {
+    try {
+      await new Promise((r) => setTimeout(r, 200));
+      const existing = loadMockClassrooms();
+      saveMockClassrooms(existing.filter((c) => c.id !== id));
+      return id;
+    } catch {
+      return rejectWithValue("Failed to delete classroom.");
+    }
+  }
+);
+
 
 const classesSlice = createSlice({
   name: "classes",
@@ -160,52 +207,64 @@ const classesSlice = createSlice({
     clearCreateError(state) {
       state.createError = null;
     },
-    clearDeleteError(state) {
-      state.deleteError = null;
+    clearUpdateError(state) {
+      state.updateError = null;
     },
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchCourses.pending, (state) => {
+      .addCase(fetchClassrooms.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(fetchCourses.fulfilled, (state, action) => {
+      .addCase(fetchClassrooms.fulfilled, (state, action) => {
         state.loading = false;
-        state.courses = action.payload;
+        state.classrooms = action.payload;
       })
-      .addCase(fetchCourses.rejected, (state, action) => {
+      .addCase(fetchClassrooms.rejected, (state) => {
         state.loading = false;
-        state.error = action.payload as string;
+        state.error = "Failed to load classrooms.";
       })
       .addCase(fetchTeachers.fulfilled, (state, action) => {
         state.teachers = action.payload;
       })
-      .addCase(createCourse.pending, (state) => {
+      .addCase(createClassroom.pending, (state) => {
         state.creating = true;
         state.createError = null;
       })
-      .addCase(createCourse.fulfilled, (state) => {
+      .addCase(createClassroom.fulfilled, (state, action) => {
         state.creating = false;
+        state.classrooms.push(action.payload);
       })
-      .addCase(createCourse.rejected, (state, action) => {
+      .addCase(createClassroom.rejected, (state, action) => {
         state.creating = false;
         state.createError = action.payload as string;
       })
-      .addCase(deleteCourse.pending, (state, action) => {
-        state.deleting = action.meta.arg.id;
-        state.deleteError = null;
+      .addCase(updateClassroom.pending, (state, action) => {
+        state.updating = action.meta.arg.id;
+        state.updateError = null;
       })
-      .addCase(deleteCourse.fulfilled, (state, action) => {
-        state.deleting = null;
-        state.courses = state.courses.filter((c) => c.id !== action.payload);
+      .addCase(updateClassroom.fulfilled, (state, action) => {
+        state.updating = null;
+        const idx = state.classrooms.findIndex((c) => c.id === action.payload.id);
+        if (idx !== -1) state.classrooms[idx] = action.payload;
       })
-      .addCase(deleteCourse.rejected, (state, action) => {
+      .addCase(updateClassroom.rejected, (state, action) => {
+        state.updating = null;
+        state.updateError = action.payload as string;
+      })
+      .addCase(deleteClassroom.pending, (state, action) => {
+        state.deleting = action.meta.arg;
+      })
+      .addCase(deleteClassroom.fulfilled, (state, action) => {
         state.deleting = null;
-        state.deleteError = action.payload as string;
+        state.classrooms = state.classrooms.filter((c) => c.id !== action.payload);
+      })
+      .addCase(deleteClassroom.rejected, (state) => {
+        state.deleting = null;
       });
   },
 });
 
-export const { clearCreateError, clearDeleteError } = classesSlice.actions;
+export const { clearCreateError, clearUpdateError } = classesSlice.actions;
 export default classesSlice.reducer;
