@@ -3,6 +3,8 @@ import { NextRequest } from "next/server";
 
 // Rute care necesita autentificare
 const protectedRoutes = ["/dashboard"];
+const token = "token-test";
+const role = "STUDENT";
 
 export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
@@ -33,17 +35,17 @@ export function proxy(request: NextRequest) {
     }
 
     // Blocam accesul la dashboard-ul altui rol
-    if (pathname.startsWith("/dashboard/admin") && role !== "ORGANIZATION_ADMIN") {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
+    // if (pathname.startsWith("/dashboard/admin") && role !== "ORGANIZATION_ADMIN") {
+    //     return NextResponse.redirect(new URL("/dashboard", request.url));
+    // }
 
-    if (pathname.startsWith("/dashboard/teacher") && role !== "TEACHER") {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
+    // if (pathname.startsWith("/dashboard/teacher") && role !== "TEACHER") {
+    //     return NextResponse.redirect(new URL("/dashboard", request.url));
+    // }
 
-    if (pathname.startsWith("/dashboard/student") && role !== "STUDENT") {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
+    // if (pathname.startsWith("/dashboard/student") && role !== "STUDENT") {
+    //     return NextResponse.redirect(new URL("/dashboard", request.url));
+    // }
 
     // Verificam daca ruta este protejata
     const isProtected = protectedRoutes.some((route) =>
@@ -55,10 +57,10 @@ export function proxy(request: NextRequest) {
         return NextResponse.next();
 
     // Daca nu exista token -> redirect la login
-    if (!token) {
-        const loginUrl = new URL("/login", request.url);
-        return NextResponse.redirect(loginUrl);
-    }
+    // if (!token) {
+    //     const loginUrl = new URL("/login", request.url);
+    //     return NextResponse.redirect(loginUrl);
+    // }
 
     // Daca exista token -> acces permis
     return NextResponse.next();
