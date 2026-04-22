@@ -21,7 +21,7 @@ export default function UserFormModal({ user, onClose, onSave }: Props) {
 
   const isEditing = user !== null;
 
-  // ---------- Toggle selectie clasa ----------
+  //selectie clasa
   function toggleClass(classId: string) {
     setSelectedClasses((prev) =>
       prev.includes(classId)
@@ -30,7 +30,7 @@ export default function UserFormModal({ user, onClose, onSave }: Props) {
     );
   }
 
-  // ---------- Validare si salvare ----------
+  //Validare si salvare
   function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!firstName.trim()) { setValidationError("First name is required.");  return; }
@@ -45,7 +45,7 @@ export default function UserFormModal({ user, onClose, onSave }: Props) {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
       <div className="bg-brand-card border border-brand-primary/20 rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
 
-        {/* -------------------- HEADER -------------------- */}
+        {/*HEADER*/}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-brand-text font-semibold text-lg">
             {isEditing ? "Edit User" : "Add User"}
@@ -58,7 +58,7 @@ export default function UserFormModal({ user, onClose, onSave }: Props) {
           </button>
         </div>
 
-        {/* -------------------- FORMULAR -------------------- */}
+        {/*FORMULAR*/}
         <form onSubmit={handleSave} className="flex flex-col gap-4">
 
           {/* First Name + Last Name */}

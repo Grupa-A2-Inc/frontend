@@ -10,7 +10,7 @@ type Props = {
 
 export default function UsersHeader({ totalUsers, onAddUser, onImportCsv }: Props) {
 
-  // ---------- CSV Import ----------
+  // CSV Import
   function handleCsvImport(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -43,7 +43,7 @@ export default function UsersHeader({ totalUsers, onAddUser, onImportCsv }: Prop
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-      {/* -------------------- TITLU -------------------- */}
+      {/*TITLU*/}
       <div>
         <h1 className="text-2xl font-bold text-brand-text">User Management</h1>
         <p className="text-brand-text/40 text-sm mt-1">
@@ -51,7 +51,7 @@ export default function UsersHeader({ totalUsers, onAddUser, onImportCsv }: Prop
         </p>
       </div>
 
-      {/* -------------------- BUTOANE -------------------- */}
+      {/*  BUTOANE */}
       <div className="flex items-center gap-3">
         {/* Buton CSV Import */}
         <label className="flex items-center gap-2 px-4 py-2.5 border border-brand-primary/30 hover:bg-brand-primary/10 text-brand-text rounded-xl text-sm font-medium transition-colors cursor-pointer">

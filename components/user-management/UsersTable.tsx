@@ -48,7 +48,7 @@ export default function UsersTable({ filtered, search, roleFilter, statusFilter,
           {filtered.map((user) => (
             <tr key={user.id} className="border-b border-brand-primary/8 hover:bg-brand-primary/5 transition-colors">
 
-              {/* ---- Nume ---- */}
+              {/*Nume*/}
               <td className="px-5 py-3">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary text-sm font-semibold flex-shrink-0">
@@ -60,17 +60,17 @@ export default function UsersTable({ filtered, search, roleFilter, statusFilter,
                 </div>
               </td>
 
-              {/* ---- Email ---- */}
+              {/*Email*/}
               <td className="px-5 py-3 text-sm text-brand-text/50">{user.email}</td>
 
-              {/* ---- Rol ---- */}
+              {/*Rol*/}
               <td className="px-5 py-3">
                 <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-brand-primary/15 text-brand-primary">
                   {user.role === "STUDENT" ? "Student" : "Teacher"}
                 </span>
               </td>
 
-              {/* ---- Status ---- */}
+              {/*Status*/}
               <td className="px-5 py-3">
                 <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                   user.status === "ACTIVE"
@@ -81,7 +81,7 @@ export default function UsersTable({ filtered, search, roleFilter, statusFilter,
                 </span>
               </td>
 
-              {/* ---- Actiuni ---- */}
+              {/*Actiuni*/}
               <td className="px-5 py-3">
                 <div className="flex items-center gap-1">
                   {/* Edit */}
