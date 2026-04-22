@@ -3,127 +3,135 @@
 import { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
-  fetchCourses,
+  fetchClassrooms,
   fetchTeachers,
-  createCourse,
-  deleteCourse,
+  createClassroom,
+  updateClassroom,
+  deleteClassroom,
   clearCreateError,
-  CourseStatus,
+  clearUpdateError,
+  Classroom,
 } from "@/store/slices/classesSlice";
-
-type StatusFilter = "ALL" | "DRAFT" | "PUBLISHED";
 
 export default function ClassesPage() {
   const dispatch = useAppDispatch();
-  const { courses, teachers, loading, error, creating, createError, deleting } =
+  const { classrooms, teachers, loading, error, creating, createError, updating, updateError, deleting } =
     useAppSelector((state) => state.classes);
   const { accessToken } = useAppSelector((state) => state.auth);
 
-  // Filters
-  const [search, setSearch]           = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
-
-  // Modal
+  const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
+  const [editingClassroom, setEditingClassroom] = useState<Classroom | null>(null);
 
   // Form fields
-  const [title, setTitle]               = useState("");
-  const [description, setDescription]   = useState("");
-  const [category, setCategory]         = useState("");
-  const [status, setStatus]             = useState<CourseStatus>("DRAFT");
-  const [teacherId, setTeacherId]       = useState("");
+  const [name, setName]               = useState("");
+  const [grade, setGrade]             = useState("");
+  const [description, setDescription] = useState("");
+  const [studentCount, setStudentCount] = useState<string>("0");
+  const [teacherId, setTeacherId]     = useState("");
   const [validationError, setValidationError] = useState("");
 
   const token = accessToken ?? (typeof window !== "undefined" ? localStorage.getItem("accessToken") : null) ?? "";
 
   useEffect(() => {
-    if (!token) return;
-    dispatch(fetchCourses(token));
-    dispatch(fetchTeachers(token));
-  }, [accessToken, dispatch]);
+    dispatch(fetchClassrooms());
+    if (token) dispatch(fetchTeachers(token));
+  }, [dispatch]);
 
-  // -------------------- Derived counts --------------------
-  const draftCount     = courses.filter((c) => c.status === "DRAFT").length;
-  const publishedCount = courses.filter((c) => c.status === "PUBLISHED").length;
+  const filtered = classrooms.filter((c) =>
+    c.name.toLowerCase().includes(search.toLowerCase()) ||
+    c.grade.toLowerCase().includes(search.toLowerCase())
+  );
 
-  // -------------------- Filter logic --------------------
-  const filtered = courses.filter((c) => {
-    const matchesSearch =
-      c.title.toLowerCase().includes(search.toLowerCase()) ||
-      c.category.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus =
-      statusFilter === "ALL" || c.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
-
-  // -------------------- Form helpers --------------------
   function resetForm() {
-    setTitle("");
+    setName("");
+    setGrade("");
     setDescription("");
-    setCategory("");
-    setStatus("DRAFT");
+    setStudentCount("0");
     setTeacherId("");
     setValidationError("");
     dispatch(clearCreateError());
+    dispatch(clearUpdateError());
   }
 
   function openModal() {
     resetForm();
+    setEditingClassroom(null);
+    setShowModal(true);
+  }
+
+  function openEditModal(classroom: Classroom) {
+    setName(classroom.name);
+    setGrade(classroom.grade);
+    setDescription(classroom.description);
+    setStudentCount(String(classroom.studentCount));
+    setTeacherId(classroom.teacherId ?? "");
+    setValidationError("");
+    dispatch(clearUpdateError());
+    setEditingClassroom(classroom);
     setShowModal(true);
   }
 
   function closeModal() {
     setShowModal(false);
+    setEditingClassroom(null);
     resetForm();
   }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!title.trim())       { setValidationError("Title is required.");       return; }
+    if (!name.trim())        { setValidationError("Name is required.");        return; }
+    if (!grade.trim())       { setValidationError("Grade is required.");       return; }
     if (!description.trim()) { setValidationError("Description is required."); return; }
-    if (!category.trim())    { setValidationError("Category is required.");    return; }
-
-    const duplicate = courses.some(
-      (c) => c.title.trim().toLowerCase() === title.trim().toLowerCase()
-    );
-    if (duplicate) { setValidationError("A class with this title already exists."); return; }
 
     setValidationError("");
 
+    const selectedTeacher = teachers.find((t) => t.id === teacherId);
+    const teacherName = selectedTeacher
+      ? `${selectedTeacher.firstName} ${selectedTeacher.lastName}`
+      : undefined;
+
     const result = await dispatch(
-      createCourse({
-        token,
-        data: { title, description, category, status, teacherId: teacherId || undefined },
-      })
+      createClassroom({ name, grade, description, studentCount: Math.max(0, parseInt(studentCount) || 0), teacherId: teacherId || undefined, teacherName })
     );
 
-    if (createCourse.fulfilled.match(result)) {
-      closeModal();
-      dispatch(fetchCourses(token));
-    }
+    if (createClassroom.fulfilled.match(result)) closeModal();
   }
 
-  async function handleDelete(id: string, title: string) {
-    if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
-    dispatch(deleteCourse({ token, id }));
-    // Optimistic: Redux removes it from state immediately on fulfilled
+  async function handleEdit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingClassroom) return;
+    if (!name.trim())        { setValidationError("Name is required.");        return; }
+    if (!grade.trim())       { setValidationError("Grade is required.");       return; }
+    if (!description.trim()) { setValidationError("Description is required."); return; }
+
+    setValidationError("");
+
+    const selectedTeacher = teachers.find((t) => t.id === teacherId);
+    const teacherName = selectedTeacher
+      ? `${selectedTeacher.firstName} ${selectedTeacher.lastName}`
+      : undefined;
+
+    const result = await dispatch(
+      updateClassroom({ id: editingClassroom.id, name, grade, description, studentCount: Math.max(0, parseInt(studentCount) || 0), teacherId: teacherId || undefined, teacherName })
+    );
+
+    if (updateClassroom.fulfilled.match(result)) closeModal();
   }
 
-  // -------------------- Tab config --------------------
-  const tabs: { label: string; value: StatusFilter; count: number }[] = [
-    { label: "All",       value: "ALL",       count: courses.length },
-    { label: "Draft",     value: "DRAFT",     count: draftCount },
-    { label: "Published", value: "PUBLISHED", count: publishedCount },
-  ];
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+    dispatch(deleteClassroom(id));
+  }
 
   return (
     <div>
-      {/* -------------------- HEADER -------------------- */}
+      {/* HEADER */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-brand-text">Classes</h1>
           <p className="text-brand-text/40 text-sm mt-1">
-            {courses.length} class{courses.length !== 1 ? "es" : ""} total
+            {classrooms.length} classroom{classrooms.length !== 1 ? "s" : ""} total
           </p>
         </div>
         <button
@@ -135,150 +143,126 @@ export default function ClassesPage() {
         </button>
       </div>
 
-      {/* -------------------- SEARCH + TABS -------------------- */}
-      <div className="flex flex-col sm:flex-row gap-3 mb-6">
-        {/* Search */}
-        <div className="relative flex-1">
-          <span
-            className="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-brand-text/30"
-            style={{ fontSize: "1.2rem" }}
-          >
-            search
-          </span>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search by name or category..."
-            className="w-full bg-brand-card border border-brand-primary/20 rounded-xl pl-10 pr-4 py-2.5 text-sm text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-primary/60 transition-colors"
-          />
-        </div>
-
-        {/* Status tabs */}
-        <div className="flex items-center gap-1 bg-brand-card border border-brand-primary/20 rounded-xl p-1">
-          {tabs.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => setStatusFilter(tab.value)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                statusFilter === tab.value
-                  ? "bg-brand-primary text-brand-text"
-                  : "text-brand-text/50 hover:text-brand-text"
-              }`}
-            >
-              {tab.label}
-              <span
-                className={`text-xs px-1.5 py-0.5 rounded-full ${
-                  statusFilter === tab.value
-                    ? "bg-brand-text/20 text-brand-text"
-                    : "bg-brand-text/10 text-brand-muted"
-                }`}
-              >
-                {tab.count}
-              </span>
-            </button>
-          ))}
-        </div>
+      {/* SEARCH */}
+      <div className="relative mb-6 max-w-sm">
+        <span
+          className="material-symbols-rounded absolute left-3 top-1/2 -translate-y-1/2 text-brand-text/30"
+          style={{ fontSize: "1.2rem" }}
+        >
+          search
+        </span>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name or grade..."
+          className="w-full bg-brand-card border border-brand-primary/20 rounded-xl pl-10 pr-4 py-2.5 text-sm text-brand-text placeholder-brand-muted focus:outline-none focus:border-brand-primary/60 transition-colors"
+        />
       </div>
 
-      {/* -------------------- LOADING -------------------- */}
+      {/* LOADING */}
       {loading && (
         <div className="flex items-center justify-center py-20">
           <p className="text-brand-text/40 text-sm">Loading classes...</p>
         </div>
       )}
 
-      {/* -------------------- ERROR -------------------- */}
+      {/* ERROR */}
       {error && !loading && (
         <div className="flex items-center justify-center py-20">
           <p className="text-red-400 text-sm">{error}</p>
         </div>
       )}
 
-      {/* -------------------- EMPTY -------------------- */}
+      {/* EMPTY */}
       {!loading && !error && filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <span className="material-symbols-rounded text-brand-text/15" style={{ fontSize: "3rem" }}>
-            school
+            meeting_room
           </span>
           <p className="text-brand-text/40 text-sm">
-            {search || statusFilter !== "ALL"
-              ? "No classes match your filters."
-              : "No classes yet. Create your first one."}
+            {search ? "No classes match your search." : "No classes yet. Create your first one."}
           </p>
         </div>
       )}
 
-      {/* -------------------- GRID -------------------- */}
+      {/* GRID */}
       {!loading && !error && filtered.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filtered.map((course) => (
+          {filtered.map((classroom) => (
             <div
-              key={course.id}
+              key={classroom.id}
               className="bg-brand-card border border-brand-primary/15 rounded-2xl p-5 hover:border-brand-primary/40 transition-colors flex flex-col gap-3"
             >
-              {/* Title + status badge */}
+              {/* Name + grade badge */}
               <div className="flex items-start justify-between gap-3">
                 <h3 className="text-brand-text font-semibold text-sm leading-snug flex-1">
-                  {course.title}
+                  {classroom.name}
                 </h3>
-                <span
-                  className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-medium ${
-                    course.status === "PUBLISHED"
-                      ? "bg-emerald-500/15 text-emerald-400"
-                      : "bg-yellow-500/15 text-yellow-400"
-                  }`}
-                >
-                  {course.status === "PUBLISHED" ? "Published" : "Draft"}
+                <span className="flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-medium bg-brand-primary/15 text-brand-primary">
+                  {classroom.grade}
                 </span>
               </div>
 
               {/* Description */}
               <p className="text-brand-text/40 text-xs leading-relaxed line-clamp-2 flex-1">
-                {course.description}
+                {classroom.description}
               </p>
 
-              {/* Footer: meta + delete */}
+              {/* Footer */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-1.5">
                     <span className="material-symbols-rounded text-brand-primary" style={{ fontSize: "1rem" }}>
-                      category
+                      group
                     </span>
-                    <span className="text-brand-text/50 text-xs">{course.category}</span>
+                    <span className="text-brand-text/50 text-xs">{classroom.studentCount} students</span>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="material-symbols-rounded text-brand-primary" style={{ fontSize: "1rem" }}>
-                      {course.visibility === "PUBLIC" ? "public" : "lock"}
-                    </span>
-                    <span className="text-brand-text/50 text-xs capitalize">
-                      {course.visibility?.toLowerCase() ?? "private"}
-                    </span>
-                  </div>
+                  {classroom.teacherName && (
+                    <div className="flex items-center gap-1.5">
+                      <span className="material-symbols-rounded text-brand-primary" style={{ fontSize: "1rem" }}>
+                        person
+                      </span>
+                      <span className="text-brand-text/50 text-xs">{classroom.teacherName}</span>
+                    </div>
+                  )}
                 </div>
 
-                {/* Delete button */}
-                <button
-                  onClick={() => handleDelete(course.id, course.title)}
-                  disabled={deleting === course.id}
-                  className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/20 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-50"
-                >
-                  <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>
-                    {deleting === course.id ? "hourglass_empty" : "delete"}
-                  </span>
-                </button>
+                <div className="flex items-center gap-1">
+                  {/* Edit */}
+                  <button
+                    onClick={() => openEditModal(classroom)}
+                    disabled={updating === classroom.id}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/20 hover:text-brand-primary hover:bg-brand-primary/10 transition-colors disabled:opacity-50"
+                  >
+                    <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>edit</span>
+                  </button>
+
+                  {/* Delete */}
+                  <button
+                    onClick={() => handleDelete(classroom.id, classroom.name)}
+                    disabled={deleting === classroom.id}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/20 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-50"
+                  >
+                    <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>
+                      {deleting === classroom.id ? "hourglass_empty" : "delete"}
+                    </span>
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
       )}
 
-      {/* -------------------- ADD CLASS MODAL -------------------- */}
+      {/* ADD CLASS MODAL */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-brand-card border border-brand-primary/20 rounded-2xl p-6 w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-brand-text font-semibold text-lg">Add Class</h2>
+              <h2 className="text-brand-text font-semibold text-lg">
+                {editingClassroom ? "Edit Class" : "Add Class"}
+              </h2>
               <button
                 onClick={closeModal}
                 className="w-8 h-8 flex items-center justify-center rounded-lg text-brand-text/40 hover:text-brand-text hover:bg-brand-text/10 transition-colors"
@@ -287,17 +271,31 @@ export default function ClassesPage() {
               </button>
             </div>
 
-            <form onSubmit={handleCreate} className="flex flex-col gap-4">
-              {/* Title */}
+            <form onSubmit={editingClassroom ? handleEdit : handleCreate} className="flex flex-col gap-4">
+              {/* Name */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-brand-text/60">
-                  Title <span className="text-red-400">*</span>
+                  Class Name <span className="text-red-400">*</span>
                 </label>
                 <input
                   type="text"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  placeholder="e.g. Mathematics Grade 10"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. 10th Grade A"
+                  className="bg-brand-mid border border-brand-primary/20 rounded-xl px-4 py-2.5 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors"
+                />
+              </div>
+
+              {/* Grade */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium text-brand-text/60">
+                  Grade <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={grade}
+                  onChange={(e) => setGrade(e.target.value)}
+                  placeholder="e.g. 10th, 11th, 12th"
                   className="bg-brand-mid border border-brand-primary/20 rounded-xl px-4 py-2.5 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors"
                 />
               </div>
@@ -310,37 +308,22 @@ export default function ClassesPage() {
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Brief description of the class..."
+                  placeholder="Brief description of the classroom..."
                   rows={3}
                   className="bg-brand-mid border border-brand-primary/20 rounded-xl px-4 py-2.5 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors resize-none"
                 />
               </div>
 
-              {/* Category */}
+              {/* Student Count */}
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-brand-text/60">
-                  Category <span className="text-red-400">*</span>
-                </label>
+                <label className="text-xs font-medium text-brand-text/60">Number of Students</label>
                 <input
-                  type="text"
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  placeholder="e.g. Science, Math, Literature"
+                  type="number"
+                  min={0}
+                  value={studentCount}
+                  onChange={(e) => setStudentCount(e.target.value)}
                   className="bg-brand-mid border border-brand-primary/20 rounded-xl px-4 py-2.5 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors"
                 />
-              </div>
-
-              {/* Status */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-brand-text/60">Status</label>
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as CourseStatus)}
-                  className="bg-brand-mid border border-brand-primary/20 rounded-xl px-4 py-2.5 text-sm text-brand-text focus:outline-none focus:border-brand-primary/60 transition-colors"
-                >
-                  <option value="DRAFT">Draft</option>
-                  <option value="PUBLISHED">Published</option>
-                </select>
               </div>
 
               {/* Teacher */}
@@ -362,8 +345,8 @@ export default function ClassesPage() {
                 </select>
               </div>
 
-              {(validationError || createError) && (
-                <p className="text-red-400 text-sm font-medium">{validationError || createError}</p>
+              {(validationError || createError || updateError) && (
+                <p className="text-red-400 text-sm font-medium">{validationError || createError || updateError}</p>
               )}
 
               <div className="flex gap-3 mt-2">
@@ -376,10 +359,12 @@ export default function ClassesPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={creating}
+                  disabled={editingClassroom ? updating === editingClassroom.id : creating}
                   className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-brand-primary hover:bg-brand-primary/90 text-brand-text disabled:opacity-50 transition-colors"
                 >
-                  {creating ? "Creating..." : "Create Class"}
+                  {editingClassroom
+                    ? (updating === editingClassroom.id ? "Saving..." : "Save Changes")
+                    : (creating ? "Creating..." : "Create Class")}
                 </button>
               </div>
             </form>
