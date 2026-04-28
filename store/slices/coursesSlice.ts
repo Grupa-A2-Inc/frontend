@@ -55,7 +55,7 @@ export const fetchCourses = createAsyncThunk(
   "classes/fetchCourses",
   async (token: string, { rejectWithValue }) => {
     try {
-      const response = await fetchWithAuth(`${API_URL}/api/courses/my-courses`, token);
+      const response = await fetchWithAuth(`${API_URL}/api/v1/courses/my-courses`, token);
       if (!response.ok) {
         const err = await response.json();
         return rejectWithValue(err.message || "Failed to load courses");
@@ -110,7 +110,7 @@ export const createCourse = createAsyncThunk(
       };
       if (data.teacherId) body.teacherId = data.teacherId;
 
-      const response = await fetchWithAuth(`${API_URL}/api/courses`, token, {
+      const response = await fetchWithAuth(`${API_URL}/api/v1/courses`, token, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -130,7 +130,7 @@ export const deleteCourse = createAsyncThunk(
   "classes/deleteCourse",
   async (payload: { token: string; id: string }, { rejectWithValue }) => {
     try {
-      const response = await fetchWithAuth(`${API_URL}/api/courses/${payload.id}`, payload.token, {
+      const response = await fetchWithAuth(`${API_URL}/api/v1/courses/${payload.id}`, payload.token, {
         method: "DELETE",
       });
       if (!response.ok) {
