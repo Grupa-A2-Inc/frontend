@@ -47,8 +47,6 @@ export default function UsersTable({ filtered, search, roleFilter, statusFilter,
         <tbody>
           {filtered.map((user) => (
             <tr key={user.id} className="border-b border-brand-primary/8 hover:bg-brand-primary/5 transition-colors">
-
-              {/*Nume*/}
               <td className="px-5 py-3">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary text-sm font-semibold flex-shrink-0">
@@ -59,57 +57,41 @@ export default function UsersTable({ filtered, search, roleFilter, statusFilter,
                   </span>
                 </div>
               </td>
-
-              {/*Email*/}
               <td className="px-5 py-3 text-sm text-brand-text/50">{user.email}</td>
-
-              {/*Rol*/}
               <td className="px-5 py-3">
                 <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-brand-primary/15 text-brand-primary">
-                  {user.role === "STUDENT" ? "Student" : "Teacher"}
+                  {user.role === "STUDENT" ? "Student" : user.role === "TEACHER" ? "Teacher" : "Admin"}
                 </span>
               </td>
-
-              {/*Status*/}
               <td className="px-5 py-3">
                 <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                   user.status === "ACTIVE"
                     ? "bg-emerald-500/15 text-emerald-400"
-                    : "bg-red-500/15 text-red-400"
-                }`}>
+                    : "bg-red-500/15 text-red-400"}`}>
                   {user.status === "ACTIVE" ? "Active" : "Inactive"}
                 </span>
               </td>
-
-              {/*Actiuni*/}
               <td className="px-5 py-3">
                 <div className="flex items-center gap-1">
-                  {/* Edit */}
                   <button
                     onClick={() => onEdit(user)}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-brand-primary hover:bg-brand-primary/10 transition-colors"
-                  >
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-brand-primary hover:bg-brand-primary/10 transition-colors">
                     <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>edit</span>
                   </button>
-                  {/* Activate/Deactivate */}
                   <button
                     onClick={() => onToggleStatus(user.id)}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors"
-                  >
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors">
                     <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>
                       {user.status === "ACTIVE" ? "pause" : "play_arrow"}
                     </span>
                   </button>
-                  {/* Delete */}
                   <button
                     onClick={() => onDelete(user.id)}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-red-400 hover:bg-red-400/10 transition-colors"
-                  >
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-red-400 hover:bg-red-400/10 transition-colors">
                     <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>delete</span>
                   </button>
                 </div>
               </td>
-
             </tr>
           ))}
         </tbody>

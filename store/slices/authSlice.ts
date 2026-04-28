@@ -3,7 +3,6 @@ import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 // URL-ul backend-ului
 const API_URL = "https://backend-for-render-ws6z.onrender.com";
 
-// ---------- Types ----------
 
 export type UserRole = "ORGANIZATION_ADMIN" | "TEACHER" | "STUDENT";
 
@@ -25,7 +24,6 @@ export interface User {
   organizationAddress: string;
 }
 
-// Structura organizatiei
 export interface Organization {
   id: string;
   name: string;
@@ -36,7 +34,6 @@ export interface Organization {
   address: string;
 }
 
-// Strucutura payload-ului pentru register
 export interface RegisterPayload {
   firstName: string;
   lastName: string;
@@ -51,7 +48,6 @@ export interface RegisterPayload {
   phoneNumber?: string;
 }
 
-// Structura state-ului de autentificare
 interface AuthState {
   user: User | null;
   organization: Organization | null;
@@ -61,7 +57,6 @@ interface AuthState {
   error: string | null;
 }
 
-// ---------- Initial state ----------
 const initialState: AuthState = {
   user: null,
   organization: null,
@@ -72,7 +67,6 @@ const initialState: AuthState = {
 };
 
 
-// ---------- Thunks ----------
 
 // LOGIN
 export const login = createAsyncThunk(
@@ -151,12 +145,11 @@ export const register = createAsyncThunk(
   }
 );
 
-// ---------- Slice  ----------
 const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    // Logout - sterge toate datele din state
+    // Logout 
     logout(state) {
       state.user = null;
       state.organization = null;
@@ -168,7 +161,12 @@ const authSlice = createSlice({
       document.cookie = "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
       // Stergem rolul din cookies
-      document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+      document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+
+      // Clear mock auth flag if present
+      localStorage.removeItem("mockAuth");
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("user");
     },
 
     // Curatam erorile manual
@@ -183,30 +181,41 @@ const authSlice = createSlice({
 
     // AUTO - LOGIN
     loadUserFromStorage(state) {
-      const token = localStorage.getItem("accessToken") ;
-      const user = localStorage.getItem("user");
+      const token = localStorage.getItem("accessToken");
+      const user  = localStorage.getItem("user");
 
-      // Daca nu exista token sau user, nu facem nimic
-      if (!token || !user)
-        return;
+      if (!token || !user) return;
 
-      // Convertim user-ul din string in obiect
+ 
+      try {
+        const base64url = token.split(".")[1];
+        const base64    = base64url.replace(/-/g, "+").replace(/_/g, "/");
+        const padded    = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, "=");
+        const payload   = JSON.parse(atob(padded));
+        if (payload.exp && Date.now() / 1000 > payload.exp) {
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("user");
+          return;
+        }
+      } catch {
+        // If we can't decode the token at all, leave it alone rather than
+        // clearing the session — the backend will reject it if truly invalid.
+      }
+
       const parsedUser = JSON.parse(user);
 
-      // Restauram datele in Redux
-      state.accessToken = token;
-      state.user = parsedUser;
+      state.accessToken    = token;
+      state.user           = parsedUser;
       state.isAuthenticated = true;
 
-      // Reconstruim organizatia din campurile useru-ului
       state.organization = {
-        id: parsedUser.organizationId,
-        name: parsedUser.organizationName,
-        type: parsedUser.organizationType,
-        country: parsedUser.country,
-        city: parsedUser.city,
+        id:          parsedUser.organizationId,
+        name:        parsedUser.organizationName,
+        type:        parsedUser.organizationType,
+        country:     parsedUser.country,
+        city:        parsedUser.city,
         phoneNumber: parsedUser.organizationPhoneNumber,
-        address: parsedUser.organizationAddress,
+        address:     parsedUser.organizationAddress,
       };
     }
   },
@@ -285,19 +294,15 @@ const authSlice = createSlice({
       // Salvam accessToken-ul
       state.accessToken = action.payload.accessToken;
 
-      // Salvam token-ul si in cookies pentru proxy
       document.cookie = `accessToken=${action.payload.accessToken}; path=/;`;
-      // Salvam rolul in cookies pentru proxy
       document.cookie = `role=${action.payload.user.role}; path=/;`;
 
       localStorage.setItem("accessToken", action.payload.accessToken);
       localStorage.setItem("user", JSON.stringify(action.payload.user));
 
-      // Marcam utilizatorul ca autentificat
       state.isAuthenticated = true;
     });
 
-    // REGISTER - error
     builder.addCase(register.rejected, (state, action) => {
       state.loading = false;
       state.error = action.payload as string;
@@ -305,9 +310,7 @@ const authSlice = createSlice({
   },
 });
 
-// Exportam actiunile 
 export const { logout, clearError, setAccessToken, loadUserFromStorage } = 
   authSlice.actions;
 
-// Exportam reducerul
 export default authSlice.reducer;

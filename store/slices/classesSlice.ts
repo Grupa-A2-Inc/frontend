@@ -1,5 +1,9 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+<<<<<<< HEAD
 import { Student } from "@/lib/classes/types";
+=======
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
+>>>>>>> 6db640c55172b9d6d43a57d9728ae9253ee62c3a
 
 const API_URL = "https://backend-for-render-ws6z.onrender.com";
 
@@ -110,9 +114,7 @@ export const fetchTeachers = createAsyncThunk(
   "classes/fetchTeachers",
   async (token: string, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${API_URL}/api/v1/users`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetchWithAuth(`${API_URL}/api/v1/users`, token);
       if (!response.ok) {
         const err = await response.json();
         return rejectWithValue(err.message || "Failed to load teachers");

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User, CreateUserPayload, fetchUsers, createUser, toggleUserStatus, deleteUser } from "@/store/slices/usersSlice";
+import { User, CreateUserPayload, fetchUsers, createUser, toggleUserStatus, deleteUser, addUsersLocally, updateUser } from "@/store/slices/usersSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import UsersHeader from "./UsersHeader";
 import UsersToolbar from "./UsersToolbar";
@@ -14,7 +14,7 @@ type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 export default function UsersPage() {
   const dispatch = useAppDispatch();
   const { users, loading, error } = useAppSelector((state) => state.users);
-  const { accessToken } = useAppSelector((state) => state.auth);
+  const { accessToken, user: authUser } = useAppSelector((state) => state.auth);
   const token = accessToken ?? (typeof window !== "undefined" ? localStorage.getItem("accessToken") : null) ?? "";
 
   const [search, setSearch]             = useState("");
@@ -23,13 +23,11 @@ export default function UsersPage() {
   const [showModal, setShowModal]       = useState(false);
   const [editingUser, setEditingUser]   = useState<User | null>(null);
 
-  // ---------- Fetch users la intrarea pe pagina ----------
   useEffect(() => {
     if (!token) return;
     dispatch(fetchUsers(token));
   }, [token, dispatch]);
 
-  // ---------- Filtrare ----------
   const filtered = users.filter((u) => {
     const matchesSearch =
       u.firstName.toLowerCase().includes(search.toLowerCase()) ||
@@ -40,16 +38,36 @@ export default function UsersPage() {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  // ---------- Handlers ----------
   function openAddModal()         { setEditingUser(null); setShowModal(true);  }
   function openEditModal(u: User) { setEditingUser(u);    setShowModal(true);  }
   function closeModal()           { setShowModal(false);  setEditingUser(null);}
 
   async function handleSave(data: CreateUserPayload) {
-    const result = await dispatch(createUser({ token, data }));
-    if (createUser.fulfilled.match(result)) {
-      dispatch(fetchUsers(token));
+    if (editingUser) {
+      const result = await dispatch(updateUser({
+        token,
+        userId: editingUser.id,
+        data: {
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+        }
+      }));
+      console.log("updateUser result:", result);
       closeModal();
+    } else {
+      const result = await dispatch(createUser({
+        token,
+        data: {
+          ...data,
+          roleName: data.role,
+          organizationId: authUser?.organizationId,
+        }
+      }));
+      if (createUser.fulfilled.match(result)) {
+        dispatch(fetchUsers(token));
+        closeModal();
+      }
     }
   }
 
@@ -66,10 +84,9 @@ export default function UsersPage() {
   }
 
   function handleImportCsv(newUsers: User[]) {
-    // TODO: import CSV cu backend
+    dispatch(addUsersLocally(newUsers));
   }
 
-  // ---------- Loading state ----------
   if (loading) {
     return (
       <div className="w-full px-6 py-10 space-y-10">
@@ -82,7 +99,6 @@ export default function UsersPage() {
     );
   }
 
-  // ---------- Error state ----------
   if (error) {
     return (
       <div className="w-full px-6 py-10 space-y-6">
@@ -102,14 +118,12 @@ export default function UsersPage() {
 
   return (
     <div>
-      {/* -------------------- HEADER -------------------- */}
       <UsersHeader
         totalUsers={users.length}
         onAddUser={openAddModal}
         onImportCsv={handleImportCsv}
       />
 
-      {/* -------------------- TOOLBAR -------------------- */}
       <UsersToolbar
         users={users}
         search={search}
@@ -120,7 +134,6 @@ export default function UsersPage() {
         onStatusFilterChange={setStatusFilter}
       />
 
-      {/* -------------------- TABLE -------------------- */}
       <UsersTable
         filtered={filtered}
         search={search}
@@ -131,7 +144,6 @@ export default function UsersPage() {
         onDelete={handleDelete}
       />
 
-      {/* -------------------- MODAL -------------------- */}
       {showModal && (
         <UserFormModal
           user={editingUser}
