@@ -1,4 +1,3 @@
-import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 
