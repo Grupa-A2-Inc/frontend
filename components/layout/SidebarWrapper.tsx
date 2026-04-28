@@ -62,6 +62,13 @@ function getNavRole(user: User): NavRole {
   return user.role.toLowerCase() as NavRole;
 }
 
+function getProfileHref(user: User): string {
+  const role = getNavRole(user);
+  if (role === "admin") return "/dashboard/admin/profile";
+  if (role === "teacher") return "/dashboard/teacher";
+  return "/dashboard/student";
+}
+
 // ---------- NavItem ----------
 
 function NavItem({ item, collapsed, pathname }: NavItemProps) {
@@ -291,7 +298,7 @@ export default function SidebarWrapper({ children }: SidebarWrapperProps) {
                   transition={{ duration: 0.2 }}
                 >
                   <Link
-                    href="/dashboard/admin/profile"
+                    href={authUser ? getProfileHref(authUser) : "/"}
                     className="flex items-center gap-2.5 px-2 py-2 rounded-xl hover:bg-brand-primary/15 transition-colors no-underline bg-brand-primary/8"
                   >
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7c6fcd] to-[#22d3ee] flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
@@ -316,7 +323,7 @@ export default function SidebarWrapper({ children }: SidebarWrapperProps) {
                   transition={{ duration: 0.2 }}
                   className="flex justify-center"
                 >
-                  <Link href="/dashboard/admin/profile">
+                  <Link href={authUser ? getProfileHref(authUser) : "/"}>
                     <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#7c6fcd] to-[#22d3ee] flex items-center justify-center text-white text-sm font-bold hover:opacity-80 transition-opacity cursor-pointer">
                       {avatarLetter}
                     </div>

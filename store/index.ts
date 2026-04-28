@@ -4,6 +4,7 @@ import authReducer from "@/store/slices/authSlice";
 import classesReducer from "@/store/slices/classesSlice";
 import usersReducer from "@/store/slices/usersSlice";
 import courseManagementReducer from "@/store/slices/courseManagementSlice";
+import coursesReducer from "@/store/slices/coursesSlice";
 
 export const store = configureStore({
   reducer: {
@@ -11,6 +12,7 @@ export const store = configureStore({
     classes: classesReducer,
     users: usersReducer,
     courseManagement: courseManagementReducer,
+    courses: coursesReducer,
   },
 });
 

@@ -168,7 +168,12 @@ const authSlice = createSlice({
       document.cookie = "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
       // Stergem rolul din cookies
-      document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT"
+      document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+
+      // Clear mock auth flag if present
+      localStorage.removeItem("mockAuth");
+      localStorage.removeItem("accessToken");
+      localStorage.removeItem("user");
     },
 
     // Curatam erorile manual
@@ -183,30 +188,39 @@ const authSlice = createSlice({
 
     // AUTO - LOGIN
     loadUserFromStorage(state) {
-      const token = localStorage.getItem("accessToken") ;
-      const user = localStorage.getItem("user");
+      const token = localStorage.getItem("accessToken");
+      const user  = localStorage.getItem("user");
 
-      // Daca nu exista token sau user, nu facem nimic
-      if (!token || !user)
+      if (!token || !user) return;
+
+      // Decode JWT and check expiry without a library
+      try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        if (payload.exp && Date.now() / 1000 > payload.exp) {
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("user");
+          return;
+        }
+      } catch {
+        localStorage.removeItem("accessToken");
+        localStorage.removeItem("user");
         return;
+      }
 
-      // Convertim user-ul din string in obiect
       const parsedUser = JSON.parse(user);
 
-      // Restauram datele in Redux
-      state.accessToken = token;
-      state.user = parsedUser;
+      state.accessToken    = token;
+      state.user           = parsedUser;
       state.isAuthenticated = true;
 
-      // Reconstruim organizatia din campurile useru-ului
       state.organization = {
-        id: parsedUser.organizationId,
-        name: parsedUser.organizationName,
-        type: parsedUser.organizationType,
-        country: parsedUser.country,
-        city: parsedUser.city,
+        id:          parsedUser.organizationId,
+        name:        parsedUser.organizationName,
+        type:        parsedUser.organizationType,
+        country:     parsedUser.country,
+        city:        parsedUser.city,
         phoneNumber: parsedUser.organizationPhoneNumber,
-        address: parsedUser.organizationAddress,
+        address:     parsedUser.organizationAddress,
       };
     }
   },
