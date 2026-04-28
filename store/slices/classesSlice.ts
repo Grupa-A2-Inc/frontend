@@ -1,9 +1,6 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-<<<<<<< HEAD
 import { Student } from "@/lib/classes/types";
-=======
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
->>>>>>> 6db640c55172b9d6d43a57d9728ae9253ee62c3a
 
 const API_URL = "https://backend-for-render-ws6z.onrender.com";
 
