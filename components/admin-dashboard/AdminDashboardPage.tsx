@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-// Importam hook urile React pentru state si efecte
 
 import {
   getDashboardStats,
@@ -9,14 +8,12 @@ import {
   getOrganizationIdFromStorage,
   getAccessToken,
 } from "@/lib/admin-dashboard/api";
-// Functiile care fac request-uri catre backend sau citesc date din localStorage
 
 import AdminKpiGrid from "./AdminKpiGrid";
 import OrganizationSummaryCard from "./OrganizationSummaryCard";
 import AdminQuickLinks from "./AdminQuickLinks";
 import AdminStatusBanner from "./AdminStatusBanner";
 import { AdminDashboardStats, OrganizationProfile } from "@/lib/admin-dashboard/types";
-// Componente vizuale ale dashboard-ului
 
 export default function AdminDashboardPage() {
 
@@ -64,7 +61,6 @@ async function loadDashboard(force = false) {
     loadDashboard();
   }, []);
 
-  // ---------- LOADING STATE ----------
   if (isInitialLoading) {
   return (
     <div className="w-full px-6 py-10 space-y-10">
@@ -122,7 +118,6 @@ if (!stats || !organization) {
   return null;
 }
 
-  // ---------- MAIN DASHBOARD UI ----------
   return (
     <div className="w-full px-6 py-10 space-y-10">
       {/* Titlu */}
