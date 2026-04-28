@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { Student } from "@/lib/classes/types";
 
 const API_URL = "https://backend-for-render-ws6z.onrender.com";
 
@@ -32,6 +33,11 @@ interface ClassesState {
   error: string | null;
   createError: string | null;
   updateError: string | null;
+  // Nou pt class management
+  currentClass: Classroom | null;
+  currentClassStudents: Student[];
+  currentClassLoading: boolean;
+  currentClassError: string | null;
 }
 
 // ---------- Mock persistence ----------
@@ -83,6 +89,11 @@ const initialState: ClassesState = {
   error: null,
   createError: null,
   updateError: null,
+  //pt class management
+  currentClass: null,
+  currentClassStudents: [],
+  currentClassLoading: false,
+  currentClassError: null,
 };
 
 // ---------- Thunks ----------
@@ -203,6 +214,43 @@ export const deleteClassroom = createAsyncThunk(
   }
 );
 
+//class management: API calls
+export const fetchSingleClass = createAsyncThunk(
+  "classes/fetchSingleClass",
+  async (payload: { token: string; classId: string }, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${API_URL}/api/v1/classes/${payload.classId}`, {
+        headers: { Authorization: `Bearer ${payload.token}` },
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        return rejectWithValue(err.message || "Failed to load class details");
+      }
+      return await response.json();
+    } catch {
+      return rejectWithValue("Network error");
+    }
+  }
+);
+
+export const fetchClassStudents = createAsyncThunk(
+  "classes/fetchClassStudents",
+  async (payload: { token: string; classId: string }, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${API_URL}/api/v1/classes/${payload.classId}/students`, {
+        headers: { Authorization: `Bearer ${payload.token}` },
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        return rejectWithValue(err.message || "Failed to load students");
+      }
+      return await response.json();
+    } catch {
+      return rejectWithValue("Network error");
+    }
+  }
+);
+
 // ---------- Slice ----------
 
 const classesSlice = createSlice({
@@ -267,6 +315,25 @@ const classesSlice = createSlice({
       })
       .addCase(deleteClassroom.rejected, (state) => {
         state.deleting = null;
+      })
+      // Nou pt class management: State updates
+      .addCase(fetchSingleClass.pending, (state) => {
+        state.currentClassLoading = true;
+        state.currentClassError = null;
+      })
+      .addCase(fetchSingleClass.fulfilled, (state, action) => {
+        state.currentClassLoading = false;
+        state.currentClass = action.payload;
+      })
+      .addCase(fetchSingleClass.rejected, (state, action) => {
+        state.currentClassLoading = false;
+        state.currentClassError = action.payload as string;
+      })
+      .addCase(fetchClassStudents.fulfilled, (state, action) => {
+        state.currentClassStudents = action.payload;
+      })
+      .addCase(fetchClassStudents.rejected, (state, action) => {
+        state.currentClassError = action.payload as string;
       });
   },
 });

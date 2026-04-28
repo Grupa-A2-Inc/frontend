@@ -1,8 +1,9 @@
 "use client";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { useState, useEffect, useCallback, use } from "react";
-import { useAppSelector } from "@/store/hooks";
+import { useState, useEffect, use } from "react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchSingleClass, fetchClassStudents } from "@/store/slices/classesSlice";
 import { ClassDetails, Student } from "@/lib/classes/types";
 import { apiFetch } from "@/lib/classes/api";
 
@@ -15,12 +16,12 @@ import Toast from "@/components/class-ui/Toast";
 import Spinner from "@/components/class-ui/Spinner";
 
 export default function ClassManagementPage({ params }: { params: Promise<{ classId: string }> }) {
-  const { classId } = use(params); // Next.js 14/15 standard pt params
+  const { classId } = use(params);
+  const dispatch = useAppDispatch();
   const token = useAppSelector((s) => s.auth.accessToken) ?? "";
 
-  const [cls, setCls] = useState<ClassDetails | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { currentClass, currentClassStudents, currentClassLoading, currentClassError } = useAppSelector((s) => s.classes);
+  const cls = currentClass as unknown as ClassDetails;
 
   const [editing, setEditing] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -28,30 +29,23 @@ export default function ClassManagementPage({ params }: { params: Promise<{ clas
   const [removing, setRemoving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  const fetchClass = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await apiFetch<ClassDetails>(`/api/v1/classes/${classId}`, token);
-      setCls(data);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (token && classId) {
+      dispatch(fetchSingleClass({ token, classId }));
+      dispatch(fetchClassStudents({ token, classId }));
     }
-  }, [classId, token]);
+  }, [dispatch, token, classId]);
 
-  useEffect(() => { fetchClass(); }, [fetchClass]);
-
-  const handleSaved = (updated: Partial<ClassDetails>) => {
-    setCls((prev) => (prev ? { ...prev, ...updated } : prev));
+  const handleSaved = async (updated: Partial<ClassDetails>) => {
     setEditing(false);
     setToast({ message: "Class info updated.", type: "success" });
+    dispatch(fetchSingleClass({ token, classId }));
   };
 
-  const handleStudentAdded = (student: Student) => {
-    setCls((prev) => prev ? { ...prev, students: [...prev.students, student], studentCount: prev.studentCount + 1 } : prev);
+  const handleStudentAdded = async (student: Student) => {
     setShowAddModal(false);
     setToast({ message: "Student added.", type: "success" });
+    dispatch(fetchSingleClass({ token, classId }));
   };
 
   const handleRemoveConfirm = async () => {
@@ -59,9 +53,9 @@ export default function ClassManagementPage({ params }: { params: Promise<{ clas
     setRemoving(true);
     try {
       await apiFetch(`/api/v1/classes/${cls.id}/students/${removeTarget.id}`, token, { method: "DELETE" });
-      setCls((prev) => prev ? { ...prev, students: prev.students.filter((s) => s.id !== removeTarget.id), studentCount: prev.studentCount - 1 } : prev);
       setToast({ message: "Student removed.", type: "success" });
       setRemoveTarget(null);
+      dispatch(fetchSingleClass({ token, classId }));
     } catch (e: any) {
       setToast({ message: e.message, type: "error" });
     } finally {
@@ -69,9 +63,8 @@ export default function ClassManagementPage({ params }: { params: Promise<{ clas
     }
   };
 
-  if (loading) return <div className="p-10 flex justify-center"><Spinner size={30} /></div>;
-  if (error || !cls) return <div className="p-10 text-red-500 text-center">Failed to load class.</div>;
-
+  if (currentClassLoading) return <div className="p-10 flex justify-center"><Spinner size={30} /></div>;
+  if (currentClassError || !cls) return <div className="p-10 text-red-500 text-center">Failed to load class.</div>;
   return (
     <div className="min-h-screen bg-brand-bg">
       <div className="mx-auto max-w-5xl space-y-6 p-6">
@@ -104,10 +97,10 @@ export default function ClassManagementPage({ params }: { params: Promise<{ clas
           </div>
         )}
 
-        <StudentList students={cls.students} studentCount={cls.studentCount} onAddClick={() => setShowAddModal(true)} onRemoveClick={setRemoveTarget} />
+        <StudentList students={currentClassStudents} studentCount={cls.studentCount} onAddClick={() => setShowAddModal(true)} onRemoveClick={setRemoveTarget} />
       </div>
 
-      {showAddModal && <AddStudentModal token={token} classId={cls.id} existingIds={cls.students.map((s) => s.id)} onAdded={handleStudentAdded} onClose={() => setShowAddModal(false)} />}
+      {showAddModal && <AddStudentModal token={token} classId={cls.id} existingIds={currentClassStudents.map((s) => s.id)} onAdded={handleStudentAdded} onClose={() => setShowAddModal(false)} />}
       {removeTarget && <ConfirmRemoveModal student={removeTarget} removing={removing} onConfirm={handleRemoveConfirm} onCancel={() => setRemoveTarget(null)} />}
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>

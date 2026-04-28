@@ -2,6 +2,7 @@ import { configureStore } from "@reduxjs/toolkit";
 import authReducer from "@/store/slices/authSlice";
 import classesReducer from "@/store/slices/classesSlice";
 import usersReducer from "@/store/slices/usersSlice";
+import testDraftReducer from "@/store/slices/testDraftSlice";
 
 // Store-ul principal Redux Toolkit
 export const store = configureStore({
@@ -9,6 +10,7 @@ export const store = configureStore({
     auth: authReducer,
     classes: classesReducer,
     users: usersReducer,
+    testDraft: testDraftReducer,
   },
 });
 
