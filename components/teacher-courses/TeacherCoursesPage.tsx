@@ -61,7 +61,7 @@ export default function TeacherCoursesPage() {
         search={search}
         onSearchChange={setSearch}
       />
-      <CoursesList
+      {/* <CoursesList
         courses={filtered}
         loading={loading}
         //error={error} 
@@ -71,7 +71,7 @@ export default function TeacherCoursesPage() {
         onEdit={handleEdit}
         onManage={handleManage}
         onRetry={() => dispatch(fetchCourses(token))}
-      />
+      /> */}
     </div>
   );
 }
