@@ -1,6 +1,6 @@
 const API_URL = "https://backend-for-render-ws6z.onrender.com";
 
-const USE_MOCK = true; 
+const USE_MOCK = false; 
 
 export async function apiFetch<T>(
   path: string,
