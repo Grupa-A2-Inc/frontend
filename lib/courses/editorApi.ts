@@ -16,6 +16,9 @@ async function editorFetch<T>(path: string, options: RequestInit = {}): Promise<
     },
   });
   if (!res.ok) {
+    if (res.status === 401 && typeof window !== "undefined") {
+      window.dispatchEvent(new Event("auth:sessionExpired"));
+    }
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || `Error ${res.status}`);
   }
@@ -28,16 +31,6 @@ export interface CoursePayload {
   description: string;
   expirationDate?: string;
   status?: "DRAFT" | "PUBLISHED";
-}
-
-export interface NodePayload {
-  parentNodeId?: string;
-  nodeType: string;
-  resourceType?: string;
-  title: string;
-  description?: string;
-  content?: string;
-  fileUrl?: string;
 }
 
 export interface UpdateNodePayload {
@@ -59,8 +52,23 @@ export async function fetchCourseForEditor(courseId: string): Promise<any> {
   return editorFetch(`/api/v1/courses/${courseId}/full-view`);
 }
 
-export async function createCourseNode(courseId: string, payload: NodePayload): Promise<{ id: string }> {
-  return editorFetch(`/api/v1/courses/${courseId}/nodes`, { method: "POST", body: JSON.stringify(payload) });
+// POST /api/v1/courses/{courseId}/chapters — body is a raw JSON string (title only)
+export async function createChapter(courseId: string, title: string): Promise<{ id: string }> {
+  return editorFetch(`/api/v1/courses/${courseId}/chapters`, {
+    method: "POST",
+    body: JSON.stringify(title),
+  });
+}
+
+// POST /api/v1/chapters/{chapterId}/lessons
+export async function createLesson(
+  chapterId: string,
+  payload: { title: string; resourceType?: string; content?: string },
+): Promise<{ id: string }> {
+  return editorFetch(`/api/v1/chapters/${chapterId}/lessons`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function updateCourseNode(nodeId: string, payload: UpdateNodePayload): Promise<void> {

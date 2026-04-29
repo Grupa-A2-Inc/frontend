@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { logout, loadUserFromStorage, User } from "@/store/slices/authSlice";
+import { logout, User } from "@/store/slices/authSlice";
 import { useTheme } from "@/components/ThemeProvider";
 
 // ---------- Types ----------
@@ -175,14 +175,14 @@ export default function SidebarWrapper({ children }: SidebarWrapperProps) {
   const [logoutHovered, setLogoutHovered] = useState(false);
   const router    = useRouter();
   const pathname  = usePathname();
-  const dispatch  = useAppDispatch();
-  const authUser  = useAppSelector((state) => state.auth.user);
+  const dispatch     = useAppDispatch();
+  const authUser     = useAppSelector((state) => state.auth.user);
+  const accessToken  = useAppSelector((state) => state.auth.accessToken);
   const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const saved = localStorage.getItem("sidebarCollapsed");
     if (saved !== null) setCollapsed(JSON.parse(saved));
-    dispatch(loadUserFromStorage());
   }, []);
 
   const toggleSidebar = () => {
@@ -191,8 +191,8 @@ export default function SidebarWrapper({ children }: SidebarWrapperProps) {
     localStorage.setItem("sidebarCollapsed", JSON.stringify(next));
   };
 
-  const handleLogout = () => {
-    dispatch(logout());
+  const handleLogout = async () => {
+    await dispatch(logout(accessToken ?? ""));
     router.push("/");
   };
 

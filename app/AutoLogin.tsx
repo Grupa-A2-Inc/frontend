@@ -13,8 +13,9 @@ export default function AutoLogin() {
   useEffect(() => {
     dispatch(loadUserFromStorage());
 
-    function handleSessionExpired() {
-      dispatch(logout());
+    async function handleSessionExpired() {
+      const token = localStorage.getItem("accessToken") ?? "";
+      await dispatch(logout(token));
       router.push("/login");
     }
 

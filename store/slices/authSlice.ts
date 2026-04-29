@@ -145,29 +145,30 @@ export const register = createAsyncThunk(
   }
 );
 
+// LOGOUT
+export const logout = createAsyncThunk(
+  "auth/logoutThunk",
+  async (token: string) => {
+    // Clear local storage and cookies immediately (best-effort regardless of network)
+    localStorage.removeItem("mockAuth");
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("user");
+    document.cookie = "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+    document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+
+    // Tell the backend to blacklist the token
+    await fetch(`${API_URL}/api/v1/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    }).catch(() => {});
+  }
+);
+
 const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    // Logout 
-    logout(state) {
-      state.user = null;
-      state.organization = null;
-      state.accessToken = null;
-      state.isAuthenticated = false;
-      state.error = null;
-
-      // Stergem token-ul din cookies pentru proxy
-      document.cookie = "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-
-      // Stergem rolul din cookies
-      document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-
-      // Clear mock auth flag if present
-      localStorage.removeItem("mockAuth");
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("user");
-    },
 
     // Curatam erorile manual
     clearError(state) {
@@ -307,10 +308,26 @@ const authSlice = createSlice({
       state.loading = false;
       state.error = action.payload as string;
     });
+
+    builder.addCase(logout.fulfilled, (state) => {
+      state.user = null;
+      state.organization = null;
+      state.accessToken = null;
+      state.isAuthenticated = false;
+      state.error = null;
+    });
+
+    builder.addCase(logout.pending, (state) => {
+      state.user = null;
+      state.organization = null;
+      state.accessToken = null;
+      state.isAuthenticated = false;
+      state.error = null;
+    });
   },
 });
 
-export const { logout, clearError, setAccessToken, loadUserFromStorage } = 
+export const { clearError, setAccessToken, loadUserFromStorage } =
   authSlice.actions;
 
 export default authSlice.reducer;

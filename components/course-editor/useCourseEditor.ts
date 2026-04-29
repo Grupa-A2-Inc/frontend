@@ -4,7 +4,8 @@ import {
   createCourse,
   updateCourse,
   fetchCourseForEditor,
-  createCourseNode,
+  createChapter,
+  createLesson,
   updateCourseNode,
   deleteCourseNode,
   moveCourseNode,
@@ -240,20 +241,17 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
   }
 
   async function addRemoteNode(target: AddTarget) {
-    const isChapter = target.kind === "chapter";
-    const result = await createCourseNode(courseId!, {
-      title: addForm.title.trim(),
-      nodeType: isChapter ? "CHAPTER" : "LESSON",
-      ...(isChapter
-        ? { description: addForm.description || undefined }
-        : {
-          resourceType: addType,
-          parentNodeId: target.parentId ?? undefined,
-          ...(addType === "TEXT" ? { content: addForm.content } : {}),
-        }),
-    });
-
-    addNodeToState(target, result.id);
+    if (target.kind === "chapter") {
+      const { id } = await createChapter(courseId!, addForm.title.trim());
+      addNodeToState(target, id);
+    } else {
+      const { id } = await createLesson(target.parentId!, {
+        title: addForm.title.trim(),
+        resourceType: addType,
+        ...(addType === "TEXT" ? { content: addForm.content } : {}),
+      });
+      addNodeToState(target, id);
+    }
   }
 
   function addLocalNode(target: AddTarget) {
@@ -488,18 +486,12 @@ function mapCourseToChapters(data: EditorCourseResponse): EditorChapter[] {
 
 async function createCourseTree(courseId: string, chapters: EditorChapter[]) {
   for (const chapter of [...chapters].sort((a, b) => a.orderIndex - b.orderIndex)) {
-    const chapterResult = await createCourseNode(courseId, {
-      nodeType: "CHAPTER",
-      title: chapter.title,
-      description: chapter.description || undefined,
-    });
+    const { id: chapterId } = await createChapter(courseId, chapter.title);
 
     for (const leaf of [...chapter.children].sort((a, b) => a.orderIndex - b.orderIndex)) {
-      await createCourseNode(courseId, {
-        nodeType: "LESSON",
-        resourceType: leaf.type,
-        parentNodeId: chapterResult.id,
+      await createLesson(chapterId, {
         title: leaf.title,
+        resourceType: leaf.type,
         content: leaf.type === "TEXT" ? leaf.content || undefined : undefined,
       });
     }
