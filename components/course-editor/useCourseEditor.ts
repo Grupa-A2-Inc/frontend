@@ -5,10 +5,11 @@ import {
   updateCourse,
   fetchCourseForEditor,
   createChapter,
+  updateChapter,
+  deleteChapter,
   createLesson,
-  updateCourseNode,
-  deleteCourseNode,
-  moveCourseNode,
+  updateLesson,
+  deleteLesson,
 } from "@/lib/courses/editorApi";
 import { EMPTY_FORM, tempId } from "./helpers";
 import type {
@@ -27,6 +28,7 @@ interface EditorCourseResponse {
   title?: string | null;
   description?: string | null;
   expirationDate?: string | null;
+  status?: "DRAFT" | "PUBLISHED" | null;
   chapters?: EditorChapterResponse[] | null;
 }
 
@@ -40,7 +42,7 @@ interface EditorChapterResponse {
 
 interface EditorLessonResponse {
   id: string;
-  resourceType?: EditorLeaf["type"] | null;
+  testId?: string | null;
   title?: string | null;
   contentMarkdown?: string | null;
   lessonResources?: { url?: string | null }[] | null;
@@ -53,6 +55,7 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [expirationDate, setExpiration] = useState("");
+  const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
   const [chapters, setChapters] = useState<EditorChapter[]>([]);
   const [selected, setSelected] = useState<SelectedRef | null>(null);
   const [nodeForm, setNodeForm] = useState<NodeForm>(EMPTY_FORM);
@@ -82,6 +85,7 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
         setTitle(data.title ?? "");
         setDescription(data.description ?? "");
         setExpiration(data.expirationDate ? data.expirationDate.slice(0, 10) : "");
+        setStatus(data.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT");
         setChapters(mapCourseToChapters(data));
       })
       .catch((error: Error) => setLoadErr(error.message))
@@ -159,7 +163,7 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
 
   async function saveChapterNode(selection: Extract<SelectedRef, { kind: "chapter" }>) {
     if (!selection.id.startsWith("temp_") && mode === "edit") {
-      await updateCourseNode(selection.id, {
+      await updateChapter(selection.id, {
         title: nodeForm.title,
         description: nodeForm.description,
       });
@@ -174,7 +178,7 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
 
   async function saveLeafNode(selection: Extract<SelectedRef, { kind: "leaf" }>) {
     if (!selection.id.startsWith("temp_") && mode === "edit") {
-      await updateCourseNode(selection.id, {
+      await updateLesson(selection.id, {
         title: nodeForm.title,
         content: nodeForm.content,
       });
@@ -222,14 +226,18 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
       return;
     }
 
+    const leafType = addType as Exclude<EditorNodeType, "CHAPTER">;
+    const form = addForm;
+    const target = addTarget;
+
     setAddingNode(true);
     setAddNodeErr(null);
 
     try {
       if (mode === "edit" && courseId) {
-        await addRemoteNode(addTarget);
+        await addRemoteNode(target, form, leafType);
       } else {
-        addLocalNode(addTarget);
+        addLocalNode(target, form, leafType);
       }
 
       setAddTarget(null);
@@ -240,32 +248,47 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     }
   }
 
-  async function addRemoteNode(target: AddTarget) {
+  async function addRemoteNode(
+    target: AddTarget,
+    form: NodeForm,
+    leafType: Exclude<EditorNodeType, "CHAPTER">,
+  ) {
     if (target.kind === "chapter") {
-      const { id } = await createChapter(courseId!, addForm.title.trim());
-      addNodeToState(target, id);
-    } else {
-      const { id } = await createLesson(target.parentId!, {
-        title: addForm.title.trim(),
-        resourceType: addType,
-        ...(addType === "TEXT" ? { content: addForm.content } : {}),
+      const result = await createChapter(courseId!, {
+        title: form.title.trim(),
+        description: form.description || undefined,
       });
-      addNodeToState(target, id);
+      addNodeToState(target, result.id, form, leafType);
+    } else {
+      const result = await createLesson(target.parentId!, {
+        title: form.title.trim(),
+        ...(leafType === "TEXT" && form.content ? { contentMarkdown: form.content } : {}),
+      });
+      addNodeToState(target, result.id, form, leafType);
     }
   }
 
-  function addLocalNode(target: AddTarget) {
-    addNodeToState(target, tempId());
+  function addLocalNode(
+    target: AddTarget,
+    form: NodeForm,
+    leafType: Exclude<EditorNodeType, "CHAPTER">,
+  ) {
+    addNodeToState(target, tempId(), form, leafType);
   }
 
-  function addNodeToState(target: AddTarget, id: string) {
+  function addNodeToState(
+    target: AddTarget,
+    id: string,
+    form: NodeForm,
+    leafType: Exclude<EditorNodeType, "CHAPTER">,
+  ) {
     if (target.kind === "chapter") {
       setChapters(prev => [
         ...prev,
         {
           id,
-          title: addForm.title.trim(),
-          description: addForm.description,
+          title: form.title.trim(),
+          description: form.description,
           orderIndex: prev.length,
           children: [],
         },
@@ -275,9 +298,9 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
 
     const newLeaf: EditorLeaf = {
       id,
-      type: addType as Exclude<EditorNodeType, "CHAPTER">,
-      title: addForm.title.trim(),
-      content: addForm.content,
+      type: leafType,
+      title: form.title.trim(),
+      content: form.content,
       fileUrl: "",
       pendingFile: null,
       orderIndex: 0,
@@ -297,7 +320,7 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     setDeleteTarget({
       label: `chapter "${chapter.title || "Untitled"}"`,
       onConfirm: async () => {
-        if (mode === "edit" && !chapter.id.startsWith("temp_")) await deleteCourseNode(chapter.id);
+        if (mode === "edit" && !chapter.id.startsWith("temp_")) await deleteChapter(chapter.id);
         setChapters(prev => prev.filter(item => item.id !== chapter.id));
         if (selected?.kind === "chapter" && selected.id === chapter.id) setSelected(null);
         if (selected?.kind === "leaf" && selected.chapterId === chapter.id) setSelected(null);
@@ -310,7 +333,7 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     setDeleteTarget({
       label: `"${leaf.title || "Untitled"}"`,
       onConfirm: async () => {
-        if (mode === "edit" && !leaf.id.startsWith("temp_")) await deleteCourseNode(leaf.id);
+        if (mode === "edit" && !leaf.id.startsWith("temp_")) await deleteLesson(leaf.id);
         setChapters(prev => prev.map(chapter =>
           chapter.id === chapterId
             ? { ...chapter, children: chapter.children.filter(item => item.id !== leaf.id) }
@@ -342,12 +365,6 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     if (direction === "UP" && index === 0) return;
     if (direction === "DOWN" && index === chapters.length - 1) return;
 
-    if (mode === "edit" && !id.startsWith("temp_")) {
-      try {
-        await moveCourseNode(id, direction);
-      } catch {}
-    }
-
     const next = [...chapters];
     const swapIndex = direction === "UP" ? index - 1 : index + 1;
     [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
@@ -361,12 +378,6 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     const index = chapter.children.findIndex(leaf => leaf.id === leafId);
     if (direction === "UP" && index === 0) return;
     if (direction === "DOWN" && index === chapter.children.length - 1) return;
-
-    if (mode === "edit" && !leafId.startsWith("temp_")) {
-      try {
-        await moveCourseNode(leafId, direction);
-      } catch {}
-    }
 
     const nextChildren = [...chapter.children];
     const swapIndex = direction === "UP" ? index - 1 : index + 1;
@@ -394,7 +405,7 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
         title: title.trim(),
         description: description.trim(),
         expirationDate: expirationDate || undefined,
-        status: "DRAFT" as const,
+        status,
       };
 
       if (mode === "create") {
@@ -425,6 +436,8 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     setDescription,
     expirationDate,
     setExpiration,
+    status,
+    setStatus,
     chapters,
     selected,
     setSelected,
@@ -466,6 +479,13 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
   };
 }
 
+function inferLessonType(lesson: EditorLessonResponse): Exclude<EditorNodeType, "CHAPTER"> {
+  if (lesson.testId) return "TEST";
+  const firstUrl = lesson.lessonResources?.[0]?.url ?? "";
+  if (firstUrl) return /\.(mp4|webm|ogg|mov|avi)(\?|$)/i.test(firstUrl) ? "VIDEO" : "FILE";
+  return "TEXT";
+}
+
 function mapCourseToChapters(data: EditorCourseResponse): EditorChapter[] {
   return (data.chapters ?? []).map((chapter, chapterIndex) => ({
     id: chapter.id,
@@ -474,7 +494,7 @@ function mapCourseToChapters(data: EditorCourseResponse): EditorChapter[] {
     orderIndex: chapter.orderIndex ?? chapterIndex,
     children: (chapter.lessons ?? []).map((lesson, lessonIndex): EditorLeaf => ({
       id: lesson.id,
-      type: (lesson.resourceType ?? "TEXT") as Exclude<EditorNodeType, "CHAPTER">,
+      type: inferLessonType(lesson),
       title: lesson.title ?? "",
       content: lesson.contentMarkdown ?? "",
       fileUrl: lesson.lessonResources?.[0]?.url ?? "",
@@ -486,13 +506,15 @@ function mapCourseToChapters(data: EditorCourseResponse): EditorChapter[] {
 
 async function createCourseTree(courseId: string, chapters: EditorChapter[]) {
   for (const chapter of [...chapters].sort((a, b) => a.orderIndex - b.orderIndex)) {
-    const { id: chapterId } = await createChapter(courseId, chapter.title);
+    const chapterResult = await createChapter(courseId, {
+      title: chapter.title,
+      description: chapter.description || undefined,
+    });
 
     for (const leaf of [...chapter.children].sort((a, b) => a.orderIndex - b.orderIndex)) {
-      await createLesson(chapterId, {
+      await createLesson(chapterResult.id, {
         title: leaf.title,
-        resourceType: leaf.type,
-        content: leaf.type === "TEXT" ? leaf.content || undefined : undefined,
+        ...(leaf.type === "TEXT" && leaf.content ? { contentMarkdown: leaf.content } : {}),
       });
     }
   }

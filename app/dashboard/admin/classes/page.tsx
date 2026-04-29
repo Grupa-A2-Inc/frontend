@@ -28,16 +28,16 @@ export default function ClassesPage() {
   const [name, setName]               = useState("");
   const [grade, setGrade]             = useState("");
   const [description, setDescription] = useState("");
-  const [studentCount, setStudentCount] = useState<string>("0");
   const [teacherId, setTeacherId]     = useState("");
   const [validationError, setValidationError] = useState("");
 
   const token = accessToken ?? (typeof window !== "undefined" ? localStorage.getItem("accessToken") : null) ?? "";
 
   useEffect(() => {
-    dispatch(fetchClassrooms());
-    if (token) dispatch(fetchTeachers(token));
-  }, [dispatch]);
+    if (!token) return;
+    dispatch(fetchClassrooms(token));
+    dispatch(fetchTeachers(token));
+  }, [dispatch, token]);
 
   const filtered = classrooms.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -48,7 +48,6 @@ export default function ClassesPage() {
     setName("");
     setGrade("");
     setDescription("");
-    setStudentCount("0");
     setTeacherId("");
     setValidationError("");
     dispatch(clearCreateError());
@@ -62,10 +61,9 @@ export default function ClassesPage() {
   }
 
   function openEditModal(classroom: Classroom) {
-    setName(classroom.name);
-    setGrade(classroom.grade);
-    setDescription(classroom.description);
-    setStudentCount(String(classroom.studentCount));
+    setName(classroom.name ?? "");
+    setGrade(classroom.grade ?? "");
+    setDescription(classroom.description ?? "");
     setTeacherId(classroom.teacherId ?? "");
     setValidationError("");
     dispatch(clearUpdateError());
@@ -87,13 +85,11 @@ export default function ClassesPage() {
 
     setValidationError("");
 
-    const selectedTeacher = teachers.find((t) => t.id === teacherId);
-    const teacherName = selectedTeacher
-      ? `${selectedTeacher.firstName} ${selectedTeacher.lastName}`
-      : undefined;
-
     const result = await dispatch(
-      createClassroom({ name, grade, description, studentCount: Math.max(0, parseInt(studentCount) || 0), teacherId: teacherId || undefined, teacherName })
+      createClassroom({
+        token,
+        data: { name: name.trim(), grade: grade.trim(), description: description.trim(), teacherId: teacherId || undefined },
+      })
     );
 
     if (createClassroom.fulfilled.match(result)) closeModal();
@@ -108,13 +104,12 @@ export default function ClassesPage() {
 
     setValidationError("");
 
-    const selectedTeacher = teachers.find((t) => t.id === teacherId);
-    const teacherName = selectedTeacher
-      ? `${selectedTeacher.firstName} ${selectedTeacher.lastName}`
-      : undefined;
-
     const result = await dispatch(
-      updateClassroom({ id: editingClassroom.id, name, grade, description, studentCount: Math.max(0, parseInt(studentCount) || 0), teacherId: teacherId || undefined, teacherName })
+      updateClassroom({
+        token,
+        id: editingClassroom.id,
+        data: { name: name.trim(), grade: grade.trim(), description: description.trim(), teacherId: teacherId || undefined },
+      })
     );
 
     if (updateClassroom.fulfilled.match(result)) closeModal();
@@ -122,7 +117,7 @@ export default function ClassesPage() {
 
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
-    dispatch(deleteClassroom(id));
+    dispatch(deleteClassroom({ token, id }));
   }
 
   return (
@@ -259,7 +254,7 @@ export default function ClassesPage() {
         </div>
       )}
 
-      {/* ADD CLASS MODAL */}
+      {/* ADD / EDIT CLASS MODAL */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-brand-card border border-brand-primary/20 rounded-2xl p-6 w-full max-w-md shadow-2xl">
@@ -315,18 +310,6 @@ export default function ClassesPage() {
                   placeholder="Brief description of the classroom..."
                   rows={3}
                   className="bg-brand-mid border border-brand-primary/20 rounded-xl px-4 py-2.5 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors resize-none"
-                />
-              </div>
-
-              {/* Student Count */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-brand-text/60">Number of Students</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={studentCount}
-                  onChange={(e) => setStudentCount(e.target.value)}
-                  className="bg-brand-mid border border-brand-primary/20 rounded-xl px-4 py-2.5 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors"
                 />
               </div>
 

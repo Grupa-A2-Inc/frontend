@@ -4,19 +4,20 @@ import { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   fetchCourses,
-  fetchTeachers,
   createCourse,
   deleteCourse,
   clearCreateError,
   CourseStatus,
 } from "@/store/slices/coursesSlice";
+import { fetchTeachers } from "@/store/slices/classesSlice";
 
 type StatusFilter = "ALL" | "DRAFT" | "PUBLISHED";
 
 export default function CoursesPage() {
   const dispatch = useAppDispatch();
-  const { courses, teachers, loading, error, creating, createError, deleting } =
+  const { courses, loading, error, creating, createError, deleting } =
     useAppSelector((state) => state.courses);
+  const { teachers } = useAppSelector((state) => state.classes);
   const { accessToken } = useAppSelector((state) => state.auth);
 
   // Filters
