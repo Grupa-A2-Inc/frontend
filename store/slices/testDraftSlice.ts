@@ -85,7 +85,7 @@ const testDraftSlice = createSlice({
     addManualQuestion(state) {
       const newQ: DraftQuestion = {
         id: `manual-${Date.now()}`,
-        prompt: "Scrieți întrebarea aici...",
+        prompt: "",
         options: [
           { id: `opt-${Date.now()}-1`, label: "Varianta 1", isCorrect: true },
           { id: `opt-${Date.now()}-2`, label: "Varianta 2", isCorrect: false },
