@@ -180,7 +180,7 @@ export default function ContentTree({ courseId }: { courseId: string }) {
                                                     </Link>
                                                 ) : (
                                                     <Link
-                                                        href={`/dashboard/teacher/courses/${courseId}/tests/new?lessonId=${lesson.id}`}
+                                                        href={`/dashboard/teacher/courses/${courseId}/test-builder`}
                                                         className="flex items-center gap-2 text-sm text-brand-primary hover:underline"
                                                     >
                                                         <FlaskConical className="h-4 w-4" />
