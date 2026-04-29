@@ -63,10 +63,10 @@ export default function CourseManagementPage({ params }: Props) {
             </Link>
 
             <Link
-              href={`/dashboard/teacher/courses/${courseId}/tests`}
+              href={`/dashboard/teacher/courses/${courseId}/test-builder`}
               className="rounded-xl bg-brand-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-primary/90"
             >
-              Manage tests
+              Create test
             </Link>
           </div>
         </div>
