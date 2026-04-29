@@ -57,7 +57,7 @@ export const fetchUsers = createAsyncThunk(
   "users/fetchUsers",
   async (token: string, { rejectWithValue }) => {
     try {
-      const response = await fetchWithAuth(`${API_URL}/api/v1/users`, token);
+      const response = await fetchWithAuth(`${API_URL}/api/v1/users/organization`, token);
       if (!response.ok) {
         const err = await response.json();
         return rejectWithValue(err.message || "Failed to load users");
