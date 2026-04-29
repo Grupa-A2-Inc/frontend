@@ -1,4 +1,3 @@
-import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 
 const API_URL = "https://backend-for-render-ws6z.onrender.com";
@@ -57,7 +56,9 @@ export const fetchUsers = createAsyncThunk(
   "users/fetchUsers",
   async (token: string, { rejectWithValue }) => {
     try {
-      const response = await fetchWithAuth(`${API_URL}/api/v1/users`, token);
+      const response = await fetch(`${API_URL}/api/v1/users/organization`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!response.ok) {
         const err = await response.json();
         return rejectWithValue(err.message || "Failed to load users");
@@ -76,9 +77,12 @@ export const createUser = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await fetchWithAuth(`${API_URL}/api/v1/users`, payload.token, {
+      const response = await fetch(`${API_URL}/api/v1/users`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${payload.token}`,
+        },
         body: JSON.stringify(payload.data),
       });
       if (!response.ok) {
@@ -125,9 +129,12 @@ export const toggleUserStatus = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await fetchWithAuth(`${API_URL}/api/v1/users/${payload.userId}/status`, payload.token, {
+      const response = await fetch(`${API_URL}/api/v1/users/${payload.userId}/status`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${payload.token}`,
+        },
         body: JSON.stringify({ status: payload.status }),
       });
       if (!response.ok) {
@@ -148,8 +155,9 @@ export const deleteUser = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await fetchWithAuth(`${API_URL}/api/v1/users/${payload.userId}`, payload.token, {
+      const response = await fetch(`${API_URL}/api/v1/users/${payload.userId}`, {
         method: "DELETE",
+        headers: { Authorization: `Bearer ${payload.token}` },
       });
       if (!response.ok) {
         const err = await response.json();
