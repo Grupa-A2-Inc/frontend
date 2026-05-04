@@ -1,3 +1,5 @@
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
+
 const API_BASE = "https://backend-for-render-ws6z.onrender.com";
 
 function getToken(): string {
@@ -7,18 +9,15 @@ function getToken(): string {
 
 async function editorFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
-  const res = await fetch(`${API_BASE}${path}`, {
+  const callerHeaders = options.headers as Record<string, string> | undefined;
+  const defaultHeaders: Record<string, string> = callerHeaders?.["Content-Type"]
+    ? {}
+    : { "Content-Type": "application/json" };
+  const res = await fetchWithAuth(`${API_BASE}${path}`, token, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers ?? {}),
-    },
+    headers: { ...defaultHeaders, ...(callerHeaders ?? {}) },
   });
   if (!res.ok) {
-    if (res.status === 401 && typeof window !== "undefined") {
-      window.dispatchEvent(new Event("auth:sessionExpired"));
-    }
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || `Error ${res.status}`);
   }
@@ -33,13 +32,6 @@ export interface CoursePayload {
   status?: "DRAFT" | "PUBLISHED";
 }
 
-export interface UpdateNodePayload {
-  title?: string;
-  description?: string;
-  content?: string;
-  fileUrl?: string;
-}
-
 export async function createCourse(payload: CoursePayload): Promise<{ id: string }> {
   return editorFetch("/api/v1/courses", { method: "POST", body: JSON.stringify(payload) });
 }
@@ -52,18 +44,37 @@ export async function fetchCourseForEditor(courseId: string): Promise<any> {
   return editorFetch(`/api/v1/courses/${courseId}/full-view`);
 }
 
-// POST /api/v1/courses/{courseId}/chapters — body is a raw JSON string (title only)
-export async function createChapter(courseId: string, title: string): Promise<{ id: string }> {
+// ---------- Chapters ----------
+
+export async function createChapter(
+  courseId: string,
+  payload: { title: string; description?: string },
+): Promise<{ id: string }> {
   return editorFetch(`/api/v1/courses/${courseId}/chapters`, {
     method: "POST",
-    body: JSON.stringify(title),
+    body: JSON.stringify(payload),
   });
 }
 
-// POST /api/v1/chapters/{chapterId}/lessons
+export async function updateChapter(
+  chapterId: string,
+  payload: { title?: string; description?: string },
+): Promise<void> {
+  return editorFetch(`/api/v1/chapters/${chapterId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteChapter(chapterId: string): Promise<void> {
+  return editorFetch(`/api/v1/chapters/${chapterId}`, { method: "DELETE" });
+}
+
+// ---------- Lessons ----------
+
 export async function createLesson(
   chapterId: string,
-  payload: { title: string; resourceType?: string; content?: string },
+  payload: { title: string; contentMarkdown?: string },
 ): Promise<{ id: string }> {
   return editorFetch(`/api/v1/chapters/${chapterId}/lessons`, {
     method: "POST",
@@ -71,17 +82,31 @@ export async function createLesson(
   });
 }
 
-export async function updateCourseNode(nodeId: string, payload: UpdateNodePayload): Promise<void> {
-  return editorFetch(`/api/v1/course-nodes/${nodeId}`, { method: "PUT", body: JSON.stringify(payload) });
+export async function updateLesson(
+  lessonId: string,
+  payload: { title?: string; content?: string },
+): Promise<void> {
+  const calls: Promise<unknown>[] = [];
+  if (payload.title !== undefined) {
+    calls.push(
+      editorFetch(`/api/v1/lessons/${lessonId}/metadata`, {
+        method: "PATCH",
+        body: JSON.stringify({ title: payload.title }),
+      }),
+    );
+  }
+  if (payload.content !== undefined) {
+    calls.push(
+      editorFetch(`/api/v1/lessons/${lessonId}/content`, {
+        method: "PATCH",
+        headers: { "Content-Type": "text/plain" },
+        body: payload.content,
+      }),
+    );
+  }
+  await Promise.all(calls);
 }
 
-export async function deleteCourseNode(nodeId: string): Promise<void> {
-  return editorFetch(`/api/v1/course-nodes/${nodeId}`, { method: "DELETE" });
-}
-
-export async function moveCourseNode(nodeId: string, direction: "UP" | "DOWN"): Promise<void> {
-  return editorFetch(`/api/v1/course-nodes/${nodeId}/move`, {
-    method: "POST",
-    body: JSON.stringify({ direction }),
-  });
+export async function deleteLesson(lessonId: string): Promise<void> {
+  return editorFetch(`/api/v1/lessons/${lessonId}`, { method: "DELETE" });
 }

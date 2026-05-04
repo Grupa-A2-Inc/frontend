@@ -12,7 +12,7 @@ type Props = {
 };
 
 export default function EditInfoPanel({ cls, token, onSaved, onCancel }: Props) {
-  const [form, setForm] = useState({ name: cls.name, description: cls.description, subject: cls.subject, grade: cls.grade, year: cls.year });
+  const [form, setForm] = useState({ name: cls.name ?? "", description: cls.description ?? "", subject: cls.subject ?? "", grade: cls.grade ?? "", year: cls.year ?? "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

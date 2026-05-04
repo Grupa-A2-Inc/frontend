@@ -18,19 +18,11 @@ export interface Course {
   createdBy: string;
 }
 
-export interface Teacher {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-}
-
 interface CoursesState {
   courses: Course[];
-  teachers: Teacher[];
   loading: boolean;
   creating: boolean;
-  deleting: string | null;   // holds the id being deleted
+  deleting: string | null;
   error: string | null;
   createError: string | null;
   deleteError: string | null;
@@ -40,7 +32,6 @@ interface CoursesState {
 
 const initialState: CoursesState = {
   courses: [],
-  teachers: [],
   loading: false,
   creating: false,
   deleting: null,
@@ -52,7 +43,7 @@ const initialState: CoursesState = {
 // ---------- Thunks ----------
 
 export const fetchCourses = createAsyncThunk(
-  "classes/fetchCourses",
+  "courses/fetchCourses",
   async (token: string, { rejectWithValue }) => {
     try {
       const response = await fetchWithAuth(`${API_URL}/api/v1/courses/my-courses`, token);
@@ -67,25 +58,8 @@ export const fetchCourses = createAsyncThunk(
   }
 );
 
-export const fetchTeachers = createAsyncThunk(
-  "classes/fetchTeachers",
-  async (token: string, { rejectWithValue }) => {
-    try {
-      const response = await fetchWithAuth(`${API_URL}/api/v1/users`, token);
-      if (!response.ok) {
-        const err = await response.json();
-        return rejectWithValue(err.message || "Failed to load teachers");
-      }
-      const data = await response.json();
-      return data.filter((u: any) => u.roleName === "TEACHER");
-    } catch {
-      return rejectWithValue("Network error");
-    }
-  }
-);
-
 export const createCourse = createAsyncThunk(
-  "classes/createCourse",
+  "courses/createCourse",
   async (
     payload: {
       token: string;
@@ -127,7 +101,7 @@ export const createCourse = createAsyncThunk(
 );
 
 export const deleteCourse = createAsyncThunk(
-  "classes/deleteCourse",
+  "courses/deleteCourse",
   async (payload: { token: string; id: string }, { rejectWithValue }) => {
     try {
       const response = await fetchWithAuth(`${API_URL}/api/v1/courses/${payload.id}`, payload.token, {
@@ -171,15 +145,13 @@ const coursesSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      .addCase(fetchTeachers.fulfilled, (state, action) => {
-        state.teachers = action.payload;
-      })
       .addCase(createCourse.pending, (state) => {
         state.creating = true;
         state.createError = null;
       })
-      .addCase(createCourse.fulfilled, (state) => {
+      .addCase(createCourse.fulfilled, (state, action) => {
         state.creating = false;
+        state.courses.push(action.payload);
       })
       .addCase(createCourse.rejected, (state, action) => {
         state.creating = false;
