@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchCourses } from "@/store/slices/coursesSlice";
+import { fetchCourses, deleteCourse } from "@/store/slices/coursesSlice";
 
 type StatusFilter = "ALL" | "DRAFT" | "PUBLISHED";
 
 export default function TeacherCoursesPage() {
   const dispatch = useAppDispatch();
-  const { courses, loading, error } = useAppSelector((state) => state.courses);
+  const { courses, loading, error, deleting } = useAppSelector((state) => state.courses);
   const { accessToken } = useAppSelector((state) => state.auth);
 
   const [search, setSearch] = useState("");
@@ -24,6 +24,13 @@ export default function TeacherCoursesPage() {
     if (!token) return;
     dispatch(fetchCourses(token));
   }, [token, dispatch]);
+
+  async function handleDeleteDraft(e: React.MouseEvent, id: string, title: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm(`Delete draft "${title}"? This cannot be undone.`)) return;
+    dispatch(deleteCourse({ token, id }));
+  }
 
   const draftCount     = courses.filter((c) => c.status === "DRAFT").length;
   const publishedCount = courses.filter((c) => c.status === "PUBLISHED").length;
@@ -140,16 +147,18 @@ export default function TeacherCoursesPage() {
       {!loading && !error && filtered.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((course) => (
-            <Link
+            <div
               key={course.id}
-              href={`/dashboard/teacher/courses/${course.id}`}
-              className="bg-brand-card border border-brand-primary/15 rounded-2xl p-5 hover:border-brand-primary/40 transition-colors flex flex-col gap-3 no-underline"
+              className="bg-brand-card border border-brand-primary/15 rounded-2xl p-5 hover:border-brand-primary/40 transition-colors flex flex-col gap-3"
             >
               {/* Title + status badge */}
               <div className="flex items-start justify-between gap-3">
-                <h3 className="text-brand-text font-semibold text-sm leading-snug flex-1">
+                <Link
+                  href={`/dashboard/teacher/courses/${course.id}`}
+                  className="text-brand-text font-semibold text-sm leading-snug flex-1 hover:text-brand-primary transition-colors"
+                >
                   {course.title}
-                </h3>
+                </Link>
                 <span
                   className={`flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-medium ${
                     course.status === "PUBLISHED"
@@ -191,14 +200,28 @@ export default function TeacherCoursesPage() {
                   </div>
                 </div>
 
-                <span
-                  className="material-symbols-rounded text-brand-primary/40"
-                  style={{ fontSize: "1.1rem" }}
-                >
-                  arrow_forward
-                </span>
+                <div className="flex items-center gap-1">
+                  {course.status === "DRAFT" && (
+                    <button
+                      onClick={(e) => handleDeleteDraft(e, course.id, course.title)}
+                      disabled={deleting === course.id}
+                      title="Delete draft"
+                      className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/20 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-50"
+                    >
+                      <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>
+                        {deleting === course.id ? "hourglass_empty" : "delete"}
+                      </span>
+                    </button>
+                  )}
+                  <Link
+                    href={`/dashboard/teacher/courses/${course.id}`}
+                    className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-primary/40 hover:text-brand-primary hover:bg-brand-primary/10 transition-colors"
+                  >
+                    <span className="material-symbols-rounded" style={{ fontSize: "1.1rem" }}>arrow_forward</span>
+                  </Link>
+                </div>
               </div>
-            </Link>
+            </div>
           ))}
         </div>
       )}

@@ -27,7 +27,7 @@ import {
 } from "./types";
 
 // URL-ul de baza al backend-ului
-const API_BASE = "https://backend-for-render-ws6z.onrender.com";
+const API_BASE = "https://api.adaptiveelearning.online";
 
 // ----- HELPER FUNCTIONS -----
 

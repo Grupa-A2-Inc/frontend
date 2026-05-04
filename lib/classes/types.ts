@@ -1,21 +1,23 @@
+export interface ClassMember {
+  userId: string;
+  email: string;
+  membershipType: "TEACHER" | "STUDENT";
+}
+
+export interface ClassDetails {
+  id: string;
+  organizationId?: string;
+  name: string;
+  description: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// kept for backward compat — treat as ClassMember where possible
 export interface Student {
   id: string;
   firstName: string;
   lastName: string;
   email: string;
   status: "ACTIVE" | "INACTIVE";
-}
-
-export interface ClassDetails {
-  id: string;
-  name: string;
-  description: string;
-  subject: string;
-  grade: string;
-  year: string;
-  teacherId: string;
-  teacherName: string;
-  students: Student[];
-  studentCount: number;
-  createdAt: string;
 }
