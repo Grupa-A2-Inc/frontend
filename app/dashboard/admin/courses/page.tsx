@@ -7,8 +7,8 @@ import {
   createCourse,
   deleteCourse,
   clearCreateError,
-  CourseStatus,
 } from "@/store/slices/coursesSlice";
+import { CourseStatus } from "@/lib/courses/types";
 import { fetchTeachers } from "@/store/slices/classesSlice";
 
 type StatusFilter = "ALL" | "DRAFT" | "PUBLISHED";

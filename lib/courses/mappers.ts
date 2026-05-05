@@ -27,6 +27,7 @@ export function mapCourseFullView(data: any): {
         id: data.id,
         title: data.title,
         description: data.description ?? "",
+        category: data.category ?? "General",
         status: data.status,
         visibility: data.visibility,
         createdAt: data.createdAt,

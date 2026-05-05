@@ -1,6 +1,6 @@
 "use client";
 
-import { Course } from "@/store/slices/coursesSlice";
+import { Course } from "@/lib/courses/types";
 import CourseRow from "./CoursesRow";
 
 type Props = {
