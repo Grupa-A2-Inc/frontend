@@ -6,11 +6,7 @@ import { ChevronLeft, Save, Plus, CheckCircle2 } from "lucide-react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
 import { 
   saveFinalTestThunk, 
-  addManualQuestion, 
-  updateQuestionText, 
-  updateOptionText, 
-  toggleCorrectOption, 
-  deleteQuestion 
+  addManualQuestion 
 } from "@/store/slices/testDraftSlice";
 
 import TestSettingsPanel from "@/components/tests/TestSettingsPanel";
@@ -18,26 +14,10 @@ import QuestionCard from "@/components/tests/QuestionCard";
 import QuestionNavigator from "@/components/tests/QuestionNavigator";
 
 export default function TestBuilderPage({ params }: { params: Promise<{ courseId: string }> }) {
-    const { courseId } = use(params);  
-    const dispatch = useAppDispatch();
+  const { courseId } = use(params);  
+  const dispatch = useAppDispatch();
   
   const { questions, isSaving, status } = useAppSelector((state) => state.testDraft);
-
-  const handleUpdatePrompt = (qId: string, newText: string) => {
-    dispatch(updateQuestionText({ qId, newText }));
-  };
-
-  const handleUpdateOption = (qId: string, optId: string, newText: string) => {
-    dispatch(updateOptionText({ qId, optId, newText }));
-  };
-
-  const handleMarkCorrect = (qId: string, optId: string) => {
-    dispatch(toggleCorrectOption({ qId, optId }));
-  };
-
-  const handleDelete = (qId: string) => {
-    dispatch(deleteQuestion(qId));
-  };
 
   const handleSave = () => {
     dispatch(saveFinalTestThunk(courseId));
@@ -98,10 +78,6 @@ export default function TestBuilderPage({ params }: { params: Promise<{ courseId
                 key={q.id}
                 question={q}
                 index={index}
-                onChangePrompt={handleUpdatePrompt}
-                onChangeOption={handleUpdateOption}
-                onMarkCorrect={handleMarkCorrect}
-                onDelete={handleDelete}
               />
             ))}
             

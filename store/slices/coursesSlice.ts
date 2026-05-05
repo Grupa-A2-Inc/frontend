@@ -1,22 +1,11 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { Course, CourseStatus, CourseVisibility, Lesson, LessonResource } from "@/lib/courses/types";
 
-const API_URL = "https://backend-for-render-ws6z.onrender.com";
+// URL-ul backend-ului
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://backend-for-render-ws6z.onrender.com";
 
 // ---------- Types ----------
-
-export type CourseStatus = "DRAFT" | "PUBLISHED";
-export type CourseVisibility = "PRIVATE" | "PUBLIC";
-
-export interface Course {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  status: CourseStatus;
-  visibility: CourseVisibility;
-  createdBy: string;
-}
 
 export interface Teacher {
   id: string;
@@ -30,10 +19,15 @@ interface CoursesState {
   teachers: Teacher[];
   loading: boolean;
   creating: boolean;
-  deleting: string | null;   // holds the id being deleted
+  deleting: string | null;
   error: string | null;
   createError: string | null;
   deleteError: string | null;
+  
+  // Stare Lesson
+  activeLesson: Lesson | null;
+  activeLessonResources: LessonResource[];
+  isLoadingLesson: boolean;
 }
 
 // ---------- Initial state ----------
@@ -47,12 +41,16 @@ const initialState: CoursesState = {
   error: null,
   createError: null,
   deleteError: null,
+  
+  activeLesson: null,
+  activeLessonResources: [],
+  isLoadingLesson: false,
 };
 
 // ---------- Thunks ----------
 
 export const fetchCourses = createAsyncThunk(
-  "classes/fetchCourses",
+  "courses/fetchCourses",
   async (token: string, { rejectWithValue }) => {
     try {
       const response = await fetchWithAuth(`${API_URL}/api/v1/courses/my-courses`, token);
@@ -68,7 +66,7 @@ export const fetchCourses = createAsyncThunk(
 );
 
 export const fetchTeachers = createAsyncThunk(
-  "classes/fetchTeachers",
+  "courses/fetchTeachers",
   async (token: string, { rejectWithValue }) => {
     try {
       const response = await fetchWithAuth(`${API_URL}/api/v1/users`, token);
@@ -85,7 +83,7 @@ export const fetchTeachers = createAsyncThunk(
 );
 
 export const createCourse = createAsyncThunk(
-  "classes/createCourse",
+  "courses/createCourse",
   async (
     payload: {
       token: string;
@@ -127,7 +125,7 @@ export const createCourse = createAsyncThunk(
 );
 
 export const deleteCourse = createAsyncThunk(
-  "classes/deleteCourse",
+  "courses/deleteCourse",
   async (payload: { token: string; id: string }, { rejectWithValue }) => {
     try {
       const response = await fetchWithAuth(`${API_URL}/api/v1/courses/${payload.id}`, payload.token, {
@@ -140,6 +138,34 @@ export const deleteCourse = createAsyncThunk(
       return payload.id;
     } catch {
       return rejectWithValue("Network error");
+    }
+  }
+);
+
+// Fetch date pentru vizualizare curs
+export const fetchActiveLessonData = createAsyncThunk(
+  "courses/fetchActiveLesson",
+  async (payload: { token: string; lessonId: string }, { rejectWithValue }) => {
+    try {
+      // 1. Date lecție
+      const lessonRes = await fetchWithAuth(`${API_URL}/api/v1/lessons/${payload.lessonId}`, payload.token);
+      if (!lessonRes.ok) throw new Error("Failed to load lesson content");
+      const lesson = await lessonRes.json();
+
+      // 2. Resurse atașate
+      let resources = [];
+      try {
+        const resourcesRes = await fetchWithAuth(`${API_URL}/api/v1/lessons/${payload.lessonId}/resources`, payload.token);
+        if (resourcesRes.ok) {
+          resources = await resourcesRes.json();
+        }
+      } catch (e) {
+        console.warn("Nu s-au putut încărca resursele lecției", e);
+      }
+
+      return { lesson, resources };
+    } catch (err: any) {
+      return rejectWithValue(err.message || "Eroare la încărcarea lecției");
     }
   }
 );
@@ -178,8 +204,11 @@ const coursesSlice = createSlice({
         state.creating = true;
         state.createError = null;
       })
-      .addCase(createCourse.fulfilled, (state) => {
+      .addCase(createCourse.fulfilled, (state, action) => {
         state.creating = false;
+        if (action.payload) {
+          state.courses.push(action.payload);
+        }
       })
       .addCase(createCourse.rejected, (state, action) => {
         state.creating = false;
@@ -196,6 +225,21 @@ const coursesSlice = createSlice({
       .addCase(deleteCourse.rejected, (state, action) => {
         state.deleting = null;
         state.deleteError = action.payload as string;
+      })
+      
+      // Lesson cases
+      .addCase(fetchActiveLessonData.pending, (state) => {
+        state.isLoadingLesson = true;
+        state.error = null;
+      })
+      .addCase(fetchActiveLessonData.fulfilled, (state, action) => {
+        state.isLoadingLesson = false;
+        state.activeLesson = action.payload.lesson;
+        state.activeLessonResources = action.payload.resources;
+      })
+      .addCase(fetchActiveLessonData.rejected, (state, action) => {
+        state.isLoadingLesson = false;
+        state.error = action.payload as string;
       });
   },
 });
