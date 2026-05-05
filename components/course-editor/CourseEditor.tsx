@@ -50,9 +50,11 @@ export default function CourseEditor(props: CourseEditorProps) {
             title={editor.title}
             description={editor.description}
             expirationDate={editor.expirationDate}
+            status={editor.status}
             onTitleChange={editor.setTitle}
             onDescriptionChange={editor.setDescription}
             onExpirationChange={editor.setExpiration}
+            onStatusChange={editor.setStatus}
           />
           <ContentTree
             chapters={editor.chapters}

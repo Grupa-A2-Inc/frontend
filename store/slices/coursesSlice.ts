@@ -16,7 +16,6 @@ export interface Teacher {
 
 interface CoursesState {
   courses: Course[];
-  teachers: Teacher[];
   loading: boolean;
   creating: boolean;
   deleting: string | null;
@@ -34,7 +33,6 @@ interface CoursesState {
 
 const initialState: CoursesState = {
   courses: [],
-  teachers: [],
   loading: false,
   creating: false,
   deleting: null,
@@ -58,7 +56,9 @@ export const fetchCourses = createAsyncThunk(
         const err = await response.json();
         return rejectWithValue(err.message || "Failed to load courses");
       }
-      return await response.json();
+      // Păstrăm fixul colegei pentru maparea datelor
+      const data = await response.json();
+      return Array.isArray(data) ? data : (data.content ?? data.courses ?? data.items ?? []);
     } catch {
       return rejectWithValue("Network error");
     }
@@ -74,8 +74,7 @@ export const fetchTeachers = createAsyncThunk(
         const err = await response.json();
         return rejectWithValue(err.message || "Failed to load teachers");
       }
-      const data = await response.json();
-      return data.filter((u: any) => u.roleName === "TEACHER");
+      return await response.json();
     } catch {
       return rejectWithValue("Network error");
     }
@@ -196,9 +195,6 @@ const coursesSlice = createSlice({
       .addCase(fetchCourses.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
-      })
-      .addCase(fetchTeachers.fulfilled, (state, action) => {
-        state.teachers = action.payload;
       })
       .addCase(createCourse.pending, (state) => {
         state.creating = true;

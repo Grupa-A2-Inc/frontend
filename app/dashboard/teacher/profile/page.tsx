@@ -32,7 +32,7 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-export default function AdminProfilePage() {
+export default function TeacherProfilePage() {
   const user = useAppSelector((state) => state.auth.user);
 
   if (!user) {
