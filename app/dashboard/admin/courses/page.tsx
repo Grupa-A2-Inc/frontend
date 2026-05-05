@@ -276,7 +276,7 @@ export default function CoursesPage() {
 
       {/* -------------------- ADD CLASS MODAL -------------------- */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm"><div className="min-h-full flex items-center justify-center p-4">
           <div className="bg-brand-card border border-brand-primary/20 rounded-2xl p-6 w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-brand-text font-semibold text-lg">Add Class</h2>
@@ -385,7 +385,7 @@ export default function CoursesPage() {
               </div>
             </form>
           </div>
-        </div>
+        </div></div>
       )}
     </div>
   );

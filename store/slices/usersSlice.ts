@@ -1,11 +1,11 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 
-const API_URL = "https://backend-for-render-ws6z.onrender.com";
+const API_URL = "https://api.adaptiveelearning.online";
 
 // ---------- Types ----------
 
 export type UserRole = "STUDENT" | "TEACHER" | "ORGANIZATION_ADMIN";
-export type UserStatus = "ACTIVE" | "INACTIVE";
+export type UserStatus = "ACTIVE" | "INACTIVE" | "BLOCKED" | "PENDING";
 
 export interface User {
   id: string;
@@ -14,15 +14,14 @@ export interface User {
   email: string;
   role: UserRole;
   status: UserStatus;
+  organizationId?: string;
 }
 
 export interface CreateUserPayload {
   firstName: string;
   lastName: string;
   email: string;
-  password: string;
-  role: UserRole;
-  roleName?: string;
+  roleName: UserRole;
   organizationId?: string;
 }
 
@@ -30,6 +29,7 @@ export interface UpdateUserPayload {
   firstName: string;
   lastName: string;
   email: string;
+  organizationId?: string;
 }
 
 interface UsersState {
@@ -63,7 +63,8 @@ export const fetchUsers = createAsyncThunk(
         const err = await response.json();
         return rejectWithValue(err.message || "Failed to load users");
       }
-      return await response.json();
+      const data = await response.json();
+      return Array.isArray(data) ? data : (data.content ?? data.users ?? data.items ?? []);
     } catch {
       return rejectWithValue("Network error");
     }
@@ -77,16 +78,17 @@ export const createUser = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
+      const { email, firstName, lastName, roleName, organizationId } = payload.data;
       const response = await fetch(`${API_URL}/api/v1/users`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${payload.token}`,
         },
-        body: JSON.stringify(payload.data),
+        body: JSON.stringify({ email, firstName, lastName, roleName, organizationId }),
       });
       if (!response.ok) {
-        const err = await response.json();
+        const err = await response.json().catch(() => ({}));
         return rejectWithValue(err.message || "Failed to create user");
       }
       return await response.json();
@@ -103,19 +105,21 @@ export const updateUser = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
+      const { firstName, lastName, email, organizationId } = payload.data;
       const response = await fetch(`${API_URL}/api/v1/users/${payload.userId}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${payload.token}`,
         },
-        body: JSON.stringify(payload.data),
+        body: JSON.stringify({ firstName, lastName, email, organizationId }),
       });
       if (!response.ok) {
-        const err = await response.json();
+        const err = await response.json().catch(() => ({}));
         return rejectWithValue(err.message || "Failed to update user");
       }
-      return { ...payload.data, id: payload.userId };
+      // 204 — no body, synthesise the updated fields
+      return { firstName, lastName, email, id: payload.userId };
     } catch {
       return rejectWithValue("Network error");
     }
@@ -138,10 +142,10 @@ export const toggleUserStatus = createAsyncThunk(
         body: JSON.stringify({ status: payload.status }),
       });
       if (!response.ok) {
-        const err = await response.json();
+        const err = await response.json().catch(() => ({}));
         return rejectWithValue(err.message || "Failed to update status");
       }
-      return await response.json();
+      return null; // 204 no content — reducer uses meta.arg
     } catch {
       return rejectWithValue("Network error");
     }
@@ -160,10 +164,10 @@ export const deleteUser = createAsyncThunk(
         headers: { Authorization: `Bearer ${payload.token}` },
       });
       if (!response.ok) {
-        const err = await response.json();
+        const err = await response.json().catch(() => ({}));
         return rejectWithValue(err.message || "Failed to delete user");
       }
-      return payload.userId;
+      return payload.userId; // 204 no content
     } catch {
       return rejectWithValue("Network error");
     }
@@ -217,10 +221,9 @@ const usersSlice = createSlice({
         );
       })
       .addCase(toggleUserStatus.fulfilled, (state, action) => {
-        const updated = action.payload;
-        state.users = state.users.map((u) =>
-          u.id === updated.id ? updated : u
-        );
+        const { userId, status } = action.meta.arg;
+        const idx = state.users.findIndex((u) => u.id === userId);
+        if (idx !== -1) state.users[idx] = { ...state.users[idx], status };
       })
       .addCase(deleteUser.fulfilled, (state, action) => {
         state.users = state.users.filter((u) => u.id !== action.payload);

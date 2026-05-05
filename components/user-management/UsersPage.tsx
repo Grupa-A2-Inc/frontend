@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User, CreateUserPayload, fetchUsers, createUser, toggleUserStatus, deleteUser, addUsersLocally, updateUser } from "@/store/slices/usersSlice";
+import { User, fetchUsers, createUser, toggleUserStatus, deleteUser, addUsersLocally, updateUser } from "@/store/slices/usersSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import UsersHeader from "./UsersHeader";
 import UsersToolbar from "./UsersToolbar";
@@ -13,7 +13,7 @@ type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 
 export default function UsersPage() {
   const dispatch = useAppDispatch();
-  const { users, loading, error } = useAppSelector((state) => state.users);
+  const { users, loading, error, createError } = useAppSelector((state) => state.users);
   const { accessToken, user: authUser } = useAppSelector((state) => state.auth);
   const token = accessToken ?? (typeof window !== "undefined" ? localStorage.getItem("accessToken") : null) ?? "";
 
@@ -42,7 +42,7 @@ export default function UsersPage() {
   function openEditModal(u: User) { setEditingUser(u);    setShowModal(true);  }
   function closeModal()           { setShowModal(false);  setEditingUser(null);}
 
-  async function handleSave(data: CreateUserPayload) {
+  async function handleSave(data: { firstName: string; lastName: string; email: string; roleName?: string }) {
     if (editingUser) {
       const result = await dispatch(updateUser({
         token,
@@ -51,18 +51,20 @@ export default function UsersPage() {
           firstName: data.firstName,
           lastName: data.lastName,
           email: data.email,
-        }
+          organizationId: authUser?.organizationId,
+        },
       }));
-      console.log("updateUser result:", result);
-      closeModal();
+      if (updateUser.fulfilled.match(result)) closeModal();
     } else {
       const result = await dispatch(createUser({
         token,
         data: {
-          ...data,
-          roleName: data.role,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          email: data.email,
+          roleName: (data.roleName ?? "STUDENT") as "STUDENT" | "TEACHER" | "ORGANIZATION_ADMIN",
           organizationId: authUser?.organizationId,
-        }
+        },
       }));
       if (createUser.fulfilled.match(result)) {
         dispatch(fetchUsers(token));
@@ -147,6 +149,7 @@ export default function UsersPage() {
       {showModal && (
         <UserFormModal
           user={editingUser}
+          serverError={createError}
           onClose={closeModal}
           onSave={handleSave}
         />

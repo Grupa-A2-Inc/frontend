@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 
 // URL-ul backend-ului
-const API_URL = "https://backend-for-render-ws6z.onrender.com";
+const API_URL = "https://api.adaptiveelearning.online";
 
 
 export type UserRole = "ORGANIZATION_ADMIN" | "TEACHER" | "STUDENT";
@@ -140,6 +140,69 @@ export const register = createAsyncThunk(
       // Returnam datele catre reducer
       return data;
     } catch (err) {
+      return rejectWithValue("Network error");
+    }
+  }
+);
+
+// SET PASSWORD (activate managed account)
+export const setPassword = createAsyncThunk(
+  "auth/setPassword",
+  async (payload: { token: string; password: string; confirmPassword: string }, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${API_URL}/api/v1/auth/set-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        return rejectWithValue(err.message || "Invalid or expired token.");
+      }
+      return true;
+    } catch {
+      return rejectWithValue("Network error");
+    }
+  }
+);
+
+// REQUEST PASSWORD RESET
+export const requestPasswordReset = createAsyncThunk(
+  "auth/requestPasswordReset",
+  async (email: string, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${API_URL}/api/v1/auth/password-reset/request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        return rejectWithValue(err.message || "Request failed.");
+      }
+      return true;
+    } catch {
+      return rejectWithValue("Network error");
+    }
+  }
+);
+
+// CONFIRM PASSWORD RESET
+export const confirmPasswordReset = createAsyncThunk(
+  "auth/confirmPasswordReset",
+  async (payload: { token: string; newPassword: string; confirmPassword: string }, { rejectWithValue }) => {
+    try {
+      const response = await fetch(`${API_URL}/api/v1/auth/password-reset/confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        return rejectWithValue(err.message || "Invalid or expired token.");
+      }
+      return true;
+    } catch {
       return rejectWithValue("Network error");
     }
   }

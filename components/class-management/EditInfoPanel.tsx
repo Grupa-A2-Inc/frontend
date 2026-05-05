@@ -12,15 +12,19 @@ type Props = {
 };
 
 export default function EditInfoPanel({ cls, token, onSaved, onCancel }: Props) {
-  const [form, setForm] = useState({ name: cls.name ?? "", description: cls.description ?? "", subject: cls.subject ?? "", grade: cls.grade ?? "", year: cls.year ?? "" });
+  const [form, setForm] = useState({ name: cls.name ?? "", description: cls.description ?? "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSave = async () => {
+    if (!form.name.trim()) { setError("Name is required."); return; }
     setSaving(true);
     setError(null);
     try {
-      await apiFetch(`/api/v1/classes/${cls.id}`, token, { method: "PATCH", body: JSON.stringify(form) });
+      await apiFetch(`/api/v1/classrooms/${cls.id}`, token, {
+        method: "PATCH",
+        body: JSON.stringify({ name: form.name.trim(), description: form.description.trim() }),
+      });
       onSaved(form);
     } catch (e: any) {
       setError(e.message);
@@ -38,38 +42,22 @@ export default function EditInfoPanel({ cls, token, onSaved, onCancel }: Props) 
         <button onClick={onCancel} className="text-brand-muted hover:text-brand-text">✕</button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="sm:col-span-2">
-          <label className="text-xs font-semibold uppercase text-brand-muted mb-1 block">Numele clasei</label>
+      <div className="space-y-4">
+        <div>
+          <label className="text-xs font-semibold uppercase text-brand-muted mb-1 block">Class Name</label>
           <input className={inputCls} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
         </div>
         <div>
-          <label className="text-xs font-semibold uppercase text-brand-muted mb-1 block">Materie</label>
-          <input className={inputCls} value={form.subject} onChange={(e) => setForm({ ...form, subject: e.target.value })} />
-        </div>
-        <div>
-    <label className="text-xs font-semibold uppercase text-brand-muted mb-1 block">An Academic</label>
-    <input 
-      className={inputCls} 
-      value={form.year} 
-      onChange={(e) => setForm({ ...form, year: e.target.value })} 
-    />
-  </div>
-        <div>
-          <label className="text-xs font-semibold uppercase text-brand-muted mb-1 block">Clasa</label>
-          <input className={inputCls} value={form.grade} onChange={(e) => setForm({ ...form, grade: e.target.value })} />
+          <label className="text-xs font-semibold uppercase text-brand-muted mb-1 block">Description</label>
+          <textarea
+            className={`${inputCls} min-h-[100px] resize-none`}
+            value={form.description}
+            onChange={(e) => setForm({ ...form, description: e.target.value })}
+          />
         </div>
       </div>
-      <div className="sm:col-span-2">
-    <label className="text-xs font-semibold uppercase text-brand-muted mb-1 block">Descriere</label>
-    <textarea 
-      className={`${inputCls} min-h-[100px] resize-none`} 
-      value={form.description} 
-      onChange={(e) => setForm({ ...form, description: e.target.value })} 
-    />
-  </div>
 
-      {error && <div className="text-[rgb(var(--error-text))] text-sm">{error}</div>}
+      {error && <div className="text-red-400 text-sm">{error}</div>}
 
       <div className="flex justify-end gap-3 pt-2">
         <button onClick={onCancel} className="rounded-xl border border-brand-border px-5 py-2 text-sm font-semibold text-brand-muted hover:bg-brand-mid transition">Cancel</button>

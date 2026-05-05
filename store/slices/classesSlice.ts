@@ -1,20 +1,18 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { Student } from "@/lib/classes/types";
+import { ClassMember } from "@/lib/classes/types";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
-const API_URL = "https://backend-for-render-ws6z.onrender.com";
+const API_URL = "https://api.adaptiveelearning.online";
 
 // ---------- Types ----------
 
 export interface Classroom {
   id: string;
+  organizationId?: string;
   name: string;
-  grade: string;
   description: string;
-  teacherId?: string;
-  teacherName?: string;
-  studentCount: number;
-  createdAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Teacher {
@@ -35,7 +33,7 @@ interface ClassesState {
   createError: string | null;
   updateError: string | null;
   currentClass: Classroom | null;
-  currentClassStudents: Student[];
+  currentClassMembers: ClassMember[];
   currentClassLoading: boolean;
   currentClassError: string | null;
 }
@@ -53,7 +51,7 @@ const initialState: ClassesState = {
   createError: null,
   updateError: null,
   currentClass: null,
-  currentClassStudents: [],
+  currentClassMembers: [],
   currentClassLoading: false,
   currentClassError: null,
 };
@@ -69,7 +67,8 @@ export const fetchClassrooms = createAsyncThunk(
         const err = await response.json().catch(() => ({}));
         return rejectWithValue(err.message || "Failed to load classrooms");
       }
-      return await response.json();
+      const data = await response.json();
+      return Array.isArray(data) ? data : (data.content ?? data.classrooms ?? data.items ?? []);
     } catch {
       return rejectWithValue("Network error");
     }
@@ -96,17 +95,14 @@ export const fetchTeachers = createAsyncThunk(
 export const createClassroom = createAsyncThunk(
   "classes/createClassroom",
   async (
-    payload: {
-      token: string;
-      data: { name: string; grade: string; description: string; teacherId?: string };
-    },
+    payload: { token: string; data: { name: string; description: string } },
     { rejectWithValue }
   ) => {
     try {
       const response = await fetchWithAuth(`${API_URL}/api/v1/classrooms`, payload.token, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload.data),
+        body: JSON.stringify({ name: payload.data.name, description: payload.data.description }),
       });
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
@@ -122,18 +118,14 @@ export const createClassroom = createAsyncThunk(
 export const updateClassroom = createAsyncThunk(
   "classes/updateClassroom",
   async (
-    payload: {
-      token: string;
-      id: string;
-      data: { name: string; grade: string; description: string; teacherId?: string };
-    },
+    payload: { token: string; id: string; data: { name: string; description: string } },
     { rejectWithValue }
   ) => {
     try {
       const response = await fetchWithAuth(`${API_URL}/api/v1/classrooms/${payload.id}`, payload.token, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload.data),
+        body: JSON.stringify({ name: payload.data.name, description: payload.data.description }),
       });
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
@@ -192,7 +184,8 @@ export const fetchClassStudents = createAsyncThunk(
         const err = await response.json().catch(() => ({}));
         return rejectWithValue(err.message || "Failed to load students");
       }
-      return await response.json();
+      const data = await response.json();
+      return Array.isArray(data) ? data : (data.content ?? data.students ?? data.members ?? data.items ?? []);
     } catch {
       return rejectWithValue("Network error");
     }
@@ -277,7 +270,7 @@ const classesSlice = createSlice({
         state.currentClassError = action.payload as string;
       })
       .addCase(fetchClassStudents.fulfilled, (state, action) => {
-        state.currentClassStudents = action.payload;
+        state.currentClassMembers = action.payload;
       })
       .addCase(fetchClassStudents.rejected, (state, action) => {
         state.currentClassError = action.payload as string;

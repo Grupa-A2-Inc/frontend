@@ -1,4 +1,4 @@
-const API_URL = "https://backend-for-render-ws6z.onrender.com";
+const API_URL = "https://api.adaptiveelearning.online";
 
 const USE_MOCK = false; 
 

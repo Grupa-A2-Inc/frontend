@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   fetchClassrooms,
-  fetchTeachers,
   createClassroom,
   updateClassroom,
   deleteClassroom,
@@ -16,7 +15,7 @@ import {
 
 export default function ClassesPage() {
   const dispatch = useAppDispatch();
-  const { classrooms, teachers, loading, error, creating, createError, updating, updateError, deleting } =
+  const { classrooms, loading, error, creating, createError, updating, updateError, deleting } =
     useAppSelector((state) => state.classes);
   const { accessToken } = useAppSelector((state) => state.auth);
 
@@ -24,11 +23,8 @@ export default function ClassesPage() {
   const [showModal, setShowModal] = useState(false);
   const [editingClassroom, setEditingClassroom] = useState<Classroom | null>(null);
 
-  // Form fields
   const [name, setName]               = useState("");
-  const [grade, setGrade]             = useState("");
   const [description, setDescription] = useState("");
-  const [teacherId, setTeacherId]     = useState("");
   const [validationError, setValidationError] = useState("");
 
   const token = accessToken ?? (typeof window !== "undefined" ? localStorage.getItem("accessToken") : null) ?? "";
@@ -36,82 +32,44 @@ export default function ClassesPage() {
   useEffect(() => {
     if (!token) return;
     dispatch(fetchClassrooms(token));
-    dispatch(fetchTeachers(token));
   }, [dispatch, token]);
 
   const filtered = classrooms.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.grade.toLowerCase().includes(search.toLowerCase())
+    c.name.toLowerCase().includes(search.toLowerCase())
   );
 
   function resetForm() {
-    setName("");
-    setGrade("");
-    setDescription("");
-    setTeacherId("");
-    setValidationError("");
-    dispatch(clearCreateError());
-    dispatch(clearUpdateError());
+    setName(""); setDescription(""); setValidationError("");
+    dispatch(clearCreateError()); dispatch(clearUpdateError());
   }
 
-  function openModal() {
-    resetForm();
-    setEditingClassroom(null);
-    setShowModal(true);
-  }
+  function openModal() { resetForm(); setEditingClassroom(null); setShowModal(true); }
 
   function openEditModal(classroom: Classroom) {
     setName(classroom.name ?? "");
-    setGrade(classroom.grade ?? "");
     setDescription(classroom.description ?? "");
-    setTeacherId(classroom.teacherId ?? "");
     setValidationError("");
     dispatch(clearUpdateError());
     setEditingClassroom(classroom);
     setShowModal(true);
   }
 
-  function closeModal() {
-    setShowModal(false);
-    setEditingClassroom(null);
-    resetForm();
-  }
+  function closeModal() { setShowModal(false); setEditingClassroom(null); resetForm(); }
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
-    if (!name.trim())        { setValidationError("Name is required.");        return; }
-    if (!grade.trim())       { setValidationError("Grade is required.");       return; }
-    if (!description.trim()) { setValidationError("Description is required."); return; }
-
+    if (!name.trim()) { setValidationError("Name is required."); return; }
     setValidationError("");
-
-    const result = await dispatch(
-      createClassroom({
-        token,
-        data: { name: name.trim(), grade: grade.trim(), description: description.trim(), teacherId: teacherId || undefined },
-      })
-    );
-
+    const result = await dispatch(createClassroom({ token, data: { name: name.trim(), description: description.trim() } }));
     if (createClassroom.fulfilled.match(result)) closeModal();
   }
 
   async function handleEdit(e: React.FormEvent) {
     e.preventDefault();
     if (!editingClassroom) return;
-    if (!name.trim())        { setValidationError("Name is required.");        return; }
-    if (!grade.trim())       { setValidationError("Grade is required.");       return; }
-    if (!description.trim()) { setValidationError("Description is required."); return; }
-
+    if (!name.trim()) { setValidationError("Name is required."); return; }
     setValidationError("");
-
-    const result = await dispatch(
-      updateClassroom({
-        token,
-        id: editingClassroom.id,
-        data: { name: name.trim(), grade: grade.trim(), description: description.trim(), teacherId: teacherId || undefined },
-      })
-    );
-
+    const result = await dispatch(updateClassroom({ token, id: editingClassroom.id, data: { name: name.trim(), description: description.trim() } }));
     if (updateClassroom.fulfilled.match(result)) closeModal();
   }
 
@@ -190,7 +148,7 @@ export default function ClassesPage() {
               key={classroom.id}
               className="bg-brand-card border border-brand-primary/15 rounded-2xl p-5 hover:border-brand-primary/40 transition-colors flex flex-col gap-3"
             >
-              {/* Name + grade badge */}
+              {/* Name */}
               <div className="flex items-start justify-between gap-3">
                 <Link
                   href={`/dashboard/admin/classes/${classroom.id}`}
@@ -198,9 +156,6 @@ export default function ClassesPage() {
                 >
                   {classroom.name}
                 </Link>
-                <span className="flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-medium bg-brand-primary/15 text-brand-primary">
-                  {classroom.grade}
-                </span>
               </div>
 
               {/* Description */}
@@ -213,18 +168,12 @@ export default function ClassesPage() {
                 <div className="flex items-center gap-4">
                   <div className="flex items-center gap-1.5">
                     <span className="material-symbols-rounded text-brand-primary" style={{ fontSize: "1rem" }}>
-                      group
+                      calendar_today
                     </span>
-                    <span className="text-brand-text/50 text-xs">{classroom.studentCount} students</span>
+                    <span className="text-brand-text/50 text-xs">
+                      {classroom.createdAt ? new Date(classroom.createdAt).toLocaleDateString() : "—"}
+                    </span>
                   </div>
-                  {classroom.teacherName && (
-                    <div className="flex items-center gap-1.5">
-                      <span className="material-symbols-rounded text-brand-primary" style={{ fontSize: "1rem" }}>
-                        person
-                      </span>
-                      <span className="text-brand-text/50 text-xs">{classroom.teacherName}</span>
-                    </div>
-                  )}
                 </div>
 
                 <div className="flex items-center gap-1">
@@ -256,7 +205,7 @@ export default function ClassesPage() {
 
       {/* ADD / EDIT CLASS MODAL */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm"><div className="min-h-full flex items-center justify-center p-4">
           <div className="bg-brand-card border border-brand-primary/20 rounded-2xl p-6 w-full max-w-md shadow-2xl">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-brand-text font-semibold text-lg">
@@ -285,24 +234,10 @@ export default function ClassesPage() {
                 />
               </div>
 
-              {/* Grade */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-brand-text/60">
-                  Grade <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={grade}
-                  onChange={(e) => setGrade(e.target.value)}
-                  placeholder="e.g. 10th, 11th, 12th"
-                  className="bg-brand-mid border border-brand-primary/20 rounded-xl px-4 py-2.5 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors"
-                />
-              </div>
-
               {/* Description */}
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium text-brand-text/60">
-                  Description <span className="text-red-400">*</span>
+                  Description
                 </label>
                 <textarea
                   value={description}
@@ -311,25 +246,6 @@ export default function ClassesPage() {
                   rows={3}
                   className="bg-brand-mid border border-brand-primary/20 rounded-xl px-4 py-2.5 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors resize-none"
                 />
-              </div>
-
-              {/* Teacher */}
-              <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-brand-text/60">
-                  Assign Teacher <span className="text-brand-text/30 font-normal">(optional)</span>
-                </label>
-                <select
-                  value={teacherId}
-                  onChange={(e) => setTeacherId(e.target.value)}
-                  className="bg-brand-mid border border-brand-primary/20 rounded-xl px-4 py-2.5 text-sm text-brand-text focus:outline-none focus:border-brand-primary/60 transition-colors"
-                >
-                  <option value="">No teacher assigned</option>
-                  {teachers.map((t) => (
-                    <option key={t.id} value={t.id}>
-                      {t.firstName} {t.lastName}
-                    </option>
-                  ))}
-                </select>
               </div>
 
               {(validationError || createError || updateError) && (
@@ -356,7 +272,7 @@ export default function ClassesPage() {
               </div>
             </form>
           </div>
-        </div>
+        </div></div>
       )}
     </div>
   );

@@ -10,7 +10,7 @@ import {
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://backend-for-render-ws6z.onrender.com";
+  "https://api.adaptiveelearning.online";
 
 export function getStoredUser(): StoredUser | null {
   if (typeof window === "undefined") return null;

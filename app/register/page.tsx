@@ -36,8 +36,6 @@ export default function RegisterPage() {
     // ----------------------------------------
     // UI STATE
     // ----------------------------------------
-    const [success, setSuccess] = useState(false);
-
     // Erori de validare client-side
     const [validationError, setValidationError] = useState("");
 
@@ -48,7 +46,6 @@ export default function RegisterPage() {
         e.preventDefault();
         dispatch(clearError());
         setValidationError("");
-        setSuccess(false);
 
         // VALIDARE CLIENT-SIDE
         if (
@@ -66,8 +63,9 @@ export default function RegisterPage() {
         }
 
         // VALIDARE EMAIL
-        if (!adminEmail.includes("@")) {
-            setValidationError("Invalid email.");
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(adminEmail.trim())) {
+            setValidationError("Please enter a valid email address.");
             return;
         }
 
@@ -97,12 +95,7 @@ export default function RegisterPage() {
             return;
         }
 
-        // Daca register-ul a reusit
-        setSuccess(true);
-
-        setTimeout(() => {
-            router.push("/dashboard/admin");
-        }, 800);
+        router.push("/dashboard/admin");
     }
 
     return (
@@ -124,9 +117,17 @@ export default function RegisterPage() {
                 <div className="flex w-full lg:w-1/2 items-center justify-center p-10">
                     <div className="bg-brand-card/80 backdrop-blur-xl shadow-2xl rounded-2xl p-10 w-full max-w-md border border-brand-border">
 
-                        <h1 className="text-3xl font-bold text-brand-text mb-6">
+                        <h1 className="text-3xl font-bold text-brand-text mb-4">
                             Create a new organization
                         </h1>
+
+                        <div className="rounded-xl bg-amber-500/10 border border-amber-500/30 px-4 py-3 mb-4 flex gap-3">
+                            <span className="text-amber-400 flex-shrink-0 text-lg leading-snug">⚠</span>
+                            <div className="text-xs text-amber-300/90 leading-relaxed space-y-1">
+                                <p className="font-semibold text-amber-300">This page is for organization administrators only.</p>
+                                <p>Registering here creates a new organization and grants you admin access. Teacher and student accounts cannot be created from this page — they must be added by the organization admin from within the dashboard.</p>
+                            </div>
+                        </div>
 
                         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
 
@@ -242,12 +243,6 @@ export default function RegisterPage() {
                                 <p className="text-red-500 text-sm font-medium">{error}</p>
                             )}
 
-                            {/*SUCCES */}
-                            {success && (
-                                <p className="text-brand-accent text-sm font-medium">
-                                    Organization created successfully! Redirecting...
-                                </p>
-                            )}
 
                             {/* SUBMIT */}
                             <button 

@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
-const API_URL = "https://backend-for-render-ws6z.onrender.com";
+const API_URL = "https://api.adaptiveelearning.online";
 
 // ---------- Types ----------
 
@@ -51,7 +51,8 @@ export const fetchCourses = createAsyncThunk(
         const err = await response.json();
         return rejectWithValue(err.message || "Failed to load courses");
       }
-      return await response.json();
+      const data = await response.json();
+      return Array.isArray(data) ? data : (data.content ?? data.courses ?? data.items ?? []);
     } catch {
       return rejectWithValue("Network error");
     }

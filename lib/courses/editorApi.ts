@@ -1,6 +1,6 @@
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
-const API_BASE = "https://backend-for-render-ws6z.onrender.com";
+const API_BASE = "https://api.adaptiveelearning.online";
 
 function getToken(): string {
   if (typeof window === "undefined") return "";
