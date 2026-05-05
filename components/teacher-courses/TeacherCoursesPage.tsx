@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { fetchCourses, Course, CourseStatus } from "@/store/slices/coursesSlice";
+import { fetchCourses} from "@/store/slices/coursesSlice";
+import { Course, CourseStatus } from "@/lib/courses/types";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import CoursesHeader from "./CoursesHeader";
 import CoursesFilters from "./CoursesFilters";

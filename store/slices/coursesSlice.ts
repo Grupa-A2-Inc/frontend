@@ -1,21 +1,17 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { Course, CourseStatus, CourseVisibility, Lesson, LessonResource } from "@/lib/courses/types";
 
-const API_URL = "https://api.adaptiveelearning.online";
+// URL-ul backend-ului
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://backend-for-render-ws6z.onrender.com";
 
 // ---------- Types ----------
 
-export type CourseStatus = "DRAFT" | "PUBLISHED";
-export type CourseVisibility = "PRIVATE" | "PUBLIC";
-
-export interface Course {
+export interface Teacher {
   id: string;
-  title: string;
-  description: string;
-  category: string;
-  status: CourseStatus;
-  visibility: CourseVisibility;
-  createdBy: string;
+  firstName: string;
+  lastName: string;
+  email: string;
 }
 
 interface CoursesState {
@@ -26,6 +22,11 @@ interface CoursesState {
   error: string | null;
   createError: string | null;
   deleteError: string | null;
+  
+  // Stare Lesson
+  activeLesson: Lesson | null;
+  activeLessonResources: LessonResource[];
+  isLoadingLesson: boolean;
 }
 
 // ---------- Initial state ----------
@@ -38,6 +39,10 @@ const initialState: CoursesState = {
   error: null,
   createError: null,
   deleteError: null,
+  
+  activeLesson: null,
+  activeLessonResources: [],
+  isLoadingLesson: false,
 };
 
 // ---------- Thunks ----------
@@ -51,8 +56,25 @@ export const fetchCourses = createAsyncThunk(
         const err = await response.json();
         return rejectWithValue(err.message || "Failed to load courses");
       }
+      // Păstrăm fixul colegei pentru maparea datelor
       const data = await response.json();
       return Array.isArray(data) ? data : (data.content ?? data.courses ?? data.items ?? []);
+    } catch {
+      return rejectWithValue("Network error");
+    }
+  }
+);
+
+export const fetchTeachers = createAsyncThunk(
+  "courses/fetchTeachers",
+  async (token: string, { rejectWithValue }) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/api/v1/users`, token);
+      if (!response.ok) {
+        const err = await response.json();
+        return rejectWithValue(err.message || "Failed to load teachers");
+      }
+      return await response.json();
     } catch {
       return rejectWithValue("Network error");
     }
@@ -119,6 +141,34 @@ export const deleteCourse = createAsyncThunk(
   }
 );
 
+// Fetch date pentru vizualizare curs
+export const fetchActiveLessonData = createAsyncThunk(
+  "courses/fetchActiveLesson",
+  async (payload: { token: string; lessonId: string }, { rejectWithValue }) => {
+    try {
+      // 1. Date lecție
+      const lessonRes = await fetchWithAuth(`${API_URL}/api/v1/lessons/${payload.lessonId}`, payload.token);
+      if (!lessonRes.ok) throw new Error("Failed to load lesson content");
+      const lesson = await lessonRes.json();
+
+      // 2. Resurse atașate
+      let resources = [];
+      try {
+        const resourcesRes = await fetchWithAuth(`${API_URL}/api/v1/lessons/${payload.lessonId}/resources`, payload.token);
+        if (resourcesRes.ok) {
+          resources = await resourcesRes.json();
+        }
+      } catch (e) {
+        console.warn("Nu s-au putut încărca resursele lecției", e);
+      }
+
+      return { lesson, resources };
+    } catch (err: any) {
+      return rejectWithValue(err.message || "Eroare la încărcarea lecției");
+    }
+  }
+);
+
 // ---------- Slice ----------
 
 const coursesSlice = createSlice({
@@ -152,7 +202,9 @@ const coursesSlice = createSlice({
       })
       .addCase(createCourse.fulfilled, (state, action) => {
         state.creating = false;
-        state.courses.push(action.payload);
+        if (action.payload) {
+          state.courses.push(action.payload);
+        }
       })
       .addCase(createCourse.rejected, (state, action) => {
         state.creating = false;
@@ -169,6 +221,21 @@ const coursesSlice = createSlice({
       .addCase(deleteCourse.rejected, (state, action) => {
         state.deleting = null;
         state.deleteError = action.payload as string;
+      })
+      
+      // Lesson cases
+      .addCase(fetchActiveLessonData.pending, (state) => {
+        state.isLoadingLesson = true;
+        state.error = null;
+      })
+      .addCase(fetchActiveLessonData.fulfilled, (state, action) => {
+        state.isLoadingLesson = false;
+        state.activeLesson = action.payload.lesson;
+        state.activeLessonResources = action.payload.resources;
+      })
+      .addCase(fetchActiveLessonData.rejected, (state, action) => {
+        state.isLoadingLesson = false;
+        state.error = action.payload as string;
       });
   },
 });

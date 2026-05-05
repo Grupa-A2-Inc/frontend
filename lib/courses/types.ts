@@ -17,8 +17,10 @@ export type Course = {
     id: string;
     title: string;
     description: string;
+    category: string;
     status: CourseStatus;
     visibility: CourseVisibility;
+    createdBy?: string;
     createdAt: string;
 };
 
