@@ -87,7 +87,7 @@ export default function SettingsPage() {
       <section className="bg-brand-card border border-brand-primary/15 rounded-2xl p-6 mb-5">
         <h2 className="text-brand-text font-semibold text-sm mb-5">Account Details</h2>
         <form onSubmit={handleSaveAccount} className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className={labelClass}>First Name</label>
               <input
@@ -145,7 +145,7 @@ export default function SettingsPage() {
               className={inputClass}
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className={labelClass}>New Password</label>
               <input
@@ -186,7 +186,7 @@ export default function SettingsPage() {
       <section className="bg-brand-card border border-brand-primary/15 rounded-2xl p-6 mb-5">
         <h2 className="text-brand-text font-semibold text-sm mb-5">Organisation Details</h2>
         <form onSubmit={handleSaveOrg} className="flex flex-col gap-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className={labelClass}>Organisation Name</label>
               <input
@@ -208,7 +208,7 @@ export default function SettingsPage() {
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className={labelClass}>Country</label>
               <input
@@ -230,7 +230,7 @@ export default function SettingsPage() {
               />
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className={labelClass}>Phone Number</label>
               <input
@@ -269,7 +269,7 @@ export default function SettingsPage() {
         <h2 className="text-red-400 font-semibold text-sm mb-1">Danger Zone</h2>
         <p className="text-brand-text/40 text-xs mb-5">These actions are irreversible. Proceed with caution.</p>
         <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between bg-brand-mid rounded-xl px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-brand-mid rounded-xl px-4 py-3">
             <div>
               <p className="text-brand-text text-sm font-medium">Delete Account</p>
               <p className="text-brand-text/40 text-xs mt-0.5">Permanently remove your admin account.</p>
@@ -281,7 +281,7 @@ export default function SettingsPage() {
               Delete
             </button>
           </div>
-          <div className="flex items-center justify-between bg-brand-mid rounded-xl px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-brand-mid rounded-xl px-4 py-3">
             <div>
               <p className="text-brand-text text-sm font-medium">Deactivate Organisation</p>
               <p className="text-brand-text/40 text-xs mt-0.5">Suspend access for all users in this organisation.</p>

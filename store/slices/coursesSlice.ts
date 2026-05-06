@@ -1,9 +1,9 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
-import { Course, CourseStatus, CourseVisibility, Lesson, LessonResource } from "@/lib/courses/types";
+import { Course, CourseStatus, Lesson, LessonResource } from "@/lib/courses/types";
 
 // URL-ul backend-ului
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://backend-for-render-ws6z.onrender.com";
+const API_URL = "https://api.adaptiveelearning.online";
 
 // ---------- Types ----------
 

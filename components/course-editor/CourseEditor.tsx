@@ -44,15 +44,17 @@ export default function CourseEditor(props: CourseEditorProps) {
         saveErr={editor.saveErr}
         onSave={editor.handleSaveCourse}
       />
-      <div className="flex flex-1 overflow-hidden">
-        <div className="w-[360px] flex-shrink-0 flex flex-col border-r border-brand-primary/10 overflow-y-auto">
+      <div className="flex flex-col md:flex-row flex-1 md:overflow-hidden">
+        <div className="w-full md:w-[360px] md:flex-shrink-0 flex flex-col border-b md:border-b-0 md:border-r border-brand-primary/10 overflow-y-auto">
           <CourseMetaForm
             title={editor.title}
             description={editor.description}
+            category={editor.category}
             expirationDate={editor.expirationDate}
             status={editor.status}
             onTitleChange={editor.setTitle}
             onDescriptionChange={editor.setDescription}
+            onCategoryChange={editor.setCategory}
             onExpirationChange={editor.setExpiration}
             onStatusChange={editor.setStatus}
           />
