@@ -47,6 +47,16 @@ export default function LessonPage({ params }: { params: Promise<{ courseId: str
   };
   const chapters = courseWithChapters?.chapters ?? [];
   const resources = activeLessonResources as LessonResource[];
+  const orderedLessons = chapters
+    .toSorted((a, b) => a.orderIndex - b.orderIndex)
+    .flatMap((chapter) =>
+      chapter.lessons.toSorted((a, b) => a.orderIndex - b.orderIndex)
+    );
+  const activeLessonIndex = orderedLessons.findIndex((lesson) => lesson.id === lessonId);
+  const previousLessonId =
+    activeLessonIndex > 0 ? orderedLessons[activeLessonIndex - 1]?.id : undefined;
+  const nextLessonId =
+    activeLessonIndex >= 0 ? orderedLessons[activeLessonIndex + 1]?.id : undefined;
 
   return (
     <div className="max-w-[1400px] mx-auto p-4 lg:p-6 flex flex-col lg:flex-row gap-6">
@@ -81,7 +91,11 @@ export default function LessonPage({ params }: { params: Promise<{ courseId: str
           )}
         </div>
 
-        <LessonNavigation />
+        <LessonNavigation
+          courseId={courseId}
+          previousLessonId={previousLessonId}
+          nextLessonId={nextLessonId}
+        />
       </div>
     </div>
   );
