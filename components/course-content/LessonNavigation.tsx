@@ -1,7 +1,7 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 type Props = {
   courseId: string;
@@ -17,6 +17,7 @@ export default function LessonNavigation({
   const previousHref = previousLessonId
     ? `/dashboard/student/courses/${courseId}/lessons/${previousLessonId}`
     : "";
+
   const nextHref = nextLessonId
     ? `/dashboard/student/courses/${courseId}/lessons/${nextLessonId}`
     : "";
@@ -37,7 +38,7 @@ export default function LessonNavigation({
           Previous Lesson
         </span>
       )}
-      
+
       {nextLessonId ? (
         <Link
           href={nextHref}
