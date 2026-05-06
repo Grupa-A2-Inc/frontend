@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, PlayCircle, Loader2, AlertCircle } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchCourseDetails, resetCurrentCourse } from "@/store/slices/coursesSlice";
+import type { Chapter } from "@/lib/courses/types";
 
 export default function CoursePage({ params }: { params: Promise<{ courseId: string }> }) {
   const resolvedParams = use(params);
@@ -51,13 +52,19 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
     );
   }
 
-  const chapters = (currentCourse as any).chapters || [];
+  const courseWithChapters = currentCourse as typeof currentCourse & {
+    chapters?: Chapter[];
+  };
+  const chapters = courseWithChapters.chapters ?? [];
   const firstLessonId = chapters[0]?.lessons?.[0]?.id;
-  const totalLessons = chapters.reduce((acc: number, cap: any) => acc + (cap.lessons?.length || 0), 0);
+  const totalLessons = chapters.reduce(
+    (acc, chapter) => acc + chapter.lessons.length,
+    0
+  );
 
   return (
     <div className="max-w-5xl mx-auto p-6 lg:p-8">
-      <Link href="/dashboard/student/courses" className="flex items-center gap-2 text-sm text-brand-muted hover:text-white mb-6 w-fit transition-colors">
+      <Link href="/dashboard/student" className="flex items-center gap-2 text-sm text-brand-muted hover:text-white mb-6 w-fit transition-colors">
         <ChevronLeft size={16} />
         Back to courses
       </Link>
@@ -126,12 +133,12 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
         <h3 className="font-bold text-white mb-6">Course Content</h3>
         
         <div className="space-y-6">
-          {chapters.length > 0 ? chapters.map((chapter: any) => (
+          {chapters.length > 0 ? chapters.map((chapter) => (
             <div key={chapter.id} className="space-y-3">
               <h4 className="text-sm font-medium text-brand-muted px-1">
                 {chapter.title}
               </h4>
-              {chapter.lessons?.map((lesson: any) => (
+              {chapter.lessons.map((lesson) => (
                 <Link
                   key={lesson.id}
                   href={`/dashboard/student/courses/${currentCourse.id}/lessons/${lesson.id}`}

@@ -1,7 +1,9 @@
 "use client";
 
+import type { MouseEvent } from "react";
 import { StudentCourse } from "@/lib/student-courses/types";
 import { useRouter } from "next/navigation";
+import { CheckCircle2, Loader2, PlusCircle } from "lucide-react";
 
 //generez la final fiecare imagine
 const CATEGORY_IMAGE: Record<string, string> = {
@@ -15,16 +17,44 @@ const CATEGORY_IMAGE: Record<string, string> = {
 
 type Props = {
   course: StudentCourse;
+  variant?: "my" | "discover";
+  isEnrolled?: boolean;
+  isEnrolling?: boolean;
+  onEnroll?: (courseId: string) => void;
 };
 
-export default function CourseCard({ course }: Props) {
+export default function CourseCard({
+  course,
+  variant = "my",
+  isEnrolled = false,
+  isEnrolling = false,
+  onEnroll,
+}: Props) {
   const router = useRouter();
   const image = CATEGORY_IMAGE[course.category] ?? "📚";
+  const canOpenCourse = variant === "my" || isEnrolled;
+
+  function handleOpen() {
+    if (canOpenCourse) {
+      router.push(`/dashboard/student/courses/${course.id}`);
+    }
+  }
+
+  function handleEnroll(event: MouseEvent<HTMLButtonElement>) {
+    event.stopPropagation();
+    if (!isEnrolled && !isEnrolling) {
+      onEnroll?.(course.id);
+    }
+  }
 
   return (
     <div
-      onClick={() => router.push(`/dashboard/student/courses/${course.id}`)}
-      className="bg-brand-card border border-brand-border rounded-2xl overflow-hidden cursor-pointer hover:border-brand-primary/50 transition-all duration-200 hover:shadow-md flex flex-col"
+      onClick={handleOpen}
+      className={`bg-brand-card border border-brand-border rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md flex flex-col ${
+        canOpenCourse
+          ? "cursor-pointer hover:border-brand-primary/50"
+          : "cursor-default"
+      }`}
     >
       <div className="w-full h-36 bg-brand-mid flex items-center justify-center text-5xl">
         {image}
@@ -43,13 +73,46 @@ export default function CourseCard({ course }: Props) {
           {course.description}
         </p>
 
+        {typeof course.progressPercent === "number" && (
+          <div className="pt-1">
+            <div className="flex items-center justify-between text-xs text-brand-muted mb-1">
+              <span>Progress</span>
+              <span>{Math.round(course.progressPercent)}%</span>
+            </div>
+            <div className="h-1.5 rounded-full bg-brand-mid overflow-hidden">
+              <div
+                className="h-full bg-brand-primary"
+                style={{ width: `${Math.min(100, Math.max(0, course.progressPercent))}%` }}
+              />
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between pt-2 border-t border-brand-border mt-auto">
           <span className="text-xs text-brand-muted">
-            {course.status === "PUBLISHED" ? "Published" : "Draft"}
+            {isEnrolled ? "Enrolled" : course.status === "PUBLISHED" ? "Published" : "Draft"}
           </span>
-          <span className="text-brand-primary text-xs font-medium">
-            View →
-          </span>
+          {variant === "discover" ? (
+            <button
+              type="button"
+              onClick={handleEnroll}
+              disabled={isEnrolled || isEnrolling}
+              className="inline-flex items-center gap-1.5 text-brand-primary text-xs font-medium disabled:text-brand-muted disabled:cursor-not-allowed"
+            >
+              {isEnrolling ? (
+                <Loader2 size={13} className="animate-spin" />
+              ) : isEnrolled ? (
+                <CheckCircle2 size={13} />
+              ) : (
+                <PlusCircle size={13} />
+              )}
+              {isEnrolling ? "Enrolling" : isEnrolled ? "Enrolled" : "Enroll"}
+            </button>
+          ) : (
+            <span className="text-brand-primary text-xs font-medium">
+              View →
+            </span>
+          )}
         </div>
       </div>
     </div>

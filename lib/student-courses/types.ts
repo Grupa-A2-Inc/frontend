@@ -10,6 +10,10 @@ export interface StudentCourse {
   status: CourseStatus;
   visibility: CourseVisibility;
   createdBy: string;
+  enrollmentId?: string;
+  enrolledAt?: string;
+  progressPercent?: number;
+  completedAt?: string;
 }
 
 export interface PaginatedCourses {

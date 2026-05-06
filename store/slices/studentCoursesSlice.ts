@@ -1,12 +1,17 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { StudentCourse } from "@/lib/student-courses/types";
-import { fetchPublicCourses, fetchMyCourses } from "@/lib/student-courses/api";
+import {
+  enrollInCourse,
+  fetchPublicCourses,
+  fetchMyCourses,
+} from "@/lib/student-courses/api";
 
 interface StudentCoursesState {
   myCourses: StudentCourse[];
   publicCourses: StudentCourse[];
   isLoadingMy: boolean;
   isLoadingPublic: boolean;
+  enrollingCourseId: string | null;
   error: string | null;
 }
 
@@ -15,6 +20,7 @@ const initialState: StudentCoursesState = {
   publicCourses: [],
   isLoadingMy: false,
   isLoadingPublic: false,
+  enrollingCourseId: null,
   error: null,
 };
 
@@ -24,8 +30,10 @@ export const fetchMyCoursesThunk = createAsyncThunk(
     try {
       const data = await fetchMyCourses(token);
       return data.content;
-    } catch (err: any) {
-      return rejectWithValue(err.message || "Failed to fetch my courses");
+    } catch (err) {
+      return rejectWithValue(
+        err instanceof Error ? err.message : "Failed to fetch my courses"
+      );
     }
   }
 );
@@ -36,8 +44,31 @@ export const fetchPublicCoursesThunk = createAsyncThunk(
     try {
       const data = await fetchPublicCourses(token);
       return data.content;
-    } catch (err: any) {
-      return rejectWithValue(err.message || "Failed to fetch public courses");
+    } catch (err) {
+      return rejectWithValue(
+        err instanceof Error ? err.message : "Failed to fetch public courses"
+      );
+    }
+  }
+);
+
+export const enrollInCourseThunk = createAsyncThunk(
+  "studentCourses/enrollInCourse",
+  async (
+    { token, courseId }: { token: string; courseId: string },
+    { dispatch, rejectWithValue }
+  ) => {
+    try {
+      await enrollInCourse(token, courseId);
+      await Promise.all([
+        dispatch(fetchMyCoursesThunk(token)),
+        dispatch(fetchPublicCoursesThunk(token)),
+      ]);
+      return courseId;
+    } catch (err) {
+      return rejectWithValue(
+        err instanceof Error ? err.message : "Failed to enroll in course"
+      );
     }
   }
 );
@@ -75,6 +106,17 @@ const studentCoursesSlice = createSlice({
     //salveaza eroarea in state
     builder.addCase(fetchPublicCoursesThunk.rejected, (state, action) => {
         state.isLoadingPublic = false;
+        state.error = action.payload as string;
+    })
+    builder.addCase(enrollInCourseThunk.pending, (state, action) => {
+        state.enrollingCourseId = action.meta.arg.courseId;
+        state.error = null;
+    })
+    builder.addCase(enrollInCourseThunk.fulfilled, (state) => {
+        state.enrollingCourseId = null;
+    })
+    builder.addCase(enrollInCourseThunk.rejected, (state, action) => {
+        state.enrollingCourseId = null;
         state.error = action.payload as string;
     });
   },

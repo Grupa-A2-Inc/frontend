@@ -2,7 +2,11 @@
 
 import { useState, useEffect } from "react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchMyCoursesThunk, fetchPublicCoursesThunk } from "@/store/slices/studentCoursesSlice";
+import {
+  enrollInCourseThunk,
+  fetchMyCoursesThunk,
+  fetchPublicCoursesThunk,
+} from "@/store/slices/studentCoursesSlice";
 import CoursesHeader from "./Header";
 import CoursesTabs from "./Tabs";
 import CoursesSearch from "./SearchBar";
@@ -13,7 +17,14 @@ import { Tab } from "@/lib/student-courses/types";
 export default function StudentCoursesPage() {
   const dispatch = useAppDispatch();
   
-  const { myCourses, publicCourses, isLoadingMy, isLoadingPublic, error } =
+  const {
+    myCourses,
+    publicCourses,
+    isLoadingMy,
+    isLoadingPublic,
+    enrollingCourseId,
+    error,
+  } =
     useAppSelector((state) => state.studentCourses);
 
   const { accessToken } = useAppSelector((state) => state.auth);
@@ -32,6 +43,7 @@ export default function StudentCoursesPage() {
   }, [token, dispatch]);
 
 const currentCourses = activeTab === "my" ? myCourses : publicCourses;
+const enrolledCourseIds = new Set(myCourses.map((course) => course.id));
 
 /*
 //date mock
@@ -47,12 +59,18 @@ const currentCourses = mockCourses;
   const isLoading = activeTab === "my" ? isLoadingMy : isLoadingPublic;
 
   const categories = [...new Set(currentCourses.map((c) => c.category))];
+  const selectedCategory = categories.includes(category) ? category : "ALL";
 
   const filtered = currentCourses.filter((c) => {
     const matchesSearch = c.title.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = category === "ALL" || c.category === category;
+    const matchesCategory = selectedCategory === "ALL" || c.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  function handleEnroll(courseId: string) {
+    if (!token) return;
+    dispatch(enrollInCourseThunk({ token, courseId }));
+  }
 
   return (
     <div className="p-6">
@@ -69,7 +87,7 @@ const currentCourses = mockCourses;
       <CoursesSearch
         search={search}
         onSearchChange={setSearch}
-        category={category}
+        category={selectedCategory}
         onCategoryChange={setCategory}
         categories={categories}
       />
@@ -80,6 +98,10 @@ const currentCourses = mockCourses;
         emptyMessage={
           activeTab === "my" ? "You have no courses yet." : "No public courses found."
         }
+        variant={activeTab === "my" ? "my" : "discover"}
+        enrolledCourseIds={enrolledCourseIds}
+        enrollingCourseId={enrollingCourseId}
+        onEnroll={handleEnroll}
       />
     </div>
   );
