@@ -11,8 +11,11 @@ import CoursesHeader from "./Header";
 import CoursesTabs from "./Tabs";
 import CoursesSearch from "./SearchBar";
 import CoursesGrid from "./CoursesGrid";
+import PaginationControls from "./PaginationControls";
 
 import { Tab } from "@/lib/student-courses/types";
+
+const DEFAULT_PAGE_SIZE = 10;
 
 export default function StudentCoursesPage() {
   const dispatch = useAppDispatch();
@@ -20,6 +23,8 @@ export default function StudentCoursesPage() {
   const {
     myCourses,
     publicCourses,
+    myPagination,
+    publicPagination,
     isLoadingMy,
     isLoadingPublic,
     enrollingCourseId,
@@ -35,12 +40,13 @@ export default function StudentCoursesPage() {
   const [activeTab, setActiveTab] = useState<Tab>("my");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("ALL");
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
 
   useEffect(() => {
     if (!token) return;
-    dispatch(fetchMyCoursesThunk(token));
-    dispatch(fetchPublicCoursesThunk(token));
-  }, [token, dispatch]);
+    dispatch(fetchMyCoursesThunk({ token, page: 0, size: pageSize }));
+    dispatch(fetchPublicCoursesThunk({ token, page: 0, size: pageSize }));
+  }, [token, dispatch, pageSize]);
 
 const currentCourses = activeTab === "my" ? myCourses : publicCourses;
 const enrolledCourseIds = new Set(myCourses.map((course) => course.id));
@@ -57,6 +63,7 @@ const currentCourses = mockCourses;
 */
 
   const isLoading = activeTab === "my" ? isLoadingMy : isLoadingPublic;
+  const pagination = activeTab === "my" ? myPagination : publicPagination;
 
   const categories = [...new Set(currentCourses.map((c) => c.category))];
   const selectedCategory = categories.includes(category) ? category : "ALL";
@@ -69,12 +76,34 @@ const currentCourses = mockCourses;
 
   function handleEnroll(courseId: string) {
     if (!token) return;
-    dispatch(enrollInCourseThunk({ token, courseId }));
+    dispatch(
+      enrollInCourseThunk({
+        token,
+        courseId,
+        myPage: myPagination.number,
+        publicPage: publicPagination.number,
+        size: pageSize,
+      })
+    );
+  }
+
+  function handlePageChange(page: number) {
+    if (!token) return;
+    if (activeTab === "my") {
+      dispatch(fetchMyCoursesThunk({ token, page, size: pageSize }));
+      return;
+    }
+    dispatch(fetchPublicCoursesThunk({ token, page, size: pageSize }));
+  }
+
+  function handlePageSizeChange(size: number) {
+    setPageSize(size);
+    setCategory("ALL");
   }
 
   return (
     <div className="p-6">
-      <CoursesHeader totalCourses={currentCourses.length} />
+      <CoursesHeader totalCourses={pagination.totalElements} />
 
       {error && (
         <div className="mb-4 p-3 rounded-xl bg-red-50 text-red-600 text-sm">
@@ -102,6 +131,14 @@ const currentCourses = mockCourses;
         enrolledCourseIds={enrolledCourseIds}
         enrollingCourseId={enrollingCourseId}
         onEnroll={handleEnroll}
+      />
+
+      <PaginationControls
+        pagination={pagination}
+        loading={isLoading}
+        onPageChange={handlePageChange}
+        pageSize={pageSize}
+        onPageSizeChange={handlePageSizeChange}
       />
     </div>
   );
