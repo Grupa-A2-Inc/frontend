@@ -1,0 +1,85 @@
+"use client";
+
+import { useEffect, use } from "react";
+import Link from "next/link";
+import { ChevronLeft, FileText, Loader2, AlertCircle } from "lucide-react";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchActiveLessonData, fetchCourseDetails } from "@/store/slices/coursesSlice";
+
+import LessonSidebar from "@/components/course-content/LessonSidebar";
+import PdfDownloadButton from "@/components/course-content/PdfDownloadButton";
+import LessonNavigation from "@/components/course-content/LessonNavigation";
+
+export default function LessonPage({ params }: { params: Promise<{ courseId: string, lessonId: string }> }) {
+  const { courseId, lessonId } = use(params);
+  const dispatch = useAppDispatch();
+  
+  const { currentCourse, activeLesson, activeLessonResources, isLoadingLesson, error } = useAppSelector((state) => state.courses);
+  const token = useAppSelector((state) => state.auth.accessToken);
+
+  useEffect(() => {
+    if (token) {
+      dispatch(fetchActiveLessonData({ token, lessonId }));
+      if (!currentCourse || currentCourse.id !== courseId) {
+        dispatch(fetchCourseDetails({ token, courseId }));
+      }
+    }
+  }, [dispatch, lessonId, courseId, token, currentCourse]);
+
+  if (isLoadingLesson) return (
+    <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+      <Loader2 className="animate-spin text-[#6366f1]" size={40} />
+      <p className="text-brand-muted">Lesson is loading...</p>
+    </div>
+  );
+
+  if (error) return (
+    <div className="flex flex-col items-center justify-center min-h-screen gap-4 text-red-400">
+      <AlertCircle size={40} />
+      <p>{error}</p>
+    </div>
+  );
+
+  const chapters = (currentCourse as any)?.chapters || [];
+
+  return (
+    <div className="max-w-[1400px] mx-auto p-4 lg:p-6 flex flex-col lg:flex-row gap-6">
+      
+      <div className="w-full lg:w-[320px] shrink-0">
+        <Link href={`/dashboard/student/courses/${courseId}`} className="flex items-center gap-2 text-sm text-brand-muted hover:text-white mb-6 w-fit transition-colors">
+          <ChevronLeft size={16} /> Back to course overview
+        </Link>
+        <LessonSidebar chapters={chapters} courseId={courseId} activeLessonId={lessonId} />
+      </div>
+
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="bg-brand-card border border-brand-border rounded-xl p-6 lg:p-10 shadow-sm flex-1">
+          <div className="mb-8">
+            <h1 className="text-2xl md:text-3xl font-extrabold text-white mb-2">{activeLesson?.title}</h1>
+            <p className="text-brand-muted text-sm">Go through the material.</p>
+          </div>
+
+          <div className="bg-brand-bg border border-dashed border-brand-border rounded-xl flex items-center justify-center p-10 min-h-[400px] mb-8 text-brand-muted">
+            <div className="text-center">
+              <FileText size={48} className="mx-auto mb-4 opacity-50" />
+              <p className="text-white font-medium">Zona de conținut (Video/Markdown)</p>
+            </div>
+          </div>
+
+          {activeLessonResources?.length > 0 && (
+            <div className="mb-10">
+              <h3 className="text-sm font-bold text-brand-muted uppercase mb-4">Resources</h3>
+              <div className="flex flex-col gap-2">
+                {activeLessonResources.map((res: any) => (
+                  <PdfDownloadButton key={res.id} url={res.url} title={res.title} />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <LessonNavigation />
+      </div>
+    </div>
+  );
+}

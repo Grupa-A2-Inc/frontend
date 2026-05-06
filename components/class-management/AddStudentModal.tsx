@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { ClassMember } from "@/lib/classes/types";
 import Avatar from "@/components/class-ui/Avatar";
 import Spinner from "@/components/class-ui/Spinner";
@@ -103,7 +103,7 @@ export default function AddStudentModal({ token, classId, existingUserIds, roleF
           {loadingStudents && <div className="flex justify-center py-4"><Spinner /></div>}
           {error && <p className="text-red-400 text-sm text-center">{error}</p>}
           {!loadingStudents && filtered.length === 0 && (
-            <p className="text-center text-sm text-brand-muted py-4">No students available to add.</p>
+            <p className="text-center text-sm text-brand-muted py-4">No {roleFilter === "TEACHER" ? "teachers" : "students"} available to add.</p>
           )}
           {!loadingStudents && filtered.map((user) => (
             <div key={user.id} className="flex items-center justify-between rounded-xl border border-brand-border bg-brand-mid/40 px-4 py-3">

@@ -158,19 +158,21 @@ function UploadField({ selectedType, nodeForm, fileInputRef, onFormChange }: Upl
       <label className="block text-xs font-medium text-brand-text/60 mb-1.5">
         {selectedType === "VIDEO" ? "Video Upload" : "File Upload"}
       </label>
+      <div className="mb-2 flex items-start gap-2 rounded-xl bg-yellow-500/10 border border-yellow-500/20 px-3 py-2.5">
+        <span className="material-symbols-rounded text-yellow-400 flex-shrink-0 mt-0.5" style={{ fontSize: "1rem" }}>info</span>
+        <p className="text-xs text-yellow-400/90 leading-relaxed">
+          File upload to the server is not yet supported by the backend. You can set the node title and save it — the file attachment will be added once the backend exposes an upload endpoint.
+        </p>
+      </div>
       <div
-        className="border-2 border-dashed border-brand-primary/20 rounded-xl p-8 text-center cursor-pointer hover:border-brand-primary/50 transition-colors"
-        onClick={() => fileInputRef.current?.click()}
+        className="border-2 border-dashed border-brand-primary/20 rounded-xl p-8 text-center cursor-not-allowed opacity-50"
       >
         <input
           ref={fileInputRef}
           type="file"
           accept={selectedType === "VIDEO" ? "video/*" : "*/*"}
           className="hidden"
-          onChange={e => {
-            const file = e.target.files?.[0] ?? null;
-            onFormChange(form => ({ ...form, pendingFile: file }));
-          }}
+          disabled
         />
         <UploadContent selectedType={selectedType} nodeForm={nodeForm} />
       </div>

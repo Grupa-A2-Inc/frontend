@@ -1,9 +1,9 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
-import { Course, CourseStatus, CourseVisibility, Lesson, LessonResource } from "@/lib/courses/types";
+import { Course, CourseStatus, Lesson, LessonResource } from "@/lib/courses/types";
 
 // URL-ul backend-ului
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://backend-for-render-ws6z.onrender.com";
+const API_URL = "https://api.adaptiveelearning.online";
 
 // ---------- Types ----------
 
@@ -71,10 +71,10 @@ export const fetchCourseDetails = createAsyncThunk(
   "courses/fetchCourseDetails",
   async (payload: { token: string; courseId: string }, { rejectWithValue }) => {
     try {
-      const response = await fetchWithAuth(`${API_URL}/api/v1/courses/${payload.courseId}`, payload.token);
+      const response = await fetchWithAuth(`${API_URL}/api/v1/courses/${payload.courseId}/full-view`, payload.token);
       if (!response.ok) {
-        const err = await response.json();
-        return rejectWithValue(err.message || "Failed to load course details");
+        const err = await response.json().catch(() => ({}));
+        return rejectWithValue(err.message || `Failed to load course details (${response.status})`);
       }
       return await response.json();
     } catch {
@@ -178,8 +178,10 @@ export const fetchActiveLessonData = createAsyncThunk(
       }
 
       return { lesson, resources };
-    } catch (err: any) {
-      return rejectWithValue(err.message || "Eroare la încărcarea lecției");
+    } catch (err) {
+      return rejectWithValue(
+        err instanceof Error ? err.message : "Eroare la încărcarea lecției"
+      );
     }
   }
 );

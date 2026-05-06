@@ -27,6 +27,7 @@ import type {
 interface EditorCourseResponse {
   title?: string | null;
   description?: string | null;
+  category?: string | null;
   expirationDate?: string | null;
   status?: "DRAFT" | "PUBLISHED" | null;
   chapters?: EditorChapterResponse[] | null;
@@ -54,6 +55,7 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
   const [expirationDate, setExpiration] = useState("");
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
   const [chapters, setChapters] = useState<EditorChapter[]>([]);
@@ -84,6 +86,7 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
       .then((data: EditorCourseResponse) => {
         setTitle(data.title ?? "");
         setDescription(data.description ?? "");
+        setCategory(data.category ?? "");
         setExpiration(data.expirationDate ? data.expirationDate.slice(0, 10) : "");
         setStatus(data.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT");
         setChapters(mapCourseToChapters(data));
@@ -163,24 +166,22 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
 
   async function saveChapterNode(selection: Extract<SelectedRef, { kind: "chapter" }>) {
     if (!selection.id.startsWith("temp_") && mode === "edit") {
-      await updateChapter(selection.id, {
-        title: nodeForm.title,
-        description: nodeForm.description,
-      });
+      await updateChapter(selection.id, { title: nodeForm.title });
     }
 
     setChapters(prev => prev.map(chapter =>
       chapter.id === selection.id
-        ? { ...chapter, title: nodeForm.title, description: nodeForm.description }
+        ? { ...chapter, title: nodeForm.title }
         : chapter,
     ));
   }
 
   async function saveLeafNode(selection: Extract<SelectedRef, { kind: "leaf" }>) {
     if (!selection.id.startsWith("temp_") && mode === "edit") {
+      const isText = selectedLeaf?.type === "TEXT";
       await updateLesson(selection.id, {
         title: nodeForm.title,
-        content: nodeForm.content,
+        content: isText ? nodeForm.content : undefined,
       });
     }
 
@@ -256,7 +257,6 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     if (target.kind === "chapter") {
       const result = await createChapter(courseId!, {
         title: form.title.trim(),
-        description: form.description || undefined,
       });
       addNodeToState(target, result.id, form, leafType);
     } else {
@@ -404,7 +404,7 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
       const meta = {
         title: title.trim(),
         description: description.trim(),
-        expirationDate: expirationDate || undefined,
+        category: category.trim(),
         status,
       };
 
@@ -434,6 +434,8 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     setTitle,
     description,
     setDescription,
+    category,
+    setCategory,
     expirationDate,
     setExpiration,
     status,
@@ -508,7 +510,6 @@ async function createCourseTree(courseId: string, chapters: EditorChapter[]) {
   for (const chapter of [...chapters].sort((a, b) => a.orderIndex - b.orderIndex)) {
     const chapterResult = await createChapter(courseId, {
       title: chapter.title,
-      description: chapter.description || undefined,
     });
 
     for (const leaf of [...chapter.children].sort((a, b) => a.orderIndex - b.orderIndex)) {

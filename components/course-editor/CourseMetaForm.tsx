@@ -1,10 +1,12 @@
 interface CourseMetaFormProps {
   title: string;
   description: string;
+  category: string;
   expirationDate: string;
   status: "DRAFT" | "PUBLISHED";
   onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
+  onCategoryChange: (value: string) => void;
   onExpirationChange: (value: string) => void;
   onStatusChange: (value: "DRAFT" | "PUBLISHED") => void;
 }
@@ -12,10 +14,12 @@ interface CourseMetaFormProps {
 export function CourseMetaForm({
   title,
   description,
+  category,
   expirationDate,
   status,
   onTitleChange,
   onDescriptionChange,
+  onCategoryChange,
   onExpirationChange,
   onStatusChange,
 }: CourseMetaFormProps) {
@@ -43,6 +47,18 @@ export function CourseMetaForm({
             placeholder="Brief description of the course..."
             rows={3}
             className="w-full bg-brand-card border border-brand-primary/20 rounded-xl px-3 py-2 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors resize-none"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-brand-text/60 mb-1.5">
+            Category <span className="text-red-400">*</span>
+          </label>
+          <input
+            type="text"
+            value={category}
+            onChange={e => onCategoryChange(e.target.value)}
+            placeholder="e.g. Mathematics, Science, History"
+            className="w-full bg-brand-card border border-brand-primary/20 rounded-xl px-3 py-2 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors"
           />
         </div>
         <div>

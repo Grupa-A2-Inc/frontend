@@ -42,7 +42,7 @@ function SetPasswordForm() {
   return (
     <div className="bg-brand-card border border-brand-primary/20 rounded-2xl w-full max-w-sm shadow-2xl">
       <div className="flex flex-col items-center pt-8 pb-4 px-8 gap-3">
-        <Image src="/my_logo.png" alt="logo" width={40} height={40} />
+        <Image src="/logo_192x192.png" alt="logo" width={40} height={40} />
         <div className="text-center">
           <h1 className="text-brand-text text-xl font-bold">Set your password</h1>
           <p className="text-brand-muted text-sm mt-1">Choose a password to activate your account.</p>
