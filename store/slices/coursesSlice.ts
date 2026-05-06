@@ -16,7 +16,7 @@ export interface Teacher {
 
 interface CoursesState {
   courses: Course[];
-  currentCourse: Course | null; // Adăugat pentru detaliile cursului selectat
+  currentCourse: Course | null; 
   loading: boolean;
   creating: boolean;
   deleting: string | null;
@@ -67,7 +67,6 @@ export const fetchCourses = createAsyncThunk(
   }
 );
 
-// Aduce detaliile complete ale UNUI SINGUR curs (inclusiv capitole/lecții)
 export const fetchCourseDetails = createAsyncThunk(
   "courses/fetchCourseDetails",
   async (payload: { token: string; courseId: string }, { rejectWithValue }) => {
@@ -219,7 +218,6 @@ const coursesSlice = createSlice({
         state.error = action.payload as string;
       })
 
-      // Fetch Details (Noul Thunk adăugat)
       .addCase(fetchCourseDetails.pending, (state) => {
         state.loading = true;
         state.error = null;
