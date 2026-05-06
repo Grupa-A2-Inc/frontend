@@ -16,6 +16,7 @@ export interface Teacher {
 
 interface CoursesState {
   courses: Course[];
+  currentCourse: Course | null; // Adăugat pentru detaliile cursului selectat
   loading: boolean;
   creating: boolean;
   deleting: string | null;
@@ -33,6 +34,7 @@ interface CoursesState {
 
 const initialState: CoursesState = {
   courses: [],
+  currentCourse: null,
   loading: false,
   creating: false,
   deleting: null,
@@ -47,6 +49,7 @@ const initialState: CoursesState = {
 
 // ---------- Thunks ----------
 
+// Aduce lista simplă de cursuri
 export const fetchCourses = createAsyncThunk(
   "courses/fetchCourses",
   async (token: string, { rejectWithValue }) => {
@@ -56,9 +59,25 @@ export const fetchCourses = createAsyncThunk(
         const err = await response.json();
         return rejectWithValue(err.message || "Failed to load courses");
       }
-      // Păstrăm fixul colegei pentru maparea datelor
       const data = await response.json();
       return Array.isArray(data) ? data : (data.content ?? data.courses ?? data.items ?? []);
+    } catch {
+      return rejectWithValue("Network error");
+    }
+  }
+);
+
+// Aduce detaliile complete ale UNUI SINGUR curs (inclusiv capitole/lecții)
+export const fetchCourseDetails = createAsyncThunk(
+  "courses/fetchCourseDetails",
+  async (payload: { token: string; courseId: string }, { rejectWithValue }) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/api/v1/courses/${payload.courseId}`, payload.token);
+      if (!response.ok) {
+        const err = await response.json();
+        return rejectWithValue(err.message || "Failed to load course details");
+      }
+      return await response.json();
     } catch {
       return rejectWithValue("Network error");
     }
@@ -141,17 +160,14 @@ export const deleteCourse = createAsyncThunk(
   }
 );
 
-// Fetch date pentru vizualizare curs
 export const fetchActiveLessonData = createAsyncThunk(
   "courses/fetchActiveLesson",
   async (payload: { token: string; lessonId: string }, { rejectWithValue }) => {
     try {
-      // 1. Date lecție
       const lessonRes = await fetchWithAuth(`${API_URL}/api/v1/lessons/${payload.lessonId}`, payload.token);
       if (!lessonRes.ok) throw new Error("Failed to load lesson content");
       const lesson = await lessonRes.json();
 
-      // 2. Resurse atașate
       let resources = [];
       try {
         const resourcesRes = await fetchWithAuth(`${API_URL}/api/v1/lessons/${payload.lessonId}/resources`, payload.token);
@@ -181,9 +197,13 @@ const coursesSlice = createSlice({
     clearDeleteError(state) {
       state.deleteError = null;
     },
+    resetCurrentCourse(state) {
+      state.currentCourse = null;
+    }
   },
   extraReducers: (builder) => {
     builder
+      // Fetch list
       .addCase(fetchCourses.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -196,6 +216,22 @@ const coursesSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
+
+      // Fetch Details (Noul Thunk adăugat)
+      .addCase(fetchCourseDetails.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchCourseDetails.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentCourse = action.payload;
+      })
+      .addCase(fetchCourseDetails.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      // Create
       .addCase(createCourse.pending, (state) => {
         state.creating = true;
         state.createError = null;
@@ -210,6 +246,8 @@ const coursesSlice = createSlice({
         state.creating = false;
         state.createError = action.payload as string;
       })
+
+      // Delete
       .addCase(deleteCourse.pending, (state, action) => {
         state.deleting = action.meta.arg.id;
         state.deleteError = null;
@@ -223,7 +261,7 @@ const coursesSlice = createSlice({
         state.deleteError = action.payload as string;
       })
       
-      // Lesson cases
+      // Lesson
       .addCase(fetchActiveLessonData.pending, (state) => {
         state.isLoadingLesson = true;
         state.error = null;
@@ -240,5 +278,5 @@ const coursesSlice = createSlice({
   },
 });
 
-export const { clearCreateError, clearDeleteError } = coursesSlice.actions;
+export const { clearCreateError, clearDeleteError, resetCurrentCourse } = coursesSlice.actions;
 export default coursesSlice.reducer;
