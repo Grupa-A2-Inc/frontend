@@ -2,11 +2,13 @@
 
 import { useEffect, use } from "react";
 import Link from "next/link";
-import { ChevronLeft, FileText, Loader2, AlertCircle } from "lucide-react";
+import { ChevronLeft, Loader2, AlertCircle } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchActiveLessonData, fetchCourseDetails } from "@/store/slices/coursesSlice";
+import type { Chapter, LessonResource } from "@/lib/courses/types";
 
 import LessonSidebar from "@/components/course-content/LessonSidebar";
+import MarkdownViewer from "@/components/course-content/MarkdownViewer";
 import PdfDownloadButton from "@/components/course-content/PdfDownloadButton";
 import LessonNavigation from "@/components/course-content/LessonNavigation";
 
@@ -40,7 +42,11 @@ export default function LessonPage({ params }: { params: Promise<{ courseId: str
     </div>
   );
 
-  const chapters = (currentCourse as any)?.chapters || [];
+  const courseWithChapters = currentCourse as typeof currentCourse & {
+    chapters?: Chapter[];
+  };
+  const chapters = courseWithChapters?.chapters ?? [];
+  const resources = activeLessonResources as LessonResource[];
 
   return (
     <div className="max-w-[1400px] mx-auto p-4 lg:p-6 flex flex-col lg:flex-row gap-6">
@@ -59,18 +65,15 @@ export default function LessonPage({ params }: { params: Promise<{ courseId: str
             <p className="text-brand-muted text-sm">Go through the material.</p>
           </div>
 
-          <div className="bg-brand-bg border border-dashed border-brand-border rounded-xl flex items-center justify-center p-10 min-h-[400px] mb-8 text-brand-muted">
-            <div className="text-center">
-              <FileText size={48} className="mx-auto mb-4 opacity-50" />
-              <p className="text-white font-medium">Zona de conținut (Video/Markdown)</p>
-            </div>
+          <div className="bg-brand-bg border border-brand-border rounded-xl p-6 md:p-8 min-h-[400px] mb-8">
+            <MarkdownViewer content={activeLesson?.contentMarkdown ?? ""} />
           </div>
 
-          {activeLessonResources?.length > 0 && (
+          {resources.length > 0 && (
             <div className="mb-10">
               <h3 className="text-sm font-bold text-brand-muted uppercase mb-4">Resources</h3>
               <div className="flex flex-col gap-2">
-                {activeLessonResources.map((res: any) => (
+                {resources.map((res) => (
                   <PdfDownloadButton key={res.id} url={res.url} title={res.title} />
                 ))}
               </div>
