@@ -102,7 +102,7 @@ const currentCourses = mockCourses;
   }
 
   return (
-    <div className="p-6">
+    <div className="flex min-h-[calc(100vh-4rem)] flex-col p-6">
       <CoursesHeader totalCourses={pagination.totalElements} />
 
       {error && (
@@ -121,17 +121,19 @@ const currentCourses = mockCourses;
         categories={categories}
       />
 
-      <CoursesGrid
-        courses={filtered}
-        loading={isLoading}
-        emptyMessage={
-          activeTab === "my" ? "You have no courses yet." : "No public courses found."
-        }
-        variant={activeTab === "my" ? "my" : "discover"}
-        enrolledCourseIds={enrolledCourseIds}
-        enrollingCourseId={enrollingCourseId}
-        onEnroll={handleEnroll}
-      />
+      <div className="flex-1">
+        <CoursesGrid
+          courses={filtered}
+          loading={isLoading}
+          emptyMessage={
+            activeTab === "my" ? "You have no courses yet." : "No public courses found."
+          }
+          variant={activeTab === "my" ? "my" : "discover"}
+          enrolledCourseIds={enrolledCourseIds}
+          enrollingCourseId={enrollingCourseId}
+          onEnroll={handleEnroll}
+        />
+      </div>
 
       <PaginationControls
         pagination={pagination}
