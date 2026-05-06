@@ -28,7 +28,7 @@ async function editorFetch<T>(path: string, options: RequestInit = {}): Promise<
 export interface CoursePayload {
   title: string;
   description: string;
-  expirationDate?: string;
+  category: string;
   status?: "DRAFT" | "PUBLISHED";
 }
 
@@ -48,17 +48,18 @@ export async function fetchCourseForEditor(courseId: string): Promise<any> {
 
 export async function createChapter(
   courseId: string,
-  payload: { title: string; description?: string },
+  payload: { title: string },
 ): Promise<{ id: string }> {
   return editorFetch(`/api/v1/courses/${courseId}/chapters`, {
     method: "POST",
-    body: JSON.stringify(payload),
+    headers: { "Content-Type": "text/plain" },
+    body: payload.title,
   });
 }
 
 export async function updateChapter(
   chapterId: string,
-  payload: { title?: string; description?: string },
+  payload: { title?: string; orderIndex?: number },
 ): Promise<void> {
   return editorFetch(`/api/v1/chapters/${chapterId}`, {
     method: "PATCH",
@@ -95,7 +96,7 @@ export async function updateLesson(
       }),
     );
   }
-  if (payload.content !== undefined) {
+  if (payload.content !== undefined && payload.content !== "") {
     calls.push(
       editorFetch(`/api/v1/lessons/${lessonId}/content`, {
         method: "PATCH",

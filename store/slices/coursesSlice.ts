@@ -1,9 +1,10 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
-import { Course, CourseStatus, CourseVisibility, Lesson, LessonResource } from "@/lib/courses/types";
+import { Course, CourseStatus, Lesson, LessonResource } from "@/lib/courses/types";
 
 // URL-ul backend-ului
 const API_URL = "https://api.adaptiveelearning.online";
+
 // ---------- Types ----------
 
 export interface Teacher {

@@ -251,7 +251,7 @@ export default function SidebarWrapper({ children }: SidebarWrapperProps) {
         <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-brand-card border-b border-brand-primary/10 flex items-center justify-between px-4">
           {/* Logo */}
           <div className="flex items-center gap-2">
-            <Image src="/my_logo.png" alt="logo" width={30} height={30} className="flex-shrink-0" />
+            <Image src="/logo_192x192.png" alt="logo" width={30} height={30} className="flex-shrink-0" />
             <span className="text-brand-text font-semibold text-base">
               Testify<span className="text-brand-primary">AI</span>
             </span>
@@ -365,7 +365,7 @@ export default function SidebarWrapper({ children }: SidebarWrapperProps) {
         <motion.aside
           animate={{ width: sidebarWidth }}
           transition={{ duration: 0.3, ease: "easeInOut" }}
-          className="fixed top-0 left-0 h-screen bg-brand-card border-r border-brand-primary/10 flex flex-col transition-colors duration-300"
+          className="fixed top-0 left-0 h-screen z-30 bg-brand-card border-r border-brand-primary/10 flex flex-col transition-colors duration-300"
         >
           {/* Header */}
           <div
@@ -375,7 +375,7 @@ export default function SidebarWrapper({ children }: SidebarWrapperProps) {
             style={{ minHeight: "72px", transition: "all 0.3s ease" }}
           >
             <div className="flex items-center gap-2 overflow-hidden">
-              <Image src="/my_logo.png" alt="logo" width={38} height={38} className="flex-shrink-0" />
+              <Image src="/logo_192x192.png" alt="logo" width={38} height={38} className="flex-shrink-0" />
               <AnimatePresence>
                 {!collapsed && (
                   <motion.span

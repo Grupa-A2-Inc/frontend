@@ -25,14 +25,14 @@ export default function StudentList({ members, onAddClick, onRemoveClick }: Prop
           <p className="text-xs font-semibold uppercase tracking-wider text-brand-muted mb-1.5">Members</p>
           <p className="text-sm text-brand-text mt-0.5">{students.length} enrolled</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search by email…"
-            className="w-52 rounded-xl border border-brand-border bg-brand-mid px-4 py-2 text-sm text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/30 transition"
+            className="w-full sm:w-52 rounded-xl border border-brand-border bg-brand-mid px-4 py-2 text-sm text-brand-text focus:outline-none focus:ring-2 focus:ring-brand-primary/30 transition"
           />
-          <button onClick={onAddClick} className="bg-brand-primary hover:opacity-90 transition text-white rounded-xl px-4 py-2 text-sm font-bold">
+          <button onClick={onAddClick} className="bg-brand-primary hover:opacity-90 transition text-white rounded-xl px-4 py-2 text-sm font-bold whitespace-nowrap">
             Add member
           </button>
         </div>
@@ -56,7 +56,7 @@ export default function StudentList({ members, onAddClick, onRemoveClick }: Prop
                 </div>
                 <button
                   onClick={() => onRemoveClick(member)}
-                  className="opacity-0 group-hover:opacity-100 rounded-lg border border-red-400/30 bg-red-400/10 px-2.5 py-1.5 text-xs font-semibold text-red-400 transition"
+                  className="opacity-100 md:opacity-0 md:group-hover:opacity-100 rounded-lg border border-red-400/30 bg-red-400/10 px-2.5 py-1.5 text-xs font-semibold text-red-400 transition"
                 >
                   Remove
                 </button>
