@@ -27,3 +27,5 @@ export interface PaginatedCourses {
   last: boolean;
   empty: boolean;
 }
+
+export type CoursePaginationMeta = Omit<PaginatedCourses, "content">;
