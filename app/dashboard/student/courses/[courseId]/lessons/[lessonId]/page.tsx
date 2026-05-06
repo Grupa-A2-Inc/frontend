@@ -78,7 +78,11 @@ export default function LessonPage({ params }: { params: Promise<{ courseId: str
           )}
         </div>
 
-        <LessonNavigation />
+        <LessonNavigation 
+  chapters={chapters} 
+  courseId={courseId} 
+  currentLessonId={lessonId} 
+/>
       </div>
     </div>
   );
