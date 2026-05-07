@@ -3,41 +3,26 @@
 
 @layer base {
   :root {
-    --bg: 149, 190, 243;
-    --bg-mid: 232, 228, 252;
-    --bg-card: 255, 255, 255;
-    --text-primary: 15, 23, 42;
-    --text-secondary: 71, 85, 105;
-    --border: 232, 228, 252;
+    --bg: 227, 240, 250;
+    --bg-mid: 224, 230, 254; 
+    --bg-card: 255, 255, 255;   
     
-    --primary: 91, 106, 208;
-    --accent: 0, 151, 178;
+    --text-primary: 30, 58, 138;
+    --text-secondary: 100, 116, 139;
+    
+    --border: 224, 242, 254;  
+    
+    --primary: 125, 211, 252;   
+    --accent: 167, 139, 250; 
 
-    /* Success */
-    --success-bg: 34 197 94 / 0.1;
-    --success-border: 34 197 94 / 0.3;
-    --success-text: 34 197 94;
+    --bg-card-hover: 248, 250, 252; 
+    --border-hover: 186, 230, 253;
 
-    /* Error */
-    --error-bg: 239 68 68 / 0.1;
-    --error-border: 239 68 68 / 0.3;
-    --error-text: 239 68 68;
+    --success-text: 22, 163, 74;
+    --error-text: 220, 38, 38;
 
-    /* Warning */
-    --warning-bg: 234 179 8 / 0.1;
-    --warning-border: 234 179 8 / 0.3;
-    --warning-text: 234 179 8;
-
-    /* Skeleton */
-    --skeleton-bg-1: 255 255 255 / 0.10;
-    --skeleton-bg-2: 255 255 255 / 0.05;
-
-    /* Buttons */
-    --button-primary-bg: 0 0 0;
-    --button-primary-text: 255 255 255;
-
-    --bg-card-hover: 245, 245, 255;
-    --border-hover: 210, 210, 240;
+    --button-primary-bg: 14, 165, 233;
+    --button-primary-text: 255, 255, 255;
   }
 
   .dark {
