@@ -2,7 +2,7 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   workers: 1,
-  testDir: './e2e/specs',
+  testDir: './specs',
 
   use: {
     baseURL: 'https://frontend-teal-five-57.vercel.app',
