@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { User, UserRole } from "@/store/slices/usersSlice";
 import ClassSelector from "./UsersClassSelector";
 
@@ -15,7 +15,7 @@ type Props = {
   user: User | null;
   serverError?: string | null;
   onClose: () => void;
-  onSave: (data: SavePayload) => void;
+  onSave: (data: SavePayload) => Promise<void>;
 };
 
 export default function UserFormModal({ user, serverError, onClose, onSave }: Props) {
@@ -25,8 +25,17 @@ export default function UserFormModal({ user, serverError, onClose, onSave }: Pr
   const [roleName, setRoleName]               = useState<UserRole>(user?.role ?? "STUDENT");
   const [selectedClasses, setSelectedClasses] = useState<string[]>([]);
   const [validationError, setValidationError] = useState("");
+  const [isSubmitting, setIsSubmitting]       = useState(false);
+  const isSubmittingRef = useRef(false);
+  const isMounted = useRef(true);
 
   const isEditing = user !== null;
+
+  useEffect(() => {
+    return () => {
+      isMounted.current = false;
+    };
+  }, []);
 
   function toggleClass(classId: string) {
     setSelectedClasses((prev) =>
@@ -34,14 +43,25 @@ export default function UserFormModal({ user, serverError, onClose, onSave }: Pr
     );
   }
 
-  function handleSave(e: React.FormEvent) {
+  async function handleSave(e: React.FormEvent) {
     e.preventDefault();
+    if (isSubmittingRef.current) return;
+
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!firstName.trim())           { setValidationError("First name is required."); return; }
     if (!lastName.trim())            { setValidationError("Last name is required.");  return; }
     if (!emailRegex.test(email.trim())) { setValidationError("Please enter a valid email address."); return; }
     setValidationError("");
-    onSave({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), roleName });
+    isSubmittingRef.current = true;
+    setIsSubmitting(true);
+    try {
+      await onSave({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), roleName });
+    } finally {
+      isSubmittingRef.current = false;
+      if (isMounted.current) {
+        setIsSubmitting(false);
+      }
+    }
   }
 
   return (
@@ -55,7 +75,8 @@ export default function UserFormModal({ user, serverError, onClose, onSave }: Pr
           </h2>
           <button
             onClick={onClose}
-            className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/40 hover:text-brand-text hover:bg-brand-text/10 transition-colors"
+            disabled={isSubmitting}
+            className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/40 hover:text-brand-text hover:bg-brand-text/10 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           >
             <span className="material-symbols-rounded" style={{ fontSize: "1.1rem" }}>close</span>
           </button>
@@ -73,8 +94,9 @@ export default function UserFormModal({ user, serverError, onClose, onSave }: Pr
               type="text"
               value={firstName}
               onChange={(e) => setFirstName(e.target.value)}
+              disabled={isSubmitting}
               placeholder="e.g. John"
-              className="bg-brand-mid border border-brand-primary/20 rounded-lg px-3 py-2 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors"
+              className="bg-brand-mid border border-brand-primary/20 rounded-lg px-3 py-2 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
             />
           </div>
 
@@ -87,8 +109,9 @@ export default function UserFormModal({ user, serverError, onClose, onSave }: Pr
               type="text"
               value={lastName}
               onChange={(e) => setLastName(e.target.value)}
+              disabled={isSubmitting}
               placeholder="e.g. Smith"
-              className="bg-brand-mid border border-brand-primary/20 rounded-lg px-3 py-2 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors"
+              className="bg-brand-mid border border-brand-primary/20 rounded-lg px-3 py-2 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
             />
           </div>
 
@@ -101,8 +124,9 @@ export default function UserFormModal({ user, serverError, onClose, onSave }: Pr
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              disabled={isSubmitting}
               placeholder="e.g. john.smith@school.com"
-              className="bg-brand-mid border border-brand-primary/20 rounded-lg px-3 py-2 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors"
+              className="bg-brand-mid border border-brand-primary/20 rounded-lg px-3 py-2 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
             />
           </div>
 
@@ -113,7 +137,8 @@ export default function UserFormModal({ user, serverError, onClose, onSave }: Pr
               <select
                 value={roleName}
                 onChange={(e) => { setRoleName(e.target.value as UserRole); setSelectedClasses([]); }}
-                className="bg-brand-mid border border-brand-primary/20 rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-brand-primary/60 transition-colors"
+                disabled={isSubmitting}
+                className="bg-brand-mid border border-brand-primary/20 rounded-lg px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-brand-primary/60 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <option value="STUDENT">Student</option>
                 <option value="TEACHER">Teacher</option>
@@ -154,15 +179,17 @@ export default function UserFormModal({ user, serverError, onClose, onSave }: Pr
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2 rounded-lg text-sm font-medium text-brand-text/60 hover:text-brand-text border border-brand-primary/20 hover:bg-brand-text/5 transition-colors"
+              disabled={isSubmitting}
+              className="flex-1 py-2 rounded-lg text-sm font-medium text-brand-text/60 hover:text-brand-text border border-brand-primary/20 hover:bg-brand-text/5 transition-colors disabled:cursor-not-allowed disabled:opacity-60"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 py-2 rounded-lg text-sm font-medium bg-brand-primary hover:bg-brand-primary/90 text-brand-text transition-colors"
+              disabled={isSubmitting}
+              className="flex-1 py-2 rounded-lg text-sm font-medium bg-brand-primary hover:bg-brand-primary/90 text-brand-text transition-colors disabled:cursor-not-allowed disabled:opacity-70 disabled:hover:bg-brand-primary"
             >
-              {isEditing ? "Save Changes" : "Add User"}
+              {isSubmitting ? (isEditing ? "Saving..." : "Adding...") : (isEditing ? "Save Changes" : "Add User")}
             </button>
           </div>
         </form>
