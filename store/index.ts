@@ -1,4 +1,5 @@
 import { configureStore } from "@reduxjs/toolkit";
+import takeTestReducer from "@/store/slices/takeTestSlice";
 
 import authReducer from "@/store/slices/authSlice";
 import classesReducer from "@/store/slices/classesSlice";
@@ -19,6 +20,8 @@ export const store = configureStore({
     courses: coursesReducer,
     studentCourses: studentCoursesReducer,
     adaptive: adaptiveReducer,
+
+    takeTest: takeTestReducer,
   },
 });
 
