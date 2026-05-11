@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { ChevronLeft, Save, Plus, CheckCircle2 } from "lucide-react";
 import { useAppSelector, useAppDispatch } from "@/store/hooks";
@@ -13,14 +13,32 @@ import TestSettingsPanel from "@/components/tests/TestSettingsPanel";
 import QuestionCard from "@/components/tests/QuestionCard";
 import QuestionNavigator from "@/components/tests/QuestionNavigator";
 
-export default function TestBuilderPage({ params }: { params: Promise<{ courseId: string }> }) {
-  const { courseId } = use(params);  
+type Props = {
+  params: Promise<{ courseId: string }>;
+  searchParams?: Promise<{ lessonId?: string }>;
+};
+
+export default function TestBuilderPage({ params, searchParams }: Props) {
+  const { courseId } = use(params);
+  const resolvedSearchParams = searchParams ? use(searchParams) : {};
+  const initialLessonId = resolvedSearchParams.lessonId ?? "";
+
   const dispatch = useAppDispatch();
-  
+   
   const { questions, isSaving, status } = useAppSelector((state) => state.testDraft);
+  const [selectedLessonId, setSelectedLessonId] = useState(initialLessonId);
+  const [testTitle, setTestTitle] = useState("Lesson test");
+  const [timeLimitSec, setTimeLimitSec] = useState<number | undefined>(undefined);
 
   const handleSave = () => {
-    dispatch(saveFinalTestThunk(courseId));
+    if (!selectedLessonId || !testTitle.trim()) return;
+    dispatch(
+      saveFinalTestThunk({
+        lessonId: selectedLessonId,
+        title: testTitle.trim(),
+        timeLimitSec,
+      })
+    );
   };
 
   return (
@@ -34,9 +52,13 @@ export default function TestBuilderPage({ params }: { params: Promise<{ courseId
         <div>
           <h1 className="text-3xl font-bold text-brand-text">AI Test Editor</h1>
           <p className="text-sm mt-2 flex items-center gap-2">
-            {status === "SAVED" ? (
+            {status === "PUBLISHED" ? (
               <span className="text-green-500 bg-green-500/10 px-2 py-1 rounded font-medium flex items-center gap-1">
-                <CheckCircle2 size={16} /> Test saved!
+                <CheckCircle2 size={16} /> Test saved and published
+              </span>
+            ) : status === "SAVED" ? (
+              <span className="text-green-500 bg-green-500/10 px-2 py-1 rounded font-medium flex items-center gap-1">
+                <CheckCircle2 size={16} /> Test saved
               </span>
             ) : status === "DRAFT" ? (
               <span className="text-red-400 bg-red-400/10 px-2 py-1 rounded font-medium">Unsaved draft</span>
@@ -57,11 +79,11 @@ export default function TestBuilderPage({ params }: { params: Promise<{ courseId
               </button>
               <button 
                 onClick={handleSave}
-                disabled={isSaving}
+                disabled={isSaving || !selectedLessonId || !testTitle.trim()}
                 className="bg-brand-primary text-white px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 hover:bg-brand-primary/90 transition font-medium w-full sm:w-auto disabled:opacity-50"
               >
                 <Save size={18} />
-                {isSaving ? "Saving..." : "Save test"}
+                {isSaving ? "Saving & publishing..." : "Save and publish"}
               </button>
             </>
           )}
@@ -70,7 +92,15 @@ export default function TestBuilderPage({ params }: { params: Promise<{ courseId
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div className="lg:col-span-3">
-          <TestSettingsPanel courseId={courseId} />
+          <TestSettingsPanel
+            courseId={courseId}
+            selectedLessonId={selectedLessonId}
+            onLessonChange={setSelectedLessonId}
+            title={testTitle}
+            onTitleChange={setTestTitle}
+            timeLimitSec={timeLimitSec}
+            onTimeLimitChange={setTimeLimitSec}
+          />
           
           <div className="mt-8 space-y-6">
             {questions.map((q, index) => (
@@ -81,7 +111,7 @@ export default function TestBuilderPage({ params }: { params: Promise<{ courseId
               />
             ))}
             
-            {questions.length === 0 && status === "IDLE" && (
+            {questions.length === 0 && (
               <div className="text-center py-12 border-2 border-dashed border-brand-border rounded-xl text-brand-muted">
                 No question generated yet. Use the upper panel.
               </div>
