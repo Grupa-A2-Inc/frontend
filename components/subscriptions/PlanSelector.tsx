@@ -7,6 +7,7 @@ import type { SubscriptionPlan } from "@/lib/subscriptions/types";
 
 type PlanSelectorProps = {
   selectedPlanId?: string;
+  currentPlanId?: string;
   onPlanSelect?: (
     plan: SubscriptionPlan,
     meta: { source: "initial" | "user" }
@@ -35,6 +36,7 @@ function PlanSkeleton({ compact = false }: { compact?: boolean }) {
 
 export default function PlanSelector({
   selectedPlanId,
+  currentPlanId,
   onPlanSelect,
   actionLabel,
   storageKey,
@@ -56,9 +58,13 @@ export default function PlanSelector({
 
         setPlans(nextPlans);
         setError("");
-      } catch {
+      } catch (error) {
         if (!mounted) return;
-        setError("Subscription plans could not be loaded.");
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Subscription plans could not be loaded."
+        );
       } finally {
         if (mounted) setLoading(false);
       }
@@ -147,6 +153,7 @@ export default function PlanSelector({
           key={plan.id}
           plan={plan}
           selected={plan.id === selectedId}
+          current={plan.id === currentPlanId}
           actionLabel={actionLabel}
           onSelect={handleSelect}
         />

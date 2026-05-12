@@ -1,31 +1,36 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertCircle,
+  CalendarDays,
+  CheckCircle2,
   CreditCard,
-  ExternalLink,
   Loader2,
   RefreshCcw,
   X,
-  XCircle,
 } from "lucide-react";
 import PlanSelector from "./PlanSelector";
-import type { SubscriptionPlan } from "@/lib/subscriptions/types";
+import {
+  changeOrganizationSubscriptionPlan,
+  createSubscriptionCheckoutSession,
+  getCurrentOrganizationSubscription,
+} from "@/lib/subscriptions/api";
+import type {
+  OrganizationSubscriptionStatus,
+  SubscriptionPlan,
+} from "@/lib/subscriptions/types";
 import { formatPrice } from "@/lib/subscriptions/utils";
+import { useAppSelector } from "@/store/hooks";
 
-const SETTINGS_PLAN_KEY = "adminSelectedSubscriptionPlanId";
-
-type SubscriptionActionId = "checkout" | "change" | "portal" | "cancel";
+type SubscriptionActionId = "checkout" | "change";
 type ActionStatus = "idle" | "loading" | "success" | "error";
 
 type SubscriptionAction = {
   id: SubscriptionActionId;
   title: string;
   description: string;
-  endpointHint: string;
   confirmLabel: string;
-  tone?: "default" | "danger";
   icon: React.ReactNode;
 };
 
@@ -33,79 +38,62 @@ const SUBSCRIPTION_ACTIONS: SubscriptionAction[] = [
   {
     id: "checkout",
     title: "Checkout",
-    description: "Start Stripe checkout for the selected plan.",
-    endpointHint: "POST /api/v1/payments/checkout-session",
+    description: "Create a Stripe checkout session for the selected plan.",
     confirmLabel: "Continue to Stripe",
     icon: <CreditCard size={16} />,
   },
   {
     id: "change",
     title: "Change plan",
-    description: "Confirm an upgrade or downgrade for this organization.",
-    endpointHint: "POST /api/v1/subscriptions/change-plan",
+    description: "Update the active subscription to the selected plan.",
     confirmLabel: "Confirm change",
     icon: <RefreshCcw size={16} />,
   },
-  {
-    id: "portal",
-    title: "Billing portal",
-    description: "Open the hosted billing portal for invoices and cards.",
-    endpointHint: "GET /api/v1/payments/billing-portal",
-    confirmLabel: "Open portal",
-    icon: <ExternalLink size={16} />,
-  },
-  {
-    id: "cancel",
-    title: "Cancel subscription",
-    description: "Cancel the active subscription after admin confirmation.",
-    endpointHint: "POST /api/v1/subscriptions/cancel",
-    confirmLabel: "Cancel subscription",
-    tone: "danger",
-    icon: <XCircle size={16} />,
-  },
 ];
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : "Subscription action failed.";
+}
+
+function formatDate(value?: string): string {
+  if (!value) return "-";
+
+  try {
+    return new Intl.DateTimeFormat("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
 
 function ActionButton({
   action,
+  disabled,
   onClick,
 }: {
   action: SubscriptionAction;
+  disabled?: boolean;
   onClick: (action: SubscriptionAction) => void;
 }) {
-  const isDanger = action.tone === "danger";
-
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={() => onClick(action)}
-      className={`flex h-full items-start gap-3 rounded-xl border px-4 py-3 text-left transition-colors ${
-        isDanger
-          ? "border-red-500/25 bg-red-500/10 hover:bg-red-500/15"
-          : "border-brand-primary/15 bg-brand-mid hover:border-brand-primary/40"
-      }`}
+      className="flex h-full items-start gap-3 rounded-xl border border-brand-primary/15 bg-brand-mid px-4 py-3 text-left transition-colors hover:border-brand-primary/40 disabled:cursor-not-allowed disabled:opacity-60"
     >
-      <span
-        className={`mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg ${
-          isDanger
-            ? "bg-red-500/15 text-red-400"
-            : "bg-brand-primary/10 text-brand-primary"
-        }`}
-      >
+      <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-brand-primary/10 text-brand-primary">
         {action.icon}
       </span>
       <span className="min-w-0">
-        <span
-          className={`block text-sm font-semibold ${
-            isDanger ? "text-red-300" : "text-brand-text"
-          }`}
-        >
+        <span className="block text-sm font-semibold text-brand-text">
           {action.title}
         </span>
         <span className="mt-0.5 block text-xs leading-relaxed text-brand-muted">
           {action.description}
-        </span>
-        <span className="mt-2 inline-flex rounded-full border border-brand-primary/15 px-2 py-0.5 text-[11px] font-semibold text-brand-muted">
-          Pending backend
         </span>
       </span>
     </button>
@@ -115,6 +103,7 @@ function ActionButton({
 function ActionModal({
   action,
   selectedPlan,
+  currentSubscription,
   status,
   message,
   onClose,
@@ -122,28 +111,27 @@ function ActionModal({
 }: {
   action: SubscriptionAction;
   selectedPlan: SubscriptionPlan | null;
+  currentSubscription: OrganizationSubscriptionStatus | null;
   status: ActionStatus;
   message: string;
   onClose: () => void;
   onConfirm: () => void;
 }) {
-  const isDanger = action.tone === "danger";
   const price = selectedPlan
     ? formatPrice(selectedPlan.priceMonthly, selectedPlan.currency)
     : "";
+  const isCurrentPlan =
+    action.id === "change" &&
+    selectedPlan?.id === currentSubscription?.plan.id;
+  const confirmDisabled =
+    status === "loading" || !selectedPlan || isCurrentPlan;
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm">
       <div className="w-full max-w-lg rounded-2xl border border-brand-primary/20 bg-brand-card p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <div
-              className={`mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl ${
-                isDanger
-                  ? "bg-red-500/15 text-red-400"
-                  : "bg-brand-primary/10 text-brand-primary"
-              }`}
-            >
+            <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-xl bg-brand-primary/10 text-brand-primary">
               {action.icon}
             </div>
             <h3 className="text-lg font-bold text-brand-text">
@@ -182,23 +170,19 @@ function ActionModal({
           </div>
         </div>
 
-        <div className="mt-4 rounded-xl border border-amber-400/25 bg-amber-400/10 p-4">
-          <div className="flex gap-3">
-            <AlertCircle
-              size={18}
-              className="mt-0.5 flex-shrink-0 text-amber-300"
-            />
-            <div>
-              <p className="text-sm font-semibold text-amber-200">
-                Backend endpoint pending
-              </p>
-              <p className="mt-1 text-xs leading-relaxed text-amber-100/80">
-                This modal is ready for the integration. The expected endpoint is{" "}
-                <span className="font-mono">{action.endpointHint}</span>.
+        {isCurrentPlan && (
+          <div className="mt-4 rounded-xl border border-amber-400/25 bg-amber-400/10 p-4">
+            <div className="flex gap-3">
+              <AlertCircle
+                size={18}
+                className="mt-0.5 flex-shrink-0 text-amber-300"
+              />
+              <p className="text-sm leading-relaxed text-amber-100/90">
+                This plan is already active for the organization.
               </p>
             </div>
           </div>
-        </div>
+        )}
 
         {message && (
           <p
@@ -223,14 +207,12 @@ function ActionModal({
           <button
             type="button"
             onClick={onConfirm}
-            disabled={status === "loading"}
-            className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold text-white transition-colors disabled:opacity-70 ${
-              isDanger
-                ? "bg-red-500 hover:bg-red-500/90"
-                : "bg-brand-primary hover:bg-brand-primary/90"
-            }`}
+            disabled={confirmDisabled}
+            className="inline-flex items-center gap-2 rounded-xl bg-brand-primary px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-primary/90 disabled:cursor-not-allowed disabled:opacity-70"
           >
-            {status === "loading" && <Loader2 size={16} className="animate-spin" />}
+            {status === "loading" && (
+              <Loader2 size={16} className="animate-spin" />
+            )}
             {status === "loading" ? "Preparing..." : action.confirmLabel}
           </button>
         </div>
@@ -240,36 +222,69 @@ function ActionModal({
 }
 
 export default function SubscriptionSettingsSection() {
+  const organizationId = useAppSelector(
+    (state) => state.auth.organization?.id ?? state.auth.user?.organizationId ?? ""
+  );
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(
     null
   );
-  const [savedPlanId, setSavedPlanId] = useState(() => {
-    if (typeof window === "undefined") return "";
-    return localStorage.getItem(SETTINGS_PLAN_KEY) ?? "";
-  });
-  const [saved, setSaved] = useState(false);
+  const [currentSubscription, setCurrentSubscription] =
+    useState<OrganizationSubscriptionStatus | null>(null);
+  const [subscriptionLoading, setSubscriptionLoading] = useState(true);
+  const [subscriptionError, setSubscriptionError] = useState("");
+  const [planNotice, setPlanNotice] = useState(false);
   const [activeAction, setActiveAction] = useState<SubscriptionAction | null>(
     null
   );
   const [actionStatus, setActionStatus] = useState<ActionStatus>("idle");
   const [actionMessage, setActionMessage] = useState("");
 
-  const visibleActions = useMemo(
-    () => SUBSCRIPTION_ACTIONS.filter((action) => action.id !== "cancel"),
-    []
-  );
-  const cancelAction = SUBSCRIPTION_ACTIONS.find(
-    (action) => action.id === "cancel"
-  );
+  const selectedPlanId = selectedPlan?.id ?? currentSubscription?.plan.id ?? "";
+  const actionsDisabled = !organizationId || subscriptionLoading;
+
+  const subscriptionSummary = useMemo(() => {
+    if (subscriptionLoading) return "Loading subscription";
+    if (!currentSubscription) return "No subscription";
+    return `${currentSubscription.status}: ${currentSubscription.plan.displayName}`;
+  }, [currentSubscription, subscriptionLoading]);
+
+  const loadCurrentSubscription = useCallback(async () => {
+    if (!organizationId) {
+      setSubscriptionLoading(false);
+      setSubscriptionError("Organization was not found. Please sign in again.");
+      return null;
+    }
+
+    setSubscriptionLoading(true);
+
+    try {
+      const subscription = await getCurrentOrganizationSubscription(
+        organizationId
+      );
+      setCurrentSubscription(subscription);
+      setSelectedPlan(subscription.plan);
+      setSubscriptionError("");
+      return subscription;
+    } catch (error) {
+      setCurrentSubscription(null);
+      setSubscriptionError(getErrorMessage(error));
+      return null;
+    } finally {
+      setSubscriptionLoading(false);
+    }
+  }, [organizationId]);
+
+  useEffect(() => {
+    loadCurrentSubscription();
+  }, [loadCurrentSubscription]);
 
   const handlePlanSelect = useCallback(
     (plan: SubscriptionPlan, meta: { source: "initial" | "user" }) => {
       setSelectedPlan(plan);
-      setSavedPlanId(plan.id);
 
       if (meta.source === "user") {
-        setSaved(true);
-        window.setTimeout(() => setSaved(false), 2200);
+        setPlanNotice(true);
+        window.setTimeout(() => setPlanNotice(false), 2200);
       }
     },
     []
@@ -287,18 +302,56 @@ export default function SubscriptionSettingsSection() {
     setActionMessage("");
   }
 
-  function handlePreparedAction() {
-    if (!activeAction) return;
+  async function handleSubscriptionAction() {
+    if (!activeAction || !selectedPlan) return;
+
+    if (!organizationId) {
+      setActionStatus("error");
+      setActionMessage("Organization was not found. Please sign in again.");
+      return;
+    }
 
     setActionStatus("loading");
     setActionMessage("");
 
-    window.setTimeout(() => {
+    try {
+      if (activeAction.id === "checkout") {
+        const returnPath = window.location.pathname;
+        const successUrl = `${window.location.origin}${returnPath}?subscription=success`;
+        const cancelUrl = `${window.location.origin}${returnPath}?subscription=cancel`;
+
+        const session = await createSubscriptionCheckoutSession(
+          organizationId,
+          {
+            planId: selectedPlan.id,
+            successUrl,
+            cancelUrl,
+          }
+        );
+
+        if (!session.checkoutUrl) {
+          throw new Error("Checkout session did not include a checkout URL.");
+        }
+
+        setActionStatus("success");
+        setActionMessage("Checkout session created. Redirecting to Stripe...");
+        window.location.assign(session.checkoutUrl);
+        return;
+      }
+
+      await changeOrganizationSubscriptionPlan(organizationId, selectedPlan.id);
+      const subscription = await loadCurrentSubscription();
+
+      if (subscription) {
+        setSelectedPlan(subscription.plan);
+      }
+
+      setActionStatus("success");
+      setActionMessage("Subscription plan changed successfully.");
+    } catch (error) {
       setActionStatus("error");
-      setActionMessage(
-        `Cannot run "${activeAction.title}" until ${activeAction.endpointHint} is available.`
-      );
-    }, 500);
+      setActionMessage(getErrorMessage(error));
+    }
   }
 
   return (
@@ -309,52 +362,96 @@ export default function SubscriptionSettingsSection() {
             Subscription Plan
           </h2>
           <p className="mt-1 text-xs text-brand-muted">
-            View and choose the organization plan.
+            View and manage the organization subscription.
           </p>
         </div>
         <div className="rounded-full border border-brand-primary/20 bg-brand-primary/10 px-3 py-1 text-xs font-semibold text-brand-text">
-          {selectedPlan ? selectedPlan.displayName : "Loading plan"}
+          {subscriptionSummary}
         </div>
+      </div>
+
+      <div className="mb-5 rounded-xl border border-brand-primary/15 bg-brand-mid p-4">
+        {subscriptionLoading ? (
+          <div className="flex items-center gap-2 text-sm text-brand-muted">
+            <Loader2 size={16} className="animate-spin" />
+            Loading current subscription...
+          </div>
+        ) : currentSubscription ? (
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <CheckCircle2
+                size={18}
+                className="mt-0.5 flex-shrink-0 text-green-400"
+              />
+              <div>
+                <p className="text-sm font-semibold text-brand-text">
+                  {currentSubscription.plan.displayName}
+                </p>
+                <p className="mt-1 text-xs text-brand-muted">
+                  Status: {currentSubscription.status}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-brand-muted">
+              <CalendarDays size={16} />
+              {formatDate(currentSubscription.currentPeriodStart)} -{" "}
+              {formatDate(currentSubscription.currentPeriodEnd)}
+            </div>
+          </div>
+        ) : (
+          <div className="flex gap-3">
+            <AlertCircle
+              size={18}
+              className="mt-0.5 flex-shrink-0 text-amber-300"
+            />
+            <div>
+              <p className="text-sm font-semibold text-brand-text">
+                No current subscription loaded.
+              </p>
+              {subscriptionError && (
+                <p className="mt-1 text-xs leading-relaxed text-brand-muted">
+                  {subscriptionError}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <PlanSelector
         compact
-        selectedPlanId={savedPlanId}
-        storageKey={SETTINGS_PLAN_KEY}
-        actionLabel="Switch visually"
+        selectedPlanId={selectedPlanId}
+        currentPlanId={currentSubscription?.plan.id}
+        actionLabel="Select plan"
         onPlanSelect={handlePlanSelect}
       />
 
-      {saved && (
+      {planNotice && (
         <p className="mt-3 text-xs font-medium text-green-400">
-          Plan selection saved locally.
+          Plan selected. Choose checkout or change plan to apply it.
         </p>
       )}
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        {visibleActions.map((action) => (
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        {SUBSCRIPTION_ACTIONS.map((action) => (
           <ActionButton
             key={action.id}
             action={action}
+            disabled={actionsDisabled}
             onClick={openAction}
           />
         ))}
       </div>
 
-      {cancelAction && (
-        <div className="mt-3">
-          <ActionButton action={cancelAction} onClick={openAction} />
-        </div>
-      )}
-
       {activeAction && (
         <ActionModal
           action={activeAction}
           selectedPlan={selectedPlan}
+          currentSubscription={currentSubscription}
           status={actionStatus}
           message={actionMessage}
           onClose={closeAction}
-          onConfirm={handlePreparedAction}
+          onConfirm={handleSubscriptionAction}
         />
       )}
     </section>
