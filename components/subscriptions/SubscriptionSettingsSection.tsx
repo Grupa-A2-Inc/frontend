@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import PlanSelector from "./PlanSelector";
 import type { SubscriptionPlan } from "@/lib/subscriptions/types";
+import { formatPrice } from "@/lib/subscriptions/utils";
 
 const SETTINGS_PLAN_KEY = "adminSelectedSubscriptionPlanId";
 
@@ -63,20 +64,6 @@ const SUBSCRIPTION_ACTIONS: SubscriptionAction[] = [
     icon: <XCircle size={16} />,
   },
 ];
-
-function formatPrice(value: number, currency: string): string {
-  if (value === 0) return "Free";
-
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency || "EUR",
-      maximumFractionDigits: 2,
-    }).format(value);
-  } catch {
-    return `${value} ${currency}`.trim();
-  }
-}
 
 function ActionButton({
   action,
@@ -373,4 +360,3 @@ export default function SubscriptionSettingsSection() {
     </section>
   );
 }
-

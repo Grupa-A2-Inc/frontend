@@ -8,7 +8,6 @@ export type SubscriptionPlan = {
   hasPremiumFeatures: boolean;
   priceMonthly: number;
   currency: string;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 };
-

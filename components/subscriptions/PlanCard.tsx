@@ -1,5 +1,6 @@
 import { Check, Crown, Users, GraduationCap, BookOpen } from "lucide-react";
 import type { SubscriptionPlan } from "@/lib/subscriptions/types";
+import { formatPrice } from "@/lib/subscriptions/utils";
 
 type PlanCardProps = {
   plan: SubscriptionPlan;
@@ -9,20 +10,6 @@ type PlanCardProps = {
   actionLabel?: string;
   onSelect?: (plan: SubscriptionPlan) => void;
 };
-
-function formatPrice(value: number, currency: string): string {
-  if (value === 0) return "Free";
-
-  try {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: currency || "EUR",
-      maximumFractionDigits: 2,
-    }).format(value);
-  } catch {
-    return `${value} ${currency}`.trim();
-  }
-}
 
 function LimitItem({
   icon,
@@ -128,4 +115,3 @@ export default function PlanCard({
     </article>
   );
 }
-

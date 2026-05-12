@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import PlanCard from "./PlanCard";
 import { getSubscriptionPlans } from "@/lib/subscriptions/api";
 import type { SubscriptionPlan } from "@/lib/subscriptions/types";
@@ -44,6 +44,7 @@ export default function PlanSelector({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [localSelectedId, setLocalSelectedId] = useState(selectedPlanId ?? "");
+  const initializedRef = useRef(false);
 
   useEffect(() => {
     let mounted = true;
@@ -55,23 +56,6 @@ export default function PlanSelector({
 
         setPlans(nextPlans);
         setError("");
-
-        const storedPlanId = storageKey
-          ? localStorage.getItem(storageKey) ?? ""
-          : "";
-        const initialPlanId =
-          selectedPlanId ||
-          storedPlanId ||
-          nextPlans.find((plan) => plan.priceMonthly === 0)?.id ||
-          nextPlans[0]?.id ||
-          "";
-
-        setLocalSelectedId(initialPlanId);
-
-        const initialPlan = nextPlans.find((plan) => plan.id === initialPlanId);
-        if (initialPlan) {
-          onPlanSelect?.(initialPlan, { source: "initial" });
-        }
       } catch {
         if (!mounted) return;
         setError("Subscription plans could not be loaded.");
@@ -85,7 +69,37 @@ export default function PlanSelector({
     return () => {
       mounted = false;
     };
-  }, [onPlanSelect, selectedPlanId, storageKey]);
+  }, []);
+
+  useEffect(() => {
+    if (plans.length === 0) return;
+
+    if (initializedRef.current) {
+      if (selectedPlanId) {
+        setLocalSelectedId(selectedPlanId);
+      }
+      return;
+    }
+
+    initializedRef.current = true;
+
+    const storedPlanId = storageKey
+      ? localStorage.getItem(storageKey) ?? ""
+      : "";
+    const initialPlanId =
+      selectedPlanId ||
+      storedPlanId ||
+      plans.find((plan) => plan.priceMonthly === 0)?.id ||
+      plans[0]?.id ||
+      "";
+
+    setLocalSelectedId(initialPlanId);
+
+    const initialPlan = plans.find((plan) => plan.id === initialPlanId);
+    if (initialPlan) {
+      onPlanSelect?.(initialPlan, { source: "initial" });
+    }
+  }, [plans, selectedPlanId, storageKey, onPlanSelect]);
 
   const selectedId = selectedPlanId ?? localSelectedId;
 
