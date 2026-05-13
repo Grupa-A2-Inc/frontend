@@ -1,41 +1,40 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { useAppDispatch } from "@/store/hooks";
-import { setPassword } from "@/store/slices/authSlice";
+import {
+  getAuthMutationErrorMessage,
+  useSetPasswordMutation,
+} from "@/store/api/authApi";
 
 function SetPasswordForm() {
   const searchParams  = useSearchParams();
   const router        = useRouter();
-  const dispatch      = useAppDispatch();
   const token         = searchParams.get("token") ?? "";
+  const [setPassword, { isLoading }] = useSetPasswordMutation();
 
   const [password, setPass]           = useState("");
   const [confirmPassword, setConfirm] = useState("");
-  const [loading, setLoading]         = useState(false);
   const [error, setError]             = useState("");
   const [done, setDone]               = useState(false);
-
-  useEffect(() => {
-    if (!token) setError("No activation token found. Please use the link from your email.");
-  }, [token]);
+  const visibleError = useMemo(
+    () => error || (!token ? "No activation token found. Please use the link from your email." : ""),
+    [error, token]
+  );
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (password.length < 8)         { setError("Password must be at least 8 characters."); return; }
     if (password !== confirmPassword) { setError("Passwords do not match."); return; }
     setError("");
-    setLoading(true);
-    const result = await dispatch(setPassword({ token, password, confirmPassword }));
-    setLoading(false);
-    if (setPassword.fulfilled.match(result)) {
+    try {
+      await setPassword({ token, password, confirmPassword }).unwrap();
       setDone(true);
       setTimeout(() => router.push("/login"), 2500);
-    } else {
-      setError(result.payload as string);
+    } catch (mutationError) {
+      setError(getAuthMutationErrorMessage(mutationError));
     }
   }
 
@@ -84,14 +83,14 @@ function SetPasswordForm() {
             />
           </div>
 
-          {error && <p className="text-red-400 text-xs font-medium">{error}</p>}
+          {visibleError && <p className="text-red-400 text-xs font-medium">{visibleError}</p>}
 
           <button
             type="submit"
-            disabled={loading || !token}
+            disabled={isLoading || !token}
             className="w-full py-2.5 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white text-sm font-semibold transition-colors disabled:opacity-50 mt-1"
           >
-            {loading ? "Activating…" : "Activate Account"}
+            {isLoading ? "Activating…" : "Activate Account"}
           </button>
 
           <Link href="/login" className="text-xs text-brand-muted hover:text-brand-text text-center transition-colors">

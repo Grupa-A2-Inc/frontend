@@ -1,24 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useState } from "react";
+import { getApiErrorMessage } from "@/lib/api/errors";
 import {
-  fetchCourses,
-  createCourse,
-  deleteCourse,
-  clearCreateError,
-} from "@/store/slices/coursesSlice";
-import { CourseStatus } from "@/lib/courses/types";
-import { fetchTeachers } from "@/store/slices/classesSlice";
+  useCreateCourseMutation,
+  useDeleteCourseMutation,
+  useGetMyCoursesQuery,
+} from "@/store/api/coursesApi";
+import type { CourseStatus } from "@/types/domain/courses";
+import { useGetOrganizationUsersQuery } from "@/store/api/usersApi";
 
 type StatusFilter = "ALL" | "DRAFT" | "PUBLISHED";
 
 export default function CoursesPage() {
-  const dispatch = useAppDispatch();
-  const { courses, loading, error, creating, createError, deleting } =
-    useAppSelector((state) => state.courses);
-  const { teachers } = useAppSelector((state) => state.classes);
-  const { accessToken } = useAppSelector((state) => state.auth);
+  const {
+    data: courses = [],
+    isLoading: loading,
+    error,
+    refetch,
+  } = useGetMyCoursesQuery();
+  const [createCourse, { isLoading: creating, error: createError }] = useCreateCourseMutation();
+  const [deleteCourse] = useDeleteCourseMutation();
+  const { data: organizationUsers = [] } = useGetOrganizationUsersQuery();
+  const teachers = organizationUsers.filter((user) => user.role === "TEACHER");
 
   // Filters
   const [search, setSearch]           = useState("");
@@ -26,6 +30,7 @@ export default function CoursesPage() {
 
   // Modal
   const [showModal, setShowModal] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   // Form fields
   const [title, setTitle]               = useState("");
@@ -34,14 +39,6 @@ export default function CoursesPage() {
   const [status, setStatus]             = useState<CourseStatus>("DRAFT");
   const [teacherId, setTeacherId]       = useState("");
   const [validationError, setValidationError] = useState("");
-
-  const token = accessToken ?? (typeof window !== "undefined" ? localStorage.getItem("accessToken") : null) ?? "";
-
-  useEffect(() => {
-    if (!token) return;
-    dispatch(fetchCourses(token));
-    dispatch(fetchTeachers(token));
-  }, [accessToken, dispatch]);
 
   // -------------------- Derived counts --------------------
   const draftCount     = courses.filter((c) => c.status === "DRAFT").length;
@@ -65,7 +62,6 @@ export default function CoursesPage() {
     setStatus("DRAFT");
     setTeacherId("");
     setValidationError("");
-    dispatch(clearCreateError());
   }
 
   function openModal() {
@@ -91,24 +87,33 @@ export default function CoursesPage() {
 
     setValidationError("");
 
-    const result = await dispatch(
-      createCourse({
-        token,
-        data: { title, description, category, status, teacherId: teacherId || undefined },
-      })
-    );
-
-    if (createCourse.fulfilled.match(result)) {
+    try {
+      await createCourse({
+        title,
+        description,
+        category,
+        status,
+        teacherId: teacherId || undefined,
+      }).unwrap();
       closeModal();
-      dispatch(fetchCourses(token));
+    } catch {
+      // RTK Query exposes the error through createError.
     }
   }
 
   async function handleDelete(id: string, title: string) {
     if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
-    dispatch(deleteCourse({ token, id }));
-    // Optimistic: Redux removes it from state immediately on fulfilled
+    setDeletingId(id);
+    try {
+      await deleteCourse(id).unwrap();
+    } finally {
+      setDeletingId(null);
+    }
   }
+
+  const modalError =
+    validationError ||
+    (createError ? getApiErrorMessage(createError) : "");
 
   // -------------------- Tab config --------------------
   const tabs: { label: string; value: StatusFilter; count: number }[] = [
@@ -191,8 +196,14 @@ export default function CoursesPage() {
 
       {/* -------------------- ERROR -------------------- */}
       {error && !loading && (
-        <div className="flex items-center justify-center py-20">
-          <p className="text-red-400 text-sm">{error}</p>
+        <div className="flex flex-col items-center justify-center gap-4 py-20">
+          <p className="text-red-400 text-sm">{getApiErrorMessage(error)}</p>
+          <button
+            onClick={() => refetch()}
+            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-medium text-brand-text"
+          >
+            Retry
+          </button>
         </div>
       )}
 
@@ -261,11 +272,11 @@ export default function CoursesPage() {
                 {/* Delete button */}
                 <button
                   onClick={() => handleDelete(course.id, course.title)}
-                  disabled={deleting === course.id}
+                  disabled={deletingId === course.id}
                   className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/20 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-50"
                 >
                   <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>
-                    {deleting === course.id ? "hourglass_empty" : "delete"}
+                    {deletingId === course.id ? "hourglass_empty" : "delete"}
                   </span>
                 </button>
               </div>
@@ -363,8 +374,8 @@ export default function CoursesPage() {
                 </select>
               </div>
 
-              {(validationError || createError) && (
-                <p className="text-red-400 text-sm font-medium">{validationError || createError}</p>
+              {modalError && (
+                <p className="text-red-400 text-sm font-medium">{modalError}</p>
               )}
 
               <div className="flex gap-3 mt-2">

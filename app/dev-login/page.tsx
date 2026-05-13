@@ -2,7 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/store/hooks";
-import { loadUserFromStorage } from "@/store/slices/authSlice";
+import { buildOrganizationFromUser, persistAuthSession } from "@/lib/auth/session";
+import { setSession, type User } from "@/store/slices/authSlice";
+
+type MockRole = "ORGANIZATION_ADMIN" | "TEACHER" | "STUDENT";
 
 // Build a fake JWT whose payload our expiry-check can decode.
 // The signature is not verified client-side, so anything works there.
@@ -13,7 +16,7 @@ function makeFakeJwt(sub: string, role: string): string {
   return `${header}.${payload}.mock_dev_signature`;
 }
 
-const MOCKS = {
+const MOCKS: Record<MockRole, User> = {
   ORGANIZATION_ADMIN: {
     id: "mock-admin-001",
     firstName: "Admin",
@@ -61,13 +64,13 @@ const MOCKS = {
   },
 };
 
-const DASHBOARDS = {
+const DASHBOARDS: Record<MockRole, string> = {
   ORGANIZATION_ADMIN: "/dashboard/admin",
   TEACHER: "/dashboard/teacher",
   STUDENT: "/dashboard/student",
 };
 
-const LABELS = {
+const LABELS: Record<MockRole, { icon: string; label: string; color: string }> = {
   ORGANIZATION_ADMIN: { icon: "admin_panel_settings", label: "Admin",   color: "from-violet-500 to-purple-600" },
   TEACHER:            { icon: "school",                label: "Teacher", color: "from-blue-500 to-cyan-600"    },
   STUDENT:            { icon: "person",                label: "Student", color: "from-emerald-500 to-teal-600" },
@@ -77,19 +80,26 @@ export default function DevLoginPage() {
   const router   = useRouter();
   const dispatch = useAppDispatch();
 
-  function loginAs(role: keyof typeof MOCKS) {
+  if (process.env.NODE_ENV !== "development") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-brand-bg p-8">
+        <p className="text-sm text-brand-muted">Dev login is only available in development.</p>
+      </div>
+    );
+  }
+
+  function loginAs(role: MockRole) {
     const user  = MOCKS[role];
     const token = makeFakeJwt(user.id, role);
+    const session = {
+      accessToken: token,
+      user,
+      organization: buildOrganizationFromUser(user),
+    };
 
-    localStorage.setItem("accessToken", token);
-    localStorage.setItem("user", JSON.stringify(user));
     localStorage.setItem("mockAuth", "true");
-
-    // Also set cookies so proxy middleware can read them
-    document.cookie = `accessToken=${token}; path=/;`;
-    document.cookie = `role=${role}; path=/;`;
-
-    dispatch(loadUserFromStorage());
+    persistAuthSession(session);
+    dispatch(setSession(session));
     router.push(DASHBOARDS[role]);
   }
 
@@ -106,7 +116,7 @@ export default function DevLoginPage() {
         <p className="text-brand-text/40 text-sm mb-7">Pick a role to jump straight into that dashboard.</p>
 
         <div className="flex flex-col gap-3">
-          {(Object.keys(MOCKS) as Array<keyof typeof MOCKS>).map((role) => {
+          {(Object.keys(MOCKS) as MockRole[]).map((role) => {
             const { icon, label, color } = LABELS[role];
             const user = MOCKS[role];
             return (

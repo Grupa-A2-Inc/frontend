@@ -1,4 +1,4 @@
-import { AdminDashboardStats } from "@/lib/admin-dashboard/types";
+import { AdminDashboardStats } from "@/types/domain/organizations";
 import AdminKpiCard from "./AdminKpiCard";
 
 // Componenta AdminKpiGrid este responasbila doar pentru layout

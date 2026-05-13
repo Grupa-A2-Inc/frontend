@@ -1,4 +1,4 @@
-import { Tab } from "@/lib/student-courses/types";
+type Tab = "my" | "discover";
 
 type Props = {
   activeTab: Tab;

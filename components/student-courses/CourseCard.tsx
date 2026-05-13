@@ -1,7 +1,7 @@
 "use client";
 
 import type { MouseEvent } from "react";
-import { StudentCourse } from "@/lib/student-courses/types";
+import type { StudentCourse } from "@/types/domain/courses";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2, PlusCircle } from "lucide-react";
 

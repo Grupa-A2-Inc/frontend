@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { ClassMember } from "@/lib/classes/types";
+import type { ClassroomMember as ClassMember } from "@/types/domain/classrooms";
 import Avatar from "@/components/class-ui/Avatar";
 
 type Props = {

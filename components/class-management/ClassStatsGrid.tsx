@@ -1,4 +1,7 @@
-import { ClassDetails, ClassMember } from "@/lib/classes/types";
+import type {
+  ClassroomDetails as ClassDetails,
+  ClassroomMember as ClassMember,
+} from "@/types/domain/classrooms";
 import { Users, GraduationCap, CalendarDays } from "lucide-react";
 
 export default function ClassStatsGrid({ cls, members }: { cls: ClassDetails; members: ClassMember[] }) {

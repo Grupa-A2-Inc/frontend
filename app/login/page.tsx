@@ -3,10 +3,13 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-// Redux Toolkit hooks
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import Link from "next/link";
-import { login, clearError } from "@/store/slices/authSlice";
+import {
+  getAuthMutationErrorMessage,
+  useLoginMutation,
+} from "@/store/api/authApi";
+import { normalizeUserRole } from "@/lib/auth/roles";
+import { getDashboardPathForRole } from "@/lib/auth/roles";
 
 function formatAuthError(msg: string): string {
   return msg.replace(/after (\d{1,2}):(\d{2})/i, (_, h, m) => {
@@ -18,37 +21,23 @@ function formatAuthError(msg: string): string {
 }
 
 export default function LoginPage() {
-  // State pentru input-uri
   const router = useRouter();
-  const dispatch = useAppDispatch();
-
-  // Extragem state-ul din Redux
-  const { loading, error } = useAppSelector(
-    (state) => state.auth 
-  );
+  const [login, { isLoading, error }] = useLoginMutation();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault(); // prevenim refresh-ul paginii
+    e.preventDefault();
 
-    dispatch(clearError());
+    try {
+      const result = await login({ email, password }).unwrap();
+      const role = normalizeUserRole(result.user?.role ?? result.user?.roleName);
 
-    const result = await dispatch(login({ email, password }));
-
-    if (!login.fulfilled.match(result)) 
-      return;
-    const role = result.payload.user.role;
-
-    if (role === "ORGANIZATION_ADMIN") 
-      router.push("/dashboard/admin");
-
-    if (role === "TEACHER") 
-      router.push("/dashboard/teacher");
-
-    if (role === "STUDENT") 
-      router.push("/dashboard/student");
+      router.push(getDashboardPathForRole(role));
+    } catch {
+      // RTK Query exposes the formatted error through `error`.
+    }
   }
 
   return (
@@ -112,21 +101,25 @@ export default function LoginPage() {
               </div>
 
               {/* MESAJ DE EROARE */}
-              {error && <p className="text-red-500 text-sm font-medium">{formatAuthError(error)}</p>}
+              {error && (
+                <p className="text-red-500 text-sm font-medium">
+                  {formatAuthError(getAuthMutationErrorMessage(error))}
+                </p>
+              )}
 
               {/* BUTON LOGIN */}
               <button
                 type="submit"
-                disabled={loading}
+                disabled={isLoading}
                 className="w-full py-3 bg-brand-primary hover:bg-brand-primary/90 transition rounded-xl font-semibold text-white disabled:opacity-50"
               >              
-                {loading ? "Loading..." : "Log in"}
+                {isLoading ? "Loading..." : "Log in"}
               </button>
             </form>
 
             {/* LINK CATRE REGISTER */}
             <p className="text-sm text-brand-muted text-center mt-4">            
-              Don't have an account?
+              Don&apos;t have an account?
               <a
                 href="/register"
                 className="text-brand-primary hover:opacity-80 ml-1"

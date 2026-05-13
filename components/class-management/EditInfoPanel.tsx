@@ -1,35 +1,32 @@
 "use client";
 import { useState } from "react";
-import { ClassDetails } from "@/lib/classes/types";
-import { apiFetch } from "@/lib/classes/api";
+import { getApiErrorMessage } from "@/lib/api/errors";
+import type { ClassroomDetails as ClassDetails } from "@/types/domain/classrooms";
+import { useUpdateClassroomMutation } from "@/store/api/classroomsApi";
 import Spinner from "@/components/class-ui/Spinner";
 
 type Props = {
   cls: ClassDetails;
-  token: string;
   onSaved: (updated: Partial<ClassDetails>) => void;
   onCancel: () => void;
 };
 
-export default function EditInfoPanel({ cls, token, onSaved, onCancel }: Props) {
+export default function EditInfoPanel({ cls, onSaved, onCancel }: Props) {
   const [form, setForm] = useState({ name: cls.name ?? "", description: cls.description ?? "" });
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [updateClassroom, { isLoading: saving }] = useUpdateClassroomMutation();
 
   const handleSave = async () => {
     if (!form.name.trim()) { setError("Name is required."); return; }
-    setSaving(true);
     setError(null);
     try {
-      await apiFetch(`/api/v1/classrooms/${cls.id}`, token, {
-        method: "PATCH",
-        body: JSON.stringify({ name: form.name.trim(), description: form.description.trim() }),
-      });
+      await updateClassroom({
+        classroomId: cls.id,
+        data: { name: form.name.trim(), description: form.description.trim() },
+      }).unwrap();
       onSaved(form);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setSaving(false);
+    } catch (e: unknown) {
+      setError(getApiErrorMessage(e));
     }
   };
 

@@ -1,16 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { OrganizationProfile } from "@/lib/admin-dashboard/types";
+import { getApiErrorMessage } from "@/lib/api/errors";
+import { OrganizationProfile } from "@/types/domain/organizations";
 // Tipul de date pentru profilul organizatiei
 
-import { UpdateOrganizationPayload } from "@/lib/admin-dashboard/types";
-
-import {
-  getOrganizationIdFromStorage,
-  updateOrganizationById,
-} from "@/lib/admin-dashboard/api";
-// Functii care citesc ID-ul organizatiei si trimit update-uir catre backend
+import { UpdateOrganizationPayload } from "@/types/domain/organizations";
+import { useUpdateOrganizationMutation } from "@/store/api/organizationsApi";
+import { useAppSelector } from "@/store/hooks";
 
 import AdminStatusBanner from "./AdminStatusBanner";
 // Componenta reutilizabila pentru afisarea mesajelor de eroare/succes
@@ -27,8 +24,9 @@ export default function OrganizationInlineEditForm({
   onCancel,
   onSuccess,
 }: Props) {
+  const organizationId = useAppSelector((state) => state.auth.user?.organizationId);
   const [form, setForm] = useState<OrganizationProfile>(initialValues);
-  const [isSaving, setIsSaving] = useState(false);
+  const [updateOrganization, { isLoading: isSaving }] = useUpdateOrganizationMutation();
 
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -80,14 +78,10 @@ export default function OrganizationInlineEditForm({
       return;
     }
 
-    // Obtinem ID-ul organizatiei
-    const organizationId = getOrganizationIdFromStorage();
     if (!organizationId) {
       setErrorMessage("Organization ID was not found in the current session.");
       return;
     }
-
-    setIsSaving(true);
 
     try {
       // Trimitem update-ul catre backend
@@ -101,7 +95,7 @@ export default function OrganizationInlineEditForm({
 
       };
 
-      await updateOrganizationById(organizationId, payload);
+      await updateOrganization({ organizationId, data: payload }).unwrap();
 
       // Afisam mesaj de succes
       setSuccessMessage("Organization details were updated successfully.");
@@ -110,13 +104,7 @@ export default function OrganizationInlineEditForm({
       onSuccess(form);
     } catch (error) {
       // Gestionam erorile 
-      setErrorMessage(
-        error instanceof Error
-          ? error.message
-          : "Failed to update organization."
-      );
-    } finally {
-      setIsSaving(false);
+      setErrorMessage(getApiErrorMessage(error));
     }
   }
 

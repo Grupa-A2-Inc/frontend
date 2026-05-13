@@ -1,38 +1,35 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { getApiErrorMessage } from "@/lib/api/errors";
 import {
-  fetchClassrooms,
-  createClassroom,
-  updateClassroom,
-  deleteClassroom,
-  clearCreateError,
-  clearUpdateError,
-  Classroom,
-} from "@/store/slices/classesSlice";
+  useCreateClassroomMutation,
+  useDeleteClassroomMutation,
+  useGetClassroomsQuery,
+  useUpdateClassroomMutation,
+} from "@/store/api/classroomsApi";
+import type { ClassroomDetails } from "@/types/domain/classrooms";
 
 export default function ClassesPage() {
-  const dispatch = useAppDispatch();
-  const { classrooms, loading, error, creating, createError, updating, updateError, deleting } =
-    useAppSelector((state) => state.classes);
-  const { accessToken } = useAppSelector((state) => state.auth);
+  const {
+    data: classrooms = [],
+    isLoading,
+    error,
+    refetch,
+  } = useGetClassroomsQuery();
+  const [createClassroom, { isLoading: creating, error: createError }] = useCreateClassroomMutation();
+  const [updateClassroom, { isLoading: updating, error: updateError }] = useUpdateClassroomMutation();
+  const [deleteClassroom] = useDeleteClassroomMutation();
 
   const [search, setSearch] = useState("");
   const [showModal, setShowModal] = useState(false);
-  const [editingClassroom, setEditingClassroom] = useState<Classroom | null>(null);
+  const [editingClassroom, setEditingClassroom] = useState<ClassroomDetails | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const [name, setName]               = useState("");
   const [description, setDescription] = useState("");
   const [validationError, setValidationError] = useState("");
-
-  const token = accessToken ?? (typeof window !== "undefined" ? localStorage.getItem("accessToken") : null) ?? "";
-
-  useEffect(() => {
-    if (!token) return;
-    dispatch(fetchClassrooms(token));
-  }, [dispatch, token]);
 
   const filtered = classrooms.filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase())
@@ -40,16 +37,14 @@ export default function ClassesPage() {
 
   function resetForm() {
     setName(""); setDescription(""); setValidationError("");
-    dispatch(clearCreateError()); dispatch(clearUpdateError());
   }
 
   function openModal() { resetForm(); setEditingClassroom(null); setShowModal(true); }
 
-  function openEditModal(classroom: Classroom) {
+  function openEditModal(classroom: ClassroomDetails) {
     setName(classroom.name ?? "");
     setDescription(classroom.description ?? "");
     setValidationError("");
-    dispatch(clearUpdateError());
     setEditingClassroom(classroom);
     setShowModal(true);
   }
@@ -60,8 +55,12 @@ export default function ClassesPage() {
     e.preventDefault();
     if (!name.trim()) { setValidationError("Name is required."); return; }
     setValidationError("");
-    const result = await dispatch(createClassroom({ token, data: { name: name.trim(), description: description.trim() } }));
-    if (createClassroom.fulfilled.match(result)) closeModal();
+    try {
+      await createClassroom({ name: name.trim(), description: description.trim() }).unwrap();
+      closeModal();
+    } catch {
+      // RTK Query exposes the error through createError for the modal.
+    }
   }
 
   async function handleEdit(e: React.FormEvent) {
@@ -69,14 +68,30 @@ export default function ClassesPage() {
     if (!editingClassroom) return;
     if (!name.trim()) { setValidationError("Name is required."); return; }
     setValidationError("");
-    const result = await dispatch(updateClassroom({ token, id: editingClassroom.id, data: { name: name.trim(), description: description.trim() } }));
-    if (updateClassroom.fulfilled.match(result)) closeModal();
+    try {
+      await updateClassroom({
+        classroomId: editingClassroom.id,
+        data: { name: name.trim(), description: description.trim() },
+      }).unwrap();
+      closeModal();
+    } catch {
+      // RTK Query exposes the error through updateError for the modal.
+    }
   }
 
   async function handleDelete(id: string, name: string) {
     if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
-    dispatch(deleteClassroom({ token, id }));
+    setDeletingId(id);
+    try {
+      await deleteClassroom(id).unwrap();
+    } finally {
+      setDeletingId(null);
+    }
   }
+
+  const modalError =
+    validationError ||
+    (createError || updateError ? getApiErrorMessage(createError ?? updateError) : "");
 
   return (
     <div>
@@ -115,21 +130,27 @@ export default function ClassesPage() {
       </div>
 
       {/* LOADING */}
-      {loading && (
+      {isLoading && (
         <div className="flex items-center justify-center py-20">
           <p className="text-brand-text/40 text-sm">Loading classes...</p>
         </div>
       )}
 
       {/* ERROR */}
-      {error && !loading && (
-        <div className="flex items-center justify-center py-20">
-          <p className="text-red-400 text-sm">{error}</p>
+      {error && !isLoading && (
+        <div className="flex flex-col items-center justify-center gap-4 py-20">
+          <p className="text-red-400 text-sm">{getApiErrorMessage(error)}</p>
+          <button
+            onClick={() => refetch()}
+            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-medium text-brand-text"
+          >
+            Retry
+          </button>
         </div>
       )}
 
       {/* EMPTY */}
-      {!loading && !error && filtered.length === 0 && (
+      {!isLoading && !error && filtered.length === 0 && (
         <div className="flex flex-col items-center justify-center py-20 gap-3">
           <span className="material-symbols-rounded text-brand-text/15" style={{ fontSize: "3rem" }}>
             meeting_room
@@ -141,7 +162,7 @@ export default function ClassesPage() {
       )}
 
       {/* GRID */}
-      {!loading && !error && filtered.length > 0 && (
+      {!isLoading && !error && filtered.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {filtered.map((classroom) => (
             <div
@@ -180,7 +201,7 @@ export default function ClassesPage() {
                   {/* Edit */}
                   <button
                     onClick={() => openEditModal(classroom)}
-                    disabled={updating === classroom.id}
+                    disabled={updating}
                     className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/20 hover:text-brand-primary hover:bg-brand-primary/10 transition-colors disabled:opacity-50"
                   >
                     <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>edit</span>
@@ -189,11 +210,11 @@ export default function ClassesPage() {
                   {/* Delete */}
                   <button
                     onClick={() => handleDelete(classroom.id, classroom.name)}
-                    disabled={deleting === classroom.id}
+                    disabled={deletingId === classroom.id}
                     className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/20 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-50"
                   >
                     <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>
-                      {deleting === classroom.id ? "hourglass_empty" : "delete"}
+                      {deletingId === classroom.id ? "hourglass_empty" : "delete"}
                     </span>
                   </button>
                 </div>
@@ -248,8 +269,8 @@ export default function ClassesPage() {
                 />
               </div>
 
-              {(validationError || createError || updateError) && (
-                <p className="text-red-400 text-sm font-medium">{validationError || createError || updateError}</p>
+              {modalError && (
+                <p className="text-red-400 text-sm font-medium">{modalError}</p>
               )}
 
               <div className="flex gap-3 mt-2">
@@ -262,11 +283,11 @@ export default function ClassesPage() {
                 </button>
                 <button
                   type="submit"
-                  disabled={editingClassroom ? updating === editingClassroom.id : creating}
+                  disabled={editingClassroom ? updating : creating}
                   className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-brand-primary hover:bg-brand-primary/90 text-brand-text disabled:opacity-50 transition-colors"
                 >
                   {editingClassroom
-                    ? (updating === editingClassroom.id ? "Saving..." : "Save Changes")
+                    ? (updating ? "Saving..." : "Save Changes")
                     : (creating ? "Creating..." : "Create Class")}
                 </button>
               </div>

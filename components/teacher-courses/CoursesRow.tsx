@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Course } from "@/lib/courses/types";
+import type { Course } from "@/types/domain/courses";
 
 type Props = { course: Course; onEdit: (courseId: string) => void; onManage: (courseId: string) => void; };
 

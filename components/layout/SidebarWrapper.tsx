@@ -6,8 +6,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { logout, User } from "@/store/slices/authSlice";
+import { useAppSelector } from "@/store/hooks";
+import { useLogoutMutation } from "@/store/api/authApi";
+import type { User } from "@/store/slices/authSlice";
 import { useTheme } from "@/components/ThemeProvider";
 import CustomerSupportChat from "@/components/layout/CustomerSupportChat";
 
@@ -192,17 +193,22 @@ function MobileNavItem({ item, pathname, onClick }: { item: NavItemConfig; pathn
 // ---------- SidebarWrapper ----------
 
 export default function SidebarWrapper({ children }: SidebarWrapperProps) {
-  const [collapsed, setCollapsed]         = useState(true);
+  const [collapsed, setCollapsed]         = useState(() => {
+    if (typeof window === "undefined") return true;
+
+    const saved = localStorage.getItem("sidebarCollapsed");
+    return saved !== null ? Boolean(JSON.parse(saved)) : true;
+  });
   const [logoutHovered, setLogoutHovered] = useState(false);
   const [isMobile, setIsMobile]           = useState(false);
   const [mobileOpen, setMobileOpen]       = useState(false);
 
   const router    = useRouter();
   const pathname  = usePathname();
-  const dispatch     = useAppDispatch();
   const authUser     = useAppSelector((state) => state.auth.user);
   const accessToken  = useAppSelector((state) => state.auth.accessToken);
   const { theme, toggleTheme } = useTheme();
+  const [logout] = useLogoutMutation();
 
   // Detect mobile
   useEffect(() => {
@@ -216,17 +222,6 @@ export default function SidebarWrapper({ children }: SidebarWrapperProps) {
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Close mobile menu on route change
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
-
-  // Persist sidebar collapse state
-  useEffect(() => {
-    const saved = localStorage.getItem("sidebarCollapsed");
-    if (saved !== null) setCollapsed(JSON.parse(saved));
-  }, []);
-
   const toggleSidebar = () => {
     const next = !collapsed;
     setCollapsed(next);
@@ -234,7 +229,7 @@ export default function SidebarWrapper({ children }: SidebarWrapperProps) {
   };
 
   const handleLogout = async () => {
-    await dispatch(logout(accessToken ?? ""));
+    await logout(accessToken ?? "").unwrap().catch(() => undefined);
     router.push("/");
   };
 

@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, use } from "react";
+import { use } from "react";
 import Link from "next/link";
 import { ChevronLeft, Loader2, AlertCircle } from "lucide-react";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchActiveLessonData, fetchCourseDetails } from "@/store/slices/coursesSlice";
-import type { Chapter, LessonResource } from "@/lib/courses/types";
+import { getApiErrorMessage } from "@/lib/api/errors";
+import { useGetCourseFullViewQuery } from "@/store/api/coursesApi";
+import { useGetLessonByIdQuery, useGetLessonResourcesQuery } from "@/store/api/lessonsApi";
 
 import LessonSidebar from "@/components/course-content/LessonSidebar";
 import MarkdownViewer from "@/components/course-content/MarkdownViewer";
@@ -18,29 +18,23 @@ export default function LessonPage({
   params: Promise<{ courseId: string; lessonId: string }>;
 }) {
   const { courseId, lessonId } = use(params);
-  const dispatch = useAppDispatch();
-
   const {
-    currentCourse,
-    activeLesson,
-    activeLessonResources,
-    isLoadingLesson,
-    error,
-  } = useAppSelector((state) => state.courses);
+    data: currentCourse,
+    isLoading: isCourseLoading,
+    error: courseError,
+  } = useGetCourseFullViewQuery(courseId);
+  const {
+    data: fetchedLesson,
+    isLoading: isLessonLoading,
+    error: lessonError,
+  } = useGetLessonByIdQuery(lessonId);
+  const {
+    data: fetchedResources = [],
+    isLoading: areResourcesLoading,
+    error: resourcesError,
+  } = useGetLessonResourcesQuery(lessonId);
 
-  const token = useAppSelector((state) => state.auth.accessToken);
-
-  useEffect(() => {
-    if (!token) return;
-
-    dispatch(fetchActiveLessonData({ token, lessonId }));
-
-    if (!currentCourse || currentCourse.id !== courseId) {
-      dispatch(fetchCourseDetails({ token, courseId }));
-    }
-  }, [dispatch, lessonId, courseId, token, currentCourse]);
-
-  if (isLoadingLesson) {
+  if (isCourseLoading || isLessonLoading || areResourcesLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
         <Loader2 className="animate-spin text-[#6366f1]" size={40} />
@@ -49,21 +43,24 @@ export default function LessonPage({
     );
   }
 
+  const error = courseError ?? lessonError ?? resourcesError;
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4 text-red-400">
         <AlertCircle size={40} />
-        <p>{error}</p>
+        <p>{getApiErrorMessage(error)}</p>
       </div>
     );
   }
 
-  const courseWithChapters = currentCourse as typeof currentCourse & {
-    chapters?: Chapter[];
-  };
-
-  const chapters = courseWithChapters?.chapters ?? [];
-  const resources = activeLessonResources as LessonResource[];
+  const chapters = currentCourse?.chapters ?? [];
+  const lessonFromFullView = chapters
+    .flatMap((chapter) => chapter.lessons)
+    .find((lesson) => lesson.id === lessonId);
+  const activeLesson = fetchedLesson ?? lessonFromFullView;
+  const resources = fetchedResources.length > 0
+    ? fetchedResources
+    : lessonFromFullView?.lessonResources ?? [];
 
   const orderedLessons = chapters
     .toSorted(

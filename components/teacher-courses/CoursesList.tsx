@@ -1,20 +1,18 @@
 "use client";
 
-import { Course } from "@/lib/courses/types";
+import type { Course } from "@/types/domain/courses";
 import CourseRow from "./CoursesRow";
 
 type Props = {
   courses: Course[];
   loading: boolean;
   error: string | null;
-  search: string;
-  statusFilter: "ALL" | "PUBLISHED" | "DRAFT" | "HIDDEN";
   onEdit: (courseId: string) => void;
   onManage: (courseId: string) => void;
   onRetry: () => void;
 };
 
-export default function CoursesList({ courses, loading, error, search, statusFilter, onEdit, onManage, onRetry }: Props) {
+export default function CoursesList({ courses, loading, error, onEdit, onManage, onRetry }: Props) {
     return (
     <div className="bg-brand-card border border-brand-primary/15 rounded-2xl overflow-hidden">
     {/*starea loading*/ 

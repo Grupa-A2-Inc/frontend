@@ -2,42 +2,40 @@
 
 import { useState } from "react";
 import { AlertCircle, CheckCircle2, Loader2, Plus } from "lucide-react";
-
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { getApiErrorMessage } from "@/lib/api/errors";
 import {
-  assignCourse,
-  clearAssignState,
-} from "@/store/slices/courseManagementSlice";
+  useAssignCoursesToClassroomMutation,
+  useGetClassroomsQuery,
+} from "@/store/api/classroomsApi";
 
 type Props = {
   courseId: string;
 };
 
 export default function AssignmentControls({ courseId }: Props) {
-  const dispatch = useAppDispatch();
-
   const {
-    classrooms,
-    loadingClassrooms,
-    classroomsError,
-    assigning,
-    assignError,
-    assignSuccess,
-  } = useAppSelector((state) => state.courseManagement);
-
+    data: classrooms = [],
+    isLoading: loadingClassrooms,
+    error: classroomsError,
+  } = useGetClassroomsQuery();
+  const [assignCoursesToClassroom, { isLoading: assigning, error: assignError }] =
+    useAssignCoursesToClassroomMutation();
   const [selectedClassroomId, setSelectedClassroomId] = useState("");
+  const [assignSuccess, setAssignSuccess] = useState(false);
 
-  function handleAssign() {
+  async function handleAssign() {
     if (!selectedClassroomId || assigning) return;
 
-    dispatch(clearAssignState());
-
-    dispatch(
-      assignCourse({
-        courseId,
+    setAssignSuccess(false);
+    try {
+      await assignCoursesToClassroom({
         classroomId: selectedClassroomId,
-      }),
-    );
+        data: { courseIds: [courseId] },
+      }).unwrap();
+      setAssignSuccess(true);
+    } catch {
+      // RTK Query exposes the error through assignError.
+    }
   }
 
   return (
@@ -56,14 +54,14 @@ export default function AssignmentControls({ courseId }: Props) {
       {classroomsError && (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           <AlertCircle className="h-4 w-4" />
-          <span>{classroomsError}</span>
+          <span>{getApiErrorMessage(classroomsError)}</span>
         </div>
       )}
 
       {assignError && (
         <div className="mb-4 flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
           <AlertCircle className="h-4 w-4" />
-          <span>{assignError}</span>
+          <span>{getApiErrorMessage(assignError)}</span>
         </div>
       )}
 

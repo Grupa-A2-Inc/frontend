@@ -3,18 +3,16 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { register, clearError } from "@/store/slices/authSlice";
+import {
+    getAuthMutationErrorMessage,
+    useRegisterMutation,
+} from "@/store/api/authApi";
 import PlanSelector from "@/components/subscriptions/PlanSelector";
 import type { SubscriptionPlan } from "@/lib/subscriptions/types";
 
 export default function RegisterPage() {
     const router = useRouter();
-
-    const dispatch = useAppDispatch();
-
-    // Extragem loading si error din Redux
-    const { loading, error } = useAppSelector((state) => state.auth);
+    const [register, { isLoading, error }] = useRegisterMutation();
 
     // ----------------------------------------
     // STATE ADMIN
@@ -47,7 +45,6 @@ export default function RegisterPage() {
     // ----------------------------------------
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        dispatch(clearError());
         setValidationError("");
 
         // VALIDARE CLIENT-SIDE
@@ -78,27 +75,25 @@ export default function RegisterPage() {
             return;
         }
 
-        // Trimitem datele catre Redux thunk
-        const result = await dispatch(register({
-            firstName: adminFirstName.trim(),
-            lastName: adminLastName.trim(),
-            email: adminEmail.trim(),
-            password: adminPassword,
-            confirmPassword,
-            organizationName: organizationName.trim(),
-            country: country.trim(),
-            city: city.trim(),
-            organizationType: organizationType.trim(),
-            address: address.trim(),
-            phoneNumber: phoneNumber.trim(),
-        }));
+        try {
+            await register({
+                firstName: adminFirstName.trim(),
+                lastName: adminLastName.trim(),
+                email: adminEmail.trim(),
+                password: adminPassword,
+                confirmPassword,
+                organizationName: organizationName.trim(),
+                country: country.trim(),
+                city: city.trim(),
+                organizationType: organizationType.trim(),
+                address: address.trim(),
+                phoneNumber: phoneNumber.trim(),
+            }).unwrap();
 
-        // Daca register-ul a esuat, oprim
-        if (!register.fulfilled.match(result)) {
-            return;
+            router.push("/dashboard/admin");
+        } catch {
+            // RTK Query exposes the formatted error through `error`.
         }
-
-        router.push("/dashboard/admin");
     }
 
     return (
@@ -264,17 +259,19 @@ export default function RegisterPage() {
                             
                             {/* ERORI BCKEND */}
                             {error && (
-                                <p className="text-red-500 text-sm font-medium">{error}</p>
+                                <p className="text-red-500 text-sm font-medium">
+                                    {getAuthMutationErrorMessage(error)}
+                                </p>
                             )}
 
 
                             {/* SUBMIT */}
                             <button 
                                 type="submit"
-                                disabled={loading}
+                                disabled={isLoading}
                                 className="bg-brand-primary hover:bg-brand-primary/90 text-white py-3 rounded-xl shadow-lg transition-all disabled:opacity-50"
                             >
-                                {loading ? "Processing..." : "Create organization"}
+                                {isLoading ? "Processing..." : "Create organization"}
                             </button>
                         </form>
 

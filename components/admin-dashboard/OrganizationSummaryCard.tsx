@@ -1,10 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { OrganizationProfile } from "@/lib/admin-dashboard/types";
+import { OrganizationProfile } from "@/types/domain/organizations";
 import OrganizationInlineEditForm from "./OrganizationInlineEditForm";
-
-import { getOrganizationById } from "@/lib/admin-dashboard/api";
 
 type Props = {
   organization: OrganizationProfile; // datele organizatiei afisate in card
@@ -69,14 +67,9 @@ export default function OrganizationSummaryCard({
           initialValues={organization}
           onCancel={() => setIsEditing(false)} // Revine la modul de vizualizare
 
-          onSuccess={async (updatedOrganization) => {
+          onSuccess={(updatedOrganization) => {
             setIsEditing(false); // inchide formularul
-
-            // Reincarca organizatia din backend
-            const id = updatedOrganization.id;
-            const fresh = await getOrganizationById(id);
-
-            onOrganizationUpdated(fresh);
+            onOrganizationUpdated(updatedOrganization);
           }}
         />
       ) : (

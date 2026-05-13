@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect } from "react";
+import { use, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, BookOpen, GraduationCap } from "lucide-react";
 
@@ -8,12 +8,6 @@ import AssignmentControls from "@/components/course-management/AssignmentControl
 import ContentTree from "@/components/course-management/ContentTree";
 import CourseHeader from "@/components/course-management/CourseHeader";
 import StudentsByClass from "@/components/course-management/StudentsByClass";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import {
-  loadClassrooms,
-  loadStudentsByClass,
-  setActiveTab,
-} from "@/store/slices/courseManagementSlice";
 
 type Props = {
   params: Promise<{
@@ -21,16 +15,11 @@ type Props = {
   }>;
 };
 
+type CourseManagementTab = "content" | "students";
+
 export default function CourseManagementPage({ params }: Props) {
   const { courseId } = use(params);
-
-  const dispatch = useAppDispatch();
-  const { activeTab } = useAppSelector((state) => state.courseManagement);
-
-  useEffect(() => {
-    dispatch(loadClassrooms());
-    dispatch(loadStudentsByClass(courseId));
-  }, [courseId, dispatch]);
+  const [activeTab, setActiveTab] = useState<CourseManagementTab>("content");
 
   return (
     <main className="min-h-screen bg-brand-bg px-6 py-8 text-brand-text">
@@ -77,7 +66,7 @@ export default function CourseManagementPage({ params }: Props) {
           <div className="grid gap-2 sm:grid-cols-2">
             <button
               type="button"
-              onClick={() => dispatch(setActiveTab("content"))}
+              onClick={() => setActiveTab("content")}
               className={`flex items-center gap-3 rounded-xl p-4 text-left transition ${
                 activeTab === "content"
                   ? "bg-brand-primary text-white"
@@ -116,7 +105,7 @@ export default function CourseManagementPage({ params }: Props) {
 
             <button
               type="button"
-              onClick={() => dispatch(setActiveTab("students"))}
+              onClick={() => setActiveTab("students")}
               className={`flex items-center gap-3 rounded-xl p-4 text-left transition ${
                 activeTab === "students"
                   ? "bg-brand-primary text-white"
@@ -160,7 +149,7 @@ export default function CourseManagementPage({ params }: Props) {
         ) : (
           <div className="grid gap-6">
             <AssignmentControls courseId={courseId} />
-            <StudentsByClass />
+            <StudentsByClass courseId={courseId} />
           </div>
         )}
       </div>

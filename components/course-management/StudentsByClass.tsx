@@ -1,19 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { Search, Users } from "lucide-react";
-
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import {
-  setSearchQuery,
-  setSortDirection,
-  setSortField,
-} from "@/store/slices/courseManagementSlice";
-import {
+import { getApiErrorMessage } from "@/lib/api/errors";
+import { useGetCourseStudentsByClassQuery } from "@/store/api/coursesApi";
+import type {
   ClassWithStudents,
   EnrolledStudent,
-  SortDirection,
-  SortField,
-} from "@/lib/courses/types";
+  CourseSortDirection,
+  CourseSortField,
+} from "@/types/domain/courses";
 
 function getStudentName(student: EnrolledStudent) {
   const name = `${student.firstName ?? ""} ${student.lastName ?? ""}`.trim();
@@ -47,8 +43,8 @@ function filterGroups(groups: ClassWithStudents[], query: string) {
 
 function sortStudents(
   students: EnrolledStudent[],
-  sortField: SortField,
-  sortDirection: SortDirection,
+  sortField: CourseSortField,
+  sortDirection: CourseSortDirection,
 ) {
   const multiplier = sortDirection === "asc" ? 1 : -1;
 
@@ -64,17 +60,16 @@ function sortStudents(
   });
 }
 
-export default function StudentsByClass() {
-  const dispatch = useAppDispatch();
-
+export default function StudentsByClass({ courseId }: { courseId: string }) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [sortField, setSortField] = useState<CourseSortField>("name");
+  const [sortDirection, setSortDirection] = useState<CourseSortDirection>("asc");
   const {
-    classWithStudents,
-    loadingStudents,
-    studentsError,
-    searchQuery,
-    sortField,
-    sortDirection,
-  } = useAppSelector((state) => state.courseManagement);
+    data,
+    isLoading: loadingStudents,
+    error: studentsError,
+  } = useGetCourseStudentsByClassQuery(courseId);
+  const classWithStudents = data?.classrooms ?? [];
 
   const visibleGroups = filterGroups(classWithStudents, searchQuery).map(
     (group) => ({
@@ -123,7 +118,7 @@ export default function StudentsByClass() {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-brand-muted" />
             <input
               value={searchQuery}
-              onChange={(event) => dispatch(setSearchQuery(event.target.value))}
+              onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search student..."
               className="h-10 w-full rounded-xl border border-brand-border bg-brand-bg pl-9 pr-3 text-sm text-brand-text outline-none placeholder:text-brand-muted focus:border-brand-primary sm:w-56"
             />
@@ -132,7 +127,7 @@ export default function StudentsByClass() {
           <select
             value={sortField}
             onChange={(event) =>
-              dispatch(setSortField(event.target.value as SortField))
+              setSortField(event.target.value as CourseSortField)
             }
             className="h-10 rounded-xl border border-brand-border bg-brand-bg px-3 text-sm text-brand-text outline-none focus:border-brand-primary"
           >
@@ -145,7 +140,7 @@ export default function StudentsByClass() {
           <select
             value={sortDirection}
             onChange={(event) =>
-              dispatch(setSortDirection(event.target.value as SortDirection))
+              setSortDirection(event.target.value as CourseSortDirection)
             }
             className="h-10 rounded-xl border border-brand-border bg-brand-bg px-3 text-sm text-brand-text outline-none focus:border-brand-primary"
           >
@@ -157,7 +152,7 @@ export default function StudentsByClass() {
 
       {studentsError && (
         <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">
-          {studentsError}
+          {getApiErrorMessage(studentsError)}
         </div>
       )}
 

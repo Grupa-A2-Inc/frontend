@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import {
     ChevronDown,
@@ -9,73 +9,13 @@ import {
     FlaskConical,
     Loader2,
 } from "lucide-react";
-
-import { fetchCourseFullView, fetchTestsForLessons } from "@/lib/courses/api";
-import { Chapter, CourseTest } from "@/lib/courses/types";
+import { getApiErrorMessage } from "@/lib/api/errors";
+import { useGetCourseFullViewQuery } from "@/store/api/coursesApi";
 
 export default function ContentTree({ courseId }: { courseId: string }) {
-    /*
-        --------------------------------------------------
-        STATE-URI LOCALE
-        --------------------------------------------------
-
-        - chapters → lista de capitole ale cursului (fiecare cu lecțiile sale)
-        - tests → mapare lessonId → test (pentru acces rapid)
-        - expanded → dicționar care reține ce capitole sunt expandate
-        - loading → indică dacă încă încărcăm datele
-        - error → mesaj de eroare dacă fetch-ul eșuează
-    */
-   const [chapters, setChapters] = useState<Chapter[]>([]);
-   const [tests, setTests] = useState<Map<string, CourseTest>>(new Map());
     const [expanded, setExpanded] = useState<Record<string, boolean>>({});
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    /*
-        --------------------------------------------------
-        EFFECT: FETCH INITIAL AL STRUCTURII CURSULUI
-        --------------------------------------------------
-
-        - aduce capitolele + lecțiile
-        - extrage lecțiile care au testId
-        - aduce testele asociate
-        - construiește un Map pentru acces rapid la testele lecțiilor
-    */
-
-    useEffect(() => {
-        async function load() {
-            try {
-                setLoading(true);
-
-                // 1. Aducem capitolele + lectiile
-                const { chapters } = await fetchCourseFullView(courseId);
-                setChapters(chapters);
-
-                // 2. Extragem lectiile care au testId
-                const lessonIds = chapters 
-                    .flatMap((c) => c.lessons)
-                    .filter((l) => l.testId)
-                    .map((l) => l.id);
-
-                // 3. Aducem testele asociate lectiilor
-                const fetchedTests = await fetchTestsForLessons(lessonIds);
-
-                // 4. Construim un Map pentru acces rapid
-                const testMap = new Map<string, CourseTest>();
-                fetchedTests.forEach((t) => testMap.set(t.lessonId, t));
-
-                setTests(testMap);
-            } catch (err) {
-                setError(
-                    err instanceof Error ? err.message : "Failed to load course content."
-                );
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        load();
-    }, [courseId]);
+    const { data: course, isLoading: loading, error } = useGetCourseFullViewQuery(courseId);
+    const chapters = course?.chapters ?? [];
 
     /*
         --------------------------------------------------
@@ -99,7 +39,7 @@ export default function ContentTree({ courseId }: { courseId: string }) {
     if (error) {
         return (
             <div className="rounded-xl border border-red-500 bg-red-950/30 p-4 text-red-300">
-                {error}
+                {getApiErrorMessage(error)}
             </div>
         );
     }
@@ -144,7 +84,7 @@ export default function ContentTree({ courseId }: { courseId: string }) {
                         {isOpen && (
                             <div className="px-4 py-3 flex flex-col gap-3">
                                 {chapter.lessons.map((lesson) => {
-                                    const test = tests.get(lesson.id);
+                                    const hasTest = Boolean(lesson.testId);
 
                                     return (
                                         <div 
@@ -170,13 +110,13 @@ export default function ContentTree({ courseId }: { courseId: string }) {
 
                                             {/* TEST */}    
                                             <div className="mt-2 ml-6">
-                                                {test ? (
+                                                {hasTest ? (
                                                     <Link 
-                                                        href={`/dashboard/teacher/courses/${courseId}/tests/${test.id}`}
+                                                        href={`/dashboard/teacher/courses/${courseId}/tests/${lesson.testId}`}
                                                         className="flex items-center gap-2 text-sm text-brand-muted hover:text-brand-text transition"
                                                     >
                                                         <FlaskConical className="h-4 w-4 text-brand-primary" />
-                                                        Test: {test.title}
+                                                        Test attached
                                                     </Link>
                                                 ) : (
                                                     <Link

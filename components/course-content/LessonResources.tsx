@@ -1,4 +1,4 @@
-import { LessonResource } from "@/lib/courses/types"; // ajustează calea
+import type { LessonResource } from "@/types/domain/courses";
 // Opțional: importăm iconițe dacă aveți lucide-react instalat
 import { FileText, Video, ExternalLink } from "lucide-react"; 
 

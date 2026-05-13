@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { PlayCircle, CheckCircle2 } from "lucide-react";
+import type { Chapter } from "@/types/domain/courses";
 
 interface LessonSidebarProps {
-  chapters: any[];
+  chapters: Chapter[];
   courseId: string;
   activeLessonId: string;
 }
@@ -15,11 +16,11 @@ export default function LessonSidebar({ chapters, courseId, activeLessonId }: Le
       <h3 className="text-sm font-bold text-brand-muted uppercase tracking-wider mb-4">Course Content</h3>
       
       <div className="space-y-6">
-        {chapters.map((chapter: any) => (
+        {chapters.map((chapter) => (
           <div key={chapter.id} className="space-y-2">
             <h4 className="text-sm font-medium text-white">{chapter.title}</h4>
             <div className="flex flex-col gap-1">
-              {chapter.lessons?.map((lesson: any, index: number) => {
+              {chapter.lessons.map((lesson, index) => {
                 const isActive = lesson.id === activeLessonId;
                 
                 return (

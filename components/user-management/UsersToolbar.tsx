@@ -1,6 +1,6 @@
 "use client";
 
-import { User } from "@/store/slices/usersSlice";
+import type { User } from "@/types/domain/users";
 
 type RoleFilter = "ALL" | "STUDENT" | "TEACHER";
 type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";

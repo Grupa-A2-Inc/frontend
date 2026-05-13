@@ -3,13 +3,14 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { useAppDispatch } from "@/store/hooks";
-import { requestPasswordReset } from "@/store/slices/authSlice";
+import {
+  getAuthMutationErrorMessage,
+  useRequestPasswordResetMutation,
+} from "@/store/api/authApi";
 
 export default function ForgotPasswordPage() {
-  const dispatch      = useAppDispatch();
+  const [requestPasswordReset, { isLoading }] = useRequestPasswordResetMutation();
   const [email, setEmail]   = useState("");
-  const [loading, setLoading] = useState(false);
   const [error, setError]   = useState("");
   const [sent, setSent]     = useState(false);
 
@@ -18,13 +19,11 @@ export default function ForgotPasswordPage() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email.trim())) { setError("Please enter a valid email address."); return; }
     setError("");
-    setLoading(true);
-    const result = await dispatch(requestPasswordReset(email.trim()));
-    setLoading(false);
-    if (requestPasswordReset.fulfilled.match(result)) {
+    try {
+      await requestPasswordReset({ email: email.trim() }).unwrap();
       setSent(true);
-    } else {
-      setError(result.payload as string);
+    } catch (mutationError) {
+      setError(getAuthMutationErrorMessage(mutationError));
     }
   }
 
@@ -73,10 +72,10 @@ export default function ForgotPasswordPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={isLoading}
               className="w-full py-2.5 rounded-lg bg-brand-primary hover:bg-brand-primary/90 text-white text-sm font-semibold transition-colors disabled:opacity-50 mt-1"
             >
-              {loading ? "Sending…" : "Send Reset Link"}
+              {isLoading ? "Sending…" : "Send Reset Link"}
             </button>
 
             <Link href="/login" className="text-xs text-brand-muted hover:text-brand-text text-center transition-colors">

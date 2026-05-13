@@ -1,27 +1,20 @@
 "use client";
 
-import { useEffect, use } from "react";
+import { use } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ChevronLeft, ChevronRight, PlayCircle, Loader2, AlertCircle } from "lucide-react";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchCourseDetails, resetCurrentCourse } from "@/store/slices/coursesSlice";
+import { getApiErrorMessage } from "@/lib/api/errors";
+import { useGetCourseFullViewQuery } from "@/store/api/coursesApi";
 
 export default function CoursePage({ params }: { params: Promise<{ courseId: string }> }) {
   const resolvedParams = use(params);
   const courseId = resolvedParams.courseId;
-  const dispatch = useAppDispatch();
-  
-  const { currentCourse, loading, error } = useAppSelector((state) => state.courses);
-  const token = useAppSelector((state) => state.auth.accessToken); 
-
-  useEffect(() => {
-    if (courseId && token) {
-      dispatch(fetchCourseDetails({ token, courseId }));
-    }
-    return () => {
-      dispatch(resetCurrentCourse());
-    };
-  }, [dispatch, courseId, token]);
+  const {
+    data: currentCourse,
+    isLoading: loading,
+    error,
+  } = useGetCourseFullViewQuery(courseId);
 
   if (loading) return (
     <div className="flex items-center justify-center min-h-[50vh]">
@@ -32,13 +25,13 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
   if (error || !currentCourse) return (
     <div className="text-center py-20 text-slate-500"> 
       <AlertCircle className="mx-auto mb-2" />
-      <p>{error || "Cursul nu a fost găsit."}</p>
+      <p>{error ? getApiErrorMessage(error) : "Cursul nu a fost gasit."}</p>
     </div>
   );
 
-  const chapters = (currentCourse as any).chapters || [];
+  const chapters = currentCourse.chapters;
   const firstLessonId = chapters[0]?.lessons?.[0]?.id;
-  const totalLessons = chapters.reduce((acc: number, cap: any) => acc + (cap.lessons?.length || 0), 0);
+  const totalLessons = chapters.reduce((acc, chapter) => acc + chapter.lessons.length, 0);
 
   return (
     <div className="max-w-5xl mx-auto p-6 lg:p-8">
@@ -108,18 +101,30 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
         </div>
 
         <div className="md:col-span-1 bg-brand-card border border-brand-border rounded-xl p-2 shadow-sm flex items-center justify-center relative overflow-hidden group min-h-[260px]">
-          <img src="/images/imagine-neagra.png" className="w-60 h-60 object-contain dark:hidden block group-hover:scale-105 transition-transform" />
-          <img src="/images/imagine-alba.png" className="w-60 h-60 object-contain hidden dark:block group-hover:scale-105 transition-transform" />
+          <Image
+            src="/images/imagine-neagra.png"
+            alt=""
+            width={240}
+            height={240}
+            className="h-60 w-60 object-contain dark:hidden block group-hover:scale-105 transition-transform"
+          />
+          <Image
+            src="/images/imagine-alba.png"
+            alt=""
+            width={240}
+            height={240}
+            className="h-60 w-60 object-contain hidden dark:block group-hover:scale-105 transition-transform"
+          />
         </div>
       </div>
 
       <div className="bg-brand-card border border-brand-border rounded-xl p-6 shadow-sm">
         <h3 className="font-bold text-slate-900 dark:text-white mb-6">Course Content</h3>
         <div className="space-y-6">
-          {chapters.length > 0 ? chapters.map((chapter: any) => (
+          {chapters.length > 0 ? chapters.map((chapter) => (
             <div key={chapter.id} className="space-y-3">
               <h4 className="text-sm font-medium text-slate-500 dark:text-brand-muted px-1">{chapter.title}</h4> 
-              {chapter.lessons?.map((lesson: any) => (
+              {chapter.lessons.map((lesson) => (
                 <Link
                   key={lesson.id}
                   href={`/dashboard/student/courses/${currentCourse.id}/lessons/${lesson.id}`}

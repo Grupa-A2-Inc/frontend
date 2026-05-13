@@ -1,10 +1,14 @@
 "use client";
 import Link from "next/link";
 import { ChevronLeft, GraduationCap } from "lucide-react";
-import { useState, useEffect, use } from "react";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchSingleClass, fetchClassStudents } from "@/store/slices/classesSlice";
-import { ClassDetails, ClassMember } from "@/lib/classes/types";
+import { useState, use } from "react";
+import { getApiErrorMessage } from "@/lib/api/errors";
+import {
+  useDeleteClassroomMembersMutation,
+  useGetClassroomByIdQuery,
+  useListClassroomMembersQuery,
+} from "@/store/api/classroomsApi";
+import type { ClassroomMember as ClassMember } from "@/types/domain/classrooms";
 
 import ClassStatsGrid from "@/components/class-management/ClassStatsGrid";
 import StudentList from "@/components/class-management/StudentList";
@@ -14,15 +18,21 @@ import ConfirmRemoveModal from "@/components/class-management/ConfirmRemoveModal
 import Toast from "@/components/class-ui/Toast";
 import Spinner from "@/components/class-ui/Spinner";
 
-const API_URL = "https://api.adaptiveelearning.online";
-
 export default function ClassManagementPage({ params }: { params: Promise<{ classId: string }> }) {
   const { classId } = use(params);
-  const dispatch = useAppDispatch();
-  const token = useAppSelector((s) => s.auth.accessToken) ?? "";
-
-  const { currentClass, currentClassMembers, currentClassLoading, currentClassError } = useAppSelector((s) => s.classes);
-  const cls = currentClass as unknown as ClassDetails;
+  const {
+    data: cls,
+    isLoading: isClassLoading,
+    error: classError,
+    refetch: refetchClass,
+  } = useGetClassroomByIdQuery(classId);
+  const {
+    data: currentClassMembers = [],
+    isLoading: areMembersLoading,
+    error: membersError,
+    refetch: refetchMembers,
+  } = useListClassroomMembersQuery(classId);
+  const [deleteClassroomMembers] = useDeleteClassroomMembersMutation();
 
   const [editing, setEditing] = useState(false);
   const [addModalRole, setAddModalRole] = useState<"STUDENT" | "TEACHER" | null>(null);
@@ -30,50 +40,38 @@ export default function ClassManagementPage({ params }: { params: Promise<{ clas
   const [removing, setRemoving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  useEffect(() => {
-    if (token && classId) {
-      dispatch(fetchSingleClass({ token, classId }));
-      dispatch(fetchClassStudents({ token, classId }));
-    }
-  }, [dispatch, token, classId]);
-
   const handleSaved = async () => {
     setEditing(false);
     setToast({ message: "Class info updated.", type: "success" });
-    dispatch(fetchSingleClass({ token, classId }));
+    refetchClass();
   };
 
   const handleMemberAdded = () => {
     setAddModalRole(null);
     setToast({ message: "Member added.", type: "success" });
-    dispatch(fetchClassStudents({ token, classId }));
+    refetchMembers();
   };
 
   const handleRemoveConfirm = async () => {
     if (!removeTarget || !cls) return;
     setRemoving(true);
     try {
-      const res = await fetch(`${API_URL}/api/v1/classrooms/${cls.id}/members`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ memberIds: [removeTarget.userId] }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Failed to remove member");
-      }
+      await deleteClassroomMembers({
+        classroomId: cls.id,
+        data: { memberIds: [removeTarget.userId] },
+      }).unwrap();
       setToast({ message: "Member removed.", type: "success" });
       setRemoveTarget(null);
-      dispatch(fetchClassStudents({ token, classId }));
-    } catch (e: any) {
-      setToast({ message: e.message, type: "error" });
+      refetchMembers();
+    } catch (e: unknown) {
+      setToast({ message: getApiErrorMessage(e), type: "error" });
     } finally {
       setRemoving(false);
     }
   };
 
-  if (currentClassLoading) return <div className="p-10 flex justify-center"><Spinner size={30} /></div>;
-  if (currentClassError || !cls) return <div className="p-10 text-red-500 text-center">Failed to load class.</div>;
+  if (isClassLoading || areMembersLoading) return <div className="p-10 flex justify-center"><Spinner size={30} /></div>;
+  if (classError || membersError || !cls) return <div className="p-10 text-red-500 text-center">Failed to load class.</div>;
 
   const teachers = currentClassMembers.filter((m) => m.membershipType === "TEACHER");
 
@@ -106,7 +104,6 @@ export default function ClassManagementPage({ params }: { params: Promise<{ clas
         {editing && (
           <EditInfoPanel
             cls={cls}
-            token={token}
             onSaved={handleSaved}
             onCancel={() => setEditing(false)}
           />
@@ -162,7 +159,6 @@ export default function ClassManagementPage({ params }: { params: Promise<{ clas
 
       {addModalRole && (
         <AddStudentModal
-          token={token}
           classId={cls.id}
           existingUserIds={currentClassMembers.map((m) => m.userId)}
           roleFilter={addModalRole}

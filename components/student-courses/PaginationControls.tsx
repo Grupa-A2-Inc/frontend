@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type { CoursePaginationMeta } from "@/lib/student-courses/types";
+import type { CoursePaginationMeta } from "@/types/domain/courses";
 
 type Props = {
   pagination: CoursePaginationMeta;

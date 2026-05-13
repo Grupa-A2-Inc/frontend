@@ -1,35 +1,38 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { fetchCourses, deleteCourse } from "@/store/slices/coursesSlice";
+import { getApiErrorMessage } from "@/lib/api/errors";
+import {
+  useDeleteCourseMutation,
+  useGetMyCoursesQuery,
+} from "@/store/api/coursesApi";
 
 type StatusFilter = "ALL" | "DRAFT" | "PUBLISHED";
 
 export default function TeacherCoursesPage() {
-  const dispatch = useAppDispatch();
-  const { courses, loading, error, deleting } = useAppSelector((state) => state.courses);
-  const { accessToken } = useAppSelector((state) => state.auth);
+  const {
+    data: courses = [],
+    isLoading: loading,
+    error,
+    refetch,
+  } = useGetMyCoursesQuery();
+  const [deleteCourse] = useDeleteCourseMutation();
 
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
-
-  const token =
-    accessToken ??
-    (typeof window !== "undefined" ? localStorage.getItem("accessToken") : null) ??
-    "";
-
-  useEffect(() => {
-    if (!token) return;
-    dispatch(fetchCourses(token));
-  }, [token, dispatch]);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   async function handleDeleteDraft(e: React.MouseEvent, id: string, title: string) {
     e.preventDefault();
     e.stopPropagation();
     if (!confirm(`Delete draft "${title}"? This cannot be undone.`)) return;
-    dispatch(deleteCourse({ token, id }));
+    setDeletingId(id);
+    try {
+      await deleteCourse(id).unwrap();
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   const draftCount     = courses.filter((c) => c.status === "DRAFT").length;
@@ -121,8 +124,14 @@ export default function TeacherCoursesPage() {
 
       {/* ERROR */}
       {error && !loading && (
-        <div className="flex items-center justify-center py-20">
-          <p className="text-red-400 text-sm">{error}</p>
+        <div className="flex flex-col items-center justify-center gap-4 py-20">
+          <p className="text-red-400 text-sm">{getApiErrorMessage(error)}</p>
+          <button
+            onClick={() => refetch()}
+            className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-medium text-brand-text"
+          >
+            Retry
+          </button>
         </div>
       )}
 
@@ -204,12 +213,12 @@ export default function TeacherCoursesPage() {
                   {course.status === "DRAFT" && (
                     <button
                       onClick={(e) => handleDeleteDraft(e, course.id, course.title)}
-                      disabled={deleting === course.id}
+                      disabled={deletingId === course.id}
                       title="Delete draft"
                       className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/20 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-50"
                     >
                       <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>
-                        {deleting === course.id ? "hourglass_empty" : "delete"}
+                        {deletingId === course.id ? "hourglass_empty" : "delete"}
                       </span>
                     </button>
                   )}

@@ -1,52 +1,79 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { useState } from "react";
+import { getApiErrorMessage } from "@/lib/api/errors";
 import {
-  enrollInCourseThunk,
-  fetchMyCoursesThunk,
-  fetchPublicCoursesThunk,
-} from "@/store/slices/studentCoursesSlice";
+  useEnrollInCourseMutation,
+  useGetEnrolledCoursesQuery,
+  useGetPublicCoursesQuery,
+} from "@/store/api/coursesApi";
 import CoursesHeader from "./Header";
 import CoursesTabs from "./Tabs";
 import CoursesSearch from "./SearchBar";
 import CoursesGrid from "./CoursesGrid";
 import PaginationControls from "./PaginationControls";
 
-import { Tab } from "@/lib/student-courses/types";
+import type { CoursePaginationMeta } from "@/types/domain/courses";
 
 const DEFAULT_PAGE_SIZE = 10;
+type Tab = "my" | "discover";
+
+const EMPTY_PAGINATION: CoursePaginationMeta = {
+  totalPages: 0,
+  totalElements: 0,
+  numberOfElements: 0,
+  size: DEFAULT_PAGE_SIZE,
+  number: 0,
+  first: true,
+  last: true,
+  empty: true,
+};
+
+function getPaginationMeta(
+  page: { content: unknown[] } & CoursePaginationMeta | undefined,
+): CoursePaginationMeta {
+  if (!page) return EMPTY_PAGINATION;
+
+  return {
+    totalPages: page.totalPages,
+    totalElements: page.totalElements,
+    numberOfElements: page.numberOfElements,
+    size: page.size,
+    number: page.number,
+    first: page.first,
+    last: page.last,
+    empty: page.empty,
+  };
+}
 
 export default function StudentCoursesPage() {
-  const dispatch = useAppDispatch();
-  
-  const {
-    myCourses,
-    publicCourses,
-    myPagination,
-    publicPagination,
-    isLoadingMy,
-    isLoadingPublic,
-    enrollingCourseId,
-    error,
-  } =
-    useAppSelector((state) => state.studentCourses);
-
-  const { accessToken } = useAppSelector((state) => state.auth);
-  const token =
-    accessToken ??
-    (typeof window !== "undefined" ? localStorage.getItem("accessToken") : null) ?? "";
-
   const [activeTab, setActiveTab] = useState<Tab>("my");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("ALL");
   const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [myPage, setMyPage] = useState(0);
+  const [publicPage, setPublicPage] = useState(0);
+  const [enrollingCourseId, setEnrollingCourseId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!token) return;
-    dispatch(fetchMyCoursesThunk({ token, page: 0, size: pageSize }));
-    dispatch(fetchPublicCoursesThunk({ token, page: 0, size: pageSize }));
-  }, [token, dispatch, pageSize]);
+  const {
+    data: myCoursesPage,
+    isLoading: isLoadingMy,
+    error: myCoursesError,
+  } = useGetEnrolledCoursesQuery({ page: myPage, size: pageSize });
+  const {
+    data: publicCoursesPage,
+    isLoading: isLoadingPublic,
+    error: publicCoursesError,
+  } = useGetPublicCoursesQuery({ page: publicPage, size: pageSize });
+  const [enrollInCourse, { error: enrollError }] = useEnrollInCourseMutation();
+
+  const myCourses = myCoursesPage?.content ?? [];
+  const publicCourses = publicCoursesPage?.content ?? [];
+  const myPagination = getPaginationMeta(myCoursesPage);
+  const publicPagination = getPaginationMeta(publicCoursesPage);
+  const error = myCoursesError || publicCoursesError || enrollError
+    ? getApiErrorMessage(myCoursesError ?? publicCoursesError ?? enrollError)
+    : "";
 
 const currentCourses = activeTab === "my" ? myCourses : publicCourses;
 const enrolledCourseIds = new Set(myCourses.map((course) => course.id));
@@ -74,31 +101,28 @@ const currentCourses = mockCourses;
     return matchesSearch && matchesCategory;
   });
 
-  function handleEnroll(courseId: string) {
-    if (!token) return;
-    dispatch(
-      enrollInCourseThunk({
-        token,
-        courseId,
-        myPage: myPagination.number,
-        publicPage: publicPagination.number,
-        size: pageSize,
-      })
-    );
+  async function handleEnroll(courseId: string) {
+    setEnrollingCourseId(courseId);
+    try {
+      await enrollInCourse(courseId).unwrap();
+    } finally {
+      setEnrollingCourseId(null);
+    }
   }
 
   function handlePageChange(page: number) {
-    if (!token) return;
     if (activeTab === "my") {
-      dispatch(fetchMyCoursesThunk({ token, page, size: pageSize }));
+      setMyPage(page);
       return;
     }
-    dispatch(fetchPublicCoursesThunk({ token, page, size: pageSize }));
+    setPublicPage(page);
   }
 
   function handlePageSizeChange(size: number) {
     setPageSize(size);
     setCategory("ALL");
+    setMyPage(0);
+    setPublicPage(0);
   }
 
   return (

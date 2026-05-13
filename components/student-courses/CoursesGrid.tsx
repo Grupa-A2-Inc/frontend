@@ -1,4 +1,4 @@
-import { StudentCourse } from "@/lib/student-courses/types";
+import type { StudentCourse } from "@/types/domain/courses";
 import CourseCard from "./CourseCard";
 
 type Props = {

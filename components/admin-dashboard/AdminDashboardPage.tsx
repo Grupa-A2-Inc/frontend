@@ -1,65 +1,39 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
+import { getApiErrorMessage } from "@/lib/api/errors";
 import {
-  getDashboardStats,
-  getOrganizationById,
-  getOrganizationIdFromStorage,
-  getAccessToken,
-} from "@/lib/admin-dashboard/api";
+  useGetAdminDashboardStatsQuery,
+  useGetOrganizationByIdQuery,
+} from "@/store/api/organizationsApi";
+import { useAppSelector } from "@/store/hooks";
 
 import AdminKpiGrid from "./AdminKpiGrid";
 import OrganizationSummaryCard from "./OrganizationSummaryCard";
 import AdminQuickLinks from "./AdminQuickLinks";
 import AdminStatusBanner from "./AdminStatusBanner";
-import { AdminDashboardStats, OrganizationProfile } from "@/lib/admin-dashboard/types";
 
 export default function AdminDashboardPage() {
+  const organizationId = useAppSelector((state) => state.auth.user?.organizationId);
+  const {
+    data: organization,
+    isLoading: isOrganizationLoading,
+    error: organizationError,
+    refetch: refetchOrganization,
+  } = useGetOrganizationByIdQuery(organizationId ?? "", { skip: !organizationId });
+  const {
+    data: stats,
+    isLoading: isStatsLoading,
+    error: statsError,
+    refetch: refetchStats,
+  } = useGetAdminDashboardStatsQuery(undefined, { skip: !organizationId });
 
-  const [stats, setStats] = useState<AdminDashboardStats | null>(null);
-  const [organization, setOrganization] = useState<OrganizationProfile | null>(null);
-
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [errorMessage, setErrorMessage] = useState("");
-
-async function loadDashboard(force = false) {
-  if (!force && stats && organization) return;
-
-  setIsInitialLoading(true);
-  setErrorMessage("");
-
-  const token = getAccessToken();
-  const organizationId = getOrganizationIdFromStorage();
-
-  if (!token || !organizationId) {
-    setErrorMessage("Missing session data. Please sign in again.");
-    setIsInitialLoading(false);
-    return;
-  }
-
-  try {
-    const [statsData, organizationData] = await Promise.all([
-      getDashboardStats(),
-      getOrganizationById(organizationId),
-    ]);
-
-    setStats(statsData);
-    setOrganization(organizationData);
-  } catch (error) {
-    setErrorMessage(
-      error instanceof Error
-        ? error.message
-        : "Failed to load admin dashboard data."
-    );
-  } finally {
-    setIsInitialLoading(false);
-  }
-}
-
-  useEffect(() => {
-    loadDashboard();
-  }, []);
+  const isInitialLoading = isOrganizationLoading || isStatsLoading;
+  const errorMessage =
+    !organizationId
+      ? "Missing session data. Please sign in again."
+      : organizationError || statsError
+        ? getApiErrorMessage(organizationError ?? statsError)
+        : "";
 
   if (isInitialLoading) {
   return (
@@ -102,10 +76,11 @@ async function loadDashboard(force = false) {
 
       <button
         onClick={() => {
-          setStats(null);
-          setOrganization(null);
-          loadDashboard(true);
+          if (!organizationId) return;
+          refetchOrganization();
+          refetchStats();
         }}
+        disabled={!organizationId}
         className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white"
       >
         Retry
@@ -137,14 +112,15 @@ if (!stats || !organization) {
       {(stats.warnings?.length ?? 0) > 0 && (
         <AdminStatusBanner
           variant="warning"
-          message={`${stats.warnings?.length ?? 0} issues require your attention`}        />
+          message={`${stats.warnings?.length ?? 0} issues require your attention`}
+        />
       )}
 
       {/* Summary + Quick Links */}
       <div className="grid gap-10 xl:grid-cols-[1.35fr_1fr]">
         <OrganizationSummaryCard
           organization={organization}
-          onOrganizationUpdated={(fresh: OrganizationProfile) => setOrganization(fresh)}
+          onOrganizationUpdated={() => refetchOrganization()}
         />
         <AdminQuickLinks />
       </div>

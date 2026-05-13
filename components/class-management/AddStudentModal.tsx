@@ -1,22 +1,14 @@
 "use client";
-import { useState, useEffect } from "react";
-import { ClassMember } from "@/lib/classes/types";
+import { useMemo, useState } from "react";
+import { getApiErrorMessage } from "@/lib/api/errors";
+import { useAddClassroomMembersMutation } from "@/store/api/classroomsApi";
+import { useGetOrganizationUsersQuery } from "@/store/api/usersApi";
+import type { ClassroomMember as ClassMember } from "@/types/domain/classrooms";
+import type { User } from "@/types/domain/users";
 import Avatar from "@/components/class-ui/Avatar";
 import Spinner from "@/components/class-ui/Spinner";
 
-const API_URL = "https://api.adaptiveelearning.online";
-
-interface OrgUser {
-  id: string;
-  email: string;
-  firstName: string;
-  lastName: string;
-  roleName?: string;
-  role?: string;
-}
-
 type Props = {
-  token: string;
   classId: string;
   existingUserIds: string[];
   roleFilter: "STUDENT" | "TEACHER";
@@ -24,33 +16,15 @@ type Props = {
   onClose: () => void;
 };
 
-export default function AddStudentModal({ token, classId, existingUserIds, roleFilter, onAdded, onClose }: Props) {
+export default function AddStudentModal({ classId, existingUserIds, roleFilter, onAdded, onClose }: Props) {
   const [query, setQuery] = useState("");
-  const [allStudents, setAllStudents] = useState<OrgUser[]>([]);
-  const [loadingStudents, setLoadingStudents] = useState(true);
   const [adding, setAdding] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const { data: users = [], isLoading: loadingStudents, error: usersError } = useGetOrganizationUsersQuery();
+  const [addClassroomMembers] = useAddClassroomMembersMutation();
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await fetch(`${API_URL}/api/v1/users/organization`, {
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        });
-        if (!res.ok) throw new Error("Failed to load users");
-        const data = await res.json();
-        const arr: OrgUser[] = Array.isArray(data) ? data : (data.content ?? data.users ?? data.items ?? []);
-        setAllStudents(arr.filter((u) => (u.roleName ?? u.role) === roleFilter));
-      } catch (e: any) {
-        setError(e.message);
-      } finally {
-        setLoadingStudents(false);
-      }
-    };
-    load();
-  }, [token]);
-
-  const filtered = allStudents.filter((u) => {
+  const filtered = useMemo(() => users.filter((u) => {
+    if (u.role !== roleFilter) return false;
     if (existingUserIds.includes(u.id)) return false;
     if (!query.trim()) return true;
     const q = query.toLowerCase();
@@ -58,24 +32,19 @@ export default function AddStudentModal({ token, classId, existingUserIds, roleF
       u.email.toLowerCase().includes(q) ||
       `${u.firstName} ${u.lastName}`.toLowerCase().includes(q)
     );
-  });
+  }), [existingUserIds, query, roleFilter, users]);
 
-  const handleAdd = async (user: OrgUser) => {
+  const handleAdd = async (user: User) => {
     setAdding(user.id);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/api/v1/classrooms/${classId}/members`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ memberIds: [user.id] }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || "Failed to add member");
-      }
+      await addClassroomMembers({
+        classroomId: classId,
+        data: { memberIds: [user.id] },
+      }).unwrap();
       onAdded({ userId: user.id, email: user.email, membershipType: roleFilter });
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e: unknown) {
+      setError(getApiErrorMessage(e));
     } finally {
       setAdding(null);
     }
@@ -101,6 +70,7 @@ export default function AddStudentModal({ token, classId, existingUserIds, roleF
 
         <div className="max-h-[300px] overflow-y-auto px-6 pb-6 space-y-2">
           {loadingStudents && <div className="flex justify-center py-4"><Spinner /></div>}
+          {usersError && <p className="text-red-400 text-sm text-center">{getApiErrorMessage(usersError)}</p>}
           {error && <p className="text-red-400 text-sm text-center">{error}</p>}
           {!loadingStudents && filtered.length === 0 && (
             <p className="text-center text-sm text-brand-muted py-4">No {roleFilter === "TEACHER" ? "teachers" : "students"} available to add.</p>

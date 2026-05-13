@@ -1,5 +1,5 @@
 "use client";
-import { ClassMember } from "@/lib/classes/types";
+import type { ClassroomMember as ClassMember } from "@/types/domain/classrooms";
 import Spinner from "@/components/class-ui/Spinner";
 
 type Props = { member: ClassMember; removing: boolean; onConfirm: () => void; onCancel: () => void; };

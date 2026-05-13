@@ -1,6 +1,6 @@
 "use client";
 
-import { User, UserRole } from "@/store/slices/usersSlice";
+import type { User, UserRole } from "@/types/domain/users";
 
 type Props = {
   totalUsers: number;
@@ -26,6 +26,7 @@ export default function UsersHeader({ totalUsers, onAddUser, onImportCsv }: Prop
           email: email ?? "",
           role: (role?.toUpperCase() === "TEACHER" ? "TEACHER" : "STUDENT") as UserRole,
           status: "ACTIVE",
+          organizationId: undefined,
         };
       });
       onImportCsv(newUsers);

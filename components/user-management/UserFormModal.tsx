@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { User, UserRole } from "@/store/slices/usersSlice";
+import type { User, UserRole } from "@/types/domain/users";
 import ClassSelector from "./UsersClassSelector";
 
 type SavePayload = {

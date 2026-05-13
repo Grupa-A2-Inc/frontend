@@ -1,6 +1,6 @@
 "use client";
 
-import { useAppSelector } from "@/store/hooks";
+import { useGetClassroomsQuery } from "@/store/api/classroomsApi";
 
 type Props = {
   selectedClasses: string[];
@@ -8,7 +8,7 @@ type Props = {
 };
 
 export default function ClassSelector({ selectedClasses, onToggle }: Props) {
-  const { classrooms } = useAppSelector((state) => state.classes);
+  const { data: classrooms = [] } = useGetClassroomsQuery();
 
   if (classrooms.length === 0) {
     return (
