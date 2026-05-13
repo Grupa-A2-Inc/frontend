@@ -10,6 +10,9 @@ import {
   createLesson,
   updateLesson,
   deleteLesson,
+  createResource,
+  updateResource,
+  deleteResource,
 } from "@/lib/courses/editorApi";
 import { EMPTY_FORM, tempId } from "./helpers";
 import type {
@@ -46,7 +49,7 @@ interface EditorLessonResponse {
   testId?: string | null;
   title?: string | null;
   contentMarkdown?: string | null;
-  lessonResources?: { url?: string | null }[] | null;
+  lessonResources?: { id?: string | null; url?: string | null }[] | null;
   orderIndex?: number | null;
 }
 
@@ -177,12 +180,36 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
   }
 
   async function saveLeafNode(selection: Extract<SelectedRef, { kind: "leaf" }>) {
+    let newResourceId = selectedLeaf?.resourceId ?? "";
+
     if (!selection.id.startsWith("temp_") && mode === "edit") {
       const isText = selectedLeaf?.type === "TEXT";
       await updateLesson(selection.id, {
         title: nodeForm.title,
         content: isText ? nodeForm.content : undefined,
       });
+
+      const isFileOrVideo = selectedLeaf?.type === "FILE" || selectedLeaf?.type === "VIDEO";
+      if (isFileOrVideo) {
+        const hasUrl = nodeForm.fileUrl.trim() !== "";
+        const existingResourceId = selectedLeaf?.resourceId ?? "";
+
+        if (hasUrl && existingResourceId) {
+          await updateResource(selection.id, existingResourceId, {
+            title: nodeForm.title,
+            url: nodeForm.fileUrl.trim(),
+          });
+        } else if (hasUrl && !existingResourceId) {
+          const result = await createResource(selection.id, {
+            title: nodeForm.title,
+            url: nodeForm.fileUrl.trim(),
+          });
+          newResourceId = result.id;
+        } else if (!hasUrl && existingResourceId) {
+          await deleteResource(selection.id, existingResourceId);
+          newResourceId = "";
+        }
+      }
     }
 
     setChapters(prev => prev.map(chapter =>
@@ -196,7 +223,8 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
                 title: nodeForm.title,
                 content: nodeForm.content,
                 fileUrl: nodeForm.fileUrl,
-                pendingFile: nodeForm.pendingFile,
+                resourceId: newResourceId,
+                pendingFile: null,
               }
               : leaf,
           ),
@@ -302,6 +330,7 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
       title: form.title.trim(),
       content: form.content,
       fileUrl: "",
+      resourceId: "",
       pendingFile: null,
       orderIndex: 0,
     };
@@ -500,6 +529,7 @@ function mapCourseToChapters(data: EditorCourseResponse): EditorChapter[] {
       title: lesson.title ?? "",
       content: lesson.contentMarkdown ?? "",
       fileUrl: lesson.lessonResources?.[0]?.url ?? "",
+      resourceId: lesson.lessonResources?.[0]?.id ?? "",
       pendingFile: null,
       orderIndex: lesson.orderIndex ?? lessonIndex,
     })),

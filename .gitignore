@@ -49,3 +49,6 @@ node_modules/
 /playwright/.auth/
 
 swagger.json
+
+# Generated html report from Sprint 5 tests
+Sprint-5-Tests/html-report/

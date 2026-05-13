@@ -79,7 +79,6 @@ export default function CourseEditor(props: CourseEditorProps) {
           saveNodeOk={editor.saveNodeOk}
           saveNodeError={editor.saveNodeError}
           courseId={courseId}
-          fileInputRef={editor.fileInputRef}
           onFormChange={editor.setNodeForm}
           onSaveNode={editor.handleSaveNode}
         />

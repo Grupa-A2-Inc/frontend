@@ -6,6 +6,7 @@ export interface EditorLeaf {
   title: string;
   content: string;
   fileUrl: string;
+  resourceId: string;
   pendingFile: File | null;
   orderIndex: number;
 }

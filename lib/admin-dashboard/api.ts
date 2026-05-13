@@ -7,10 +7,8 @@ import {
   StoredUser,
   UpdateOrganizationPayload,
 } from "./types";
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://api.adaptiveelearning.online";
+import { API_BASE } from "@/lib/config";
+import { ENDPOINTS } from "@/lib/api-endpoints";
 
 export function getStoredUser(): StoredUser | null {
   if (typeof window === "undefined") return null;
@@ -55,7 +53,7 @@ export async function getOrganizationById(
 
   try {
     const response = await fetch(
-      `${API_BASE}/api/v1/organizations/${organizationId}`,
+      `${API_BASE}${ENDPOINTS.organizations.byId(organizationId)}`,
       {
         method: "GET",
         headers: getAuthHeaders(),
@@ -102,7 +100,7 @@ export async function updateOrganizationById(
 
   try {
     const response = await fetch(
-      `${API_BASE}/api/v1/organizations/${organizationId}`,
+      `${API_BASE}${ENDPOINTS.organizations.byId(organizationId)}`,
       {
         method: "PUT",
         headers: getAuthHeaders(),
@@ -141,7 +139,7 @@ export async function getDashboardStats(): Promise<AdminDashboardStats> {
 
   try {
     const [usersRes, coursesRes] = await Promise.all([
-      fetch(`${API_BASE}/api/v1/users`, {
+      fetch(`${API_BASE}${ENDPOINTS.users.list}`, {
         headers: getAuthHeaders(),
         cache: "no-store",
       }),
