@@ -4,7 +4,11 @@ const AI_API_URL =
   "https://ai.adaptiveelearning.online/ai/api/v1/chat/customer-support";
 
 export async function POST(req: NextRequest) {
-  const apiKey = process.env.AI_API_KEY;
+  const apiKey =
+    process.env.AI_API_KEY ??
+    process.env.NEXT_PUBLIC_AI_API_KEY ??
+    "cheia_pe_care_o_foloseste_aiul";
+
   if (!apiKey) {
     return NextResponse.json(
       { error: "Customer support service is not configured." },
