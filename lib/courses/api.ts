@@ -12,6 +12,7 @@ import {
     mapStudentAverage,
     mapCourseTest,
     mapClassroomCourseResponse,
+    mapOrganizationUser,
 } from "./mappers";
 
 import {
@@ -24,6 +25,7 @@ import {
     CourseTest,
     ClassroomCourseResponse,
     AssignCoursePayload,
+    OrganizationUser,
 } from "./types";
 
 // URL-ul de baza al backend-ului
@@ -202,4 +204,38 @@ export async function assignCourseToClassroom(
     );
 
     return mapClassroomCourseResponse(data);
+}
+
+
+// ----- STUDENTII ORGANIZATIEI -----
+
+// Toti studentii din organizatia utilizatorului
+// Endpoint: GET /api/v1/organizations/members?role=STUDENT
+export async function fetchOrganizationStudents(): Promise<OrganizationUser[]> {
+    const data = await apiFetch<any>(`/api/v1/users/organization?role=STUDENT`);
+    const list = Array.isArray(data) ? data : data?.content ?? [];
+    return list.map(mapOrganizationUser);
+}
+
+// Inscrie un student la un curs
+// Endpoint: POST /api/v1/courses/{courseId}/enrollments
+export async function apiEnrollStudent(
+    courseId: string,
+    studentId: string
+): Promise<void> {
+    await apiFetch<null>(`/api/v1/courses/${courseId}/enrollments`, {
+        method: "POST",
+        body: JSON.stringify({ studentId }),
+    });
+}
+
+// Elimina un student de la un curs
+// Endpoint: DELETE /api/v1/courses/{courseId}/enrollments/{studentId}
+export async function apiUnenrollStudent(
+    courseId: string,
+    studentId: string
+): Promise<void> {
+    await apiFetch<null>(`/api/v1/courses/${courseId}/enrollments/${studentId}`, {
+        method: "DELETE",
+    });
 }
