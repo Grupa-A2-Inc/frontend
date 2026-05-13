@@ -6,8 +6,27 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { generateTestThunk } from "@/store/slices/testDraftSlice";
 import { fetchCourseFullView } from "@/lib/courses/api";
 import { Chapter } from "@/lib/courses/types";
+import { difference } from "next/dist/build/utils";
 
-export default function TestSettingsPanel({ courseId }: { courseId: string }) {
+type Props = {
+  courseId: string;
+  selectedLessonId:  string;
+  onLessonChange: (lessonId: string) => void;
+  title: string;
+  onTitleChange: (title: string) => void;
+  timeLimitSec: number | undefined;
+  onTimeLimitChange: (value: number | undefined) => void;
+};
+
+export default function TestSettingsPanel({
+  courseId,
+  selectedLessonId,
+  onLessonChange,
+  title,
+  onTitleChange,
+  timeLimitSec,
+  onTimeLimitChange,
+}: Props) {
   const dispatch = useAppDispatch();
   const { isGenerating } = useAppSelector((state) => state.testDraft);
   
@@ -34,10 +53,11 @@ export default function TestSettingsPanel({ courseId }: { courseId: string }) {
 
   const handleGenerate = () => {
     const payload = {
-      courseId,
-      questionCount: qCount,
-      sourceNodes: selectedNode === "ALL" ? [] : [selectedNode]
+      topic: selectedNode === "ALL" ? "Entire Course" : selectedNode,
+      difficulty: "MEDIUM",
+      questionCount: qCount
     };
+    
     dispatch(generateTestThunk(payload));
   };
 

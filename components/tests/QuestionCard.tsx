@@ -1,6 +1,6 @@
 "use client";
 
-import { Trash2, CheckCircle2, Circle, RefreshCcw } from "lucide-react";
+import { Trash2, CheckCircle2, Circle} from "lucide-react";
 import { DraftQuestion } from "@/lib/tests/types";
 import { useAppDispatch } from "@/store/hooks";
 import { 
@@ -19,11 +19,7 @@ export default function QuestionCard({ question, index }: QuestionCardProps) {
   const dispatch = useAppDispatch();
 
   
-  const handleRegenerate = () => {
-    console.log("Regenerate question", question.id);
-    // backend conectat: dispatch(regenerateQuestionThunk(question.id))
-  };
-
+  
   return (
     <div id={`q-${question.id}`} className="bg-brand-card border border-brand-border rounded-xl p-6 shadow-sm hover:border-brand-primary/30 transition-colors">
       <div className="flex justify-between items-center mb-4 gap-4">
@@ -35,15 +31,6 @@ export default function QuestionCard({ question, index }: QuestionCardProps) {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* BUTON REGENERATE */}
-          <button 
-            onClick={handleRegenerate}
-            className="text-indigo-400 hover:bg-indigo-400/10 px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition"
-            title="Ask AI to regenerate this specific question"
-          >
-            <RefreshCcw size={16} />
-            <span className="hidden sm:inline">Regenerate</span>
-          </button>
           
           {/* BUTON DELETE */}
           <button 

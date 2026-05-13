@@ -1,13 +1,19 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { DraftQuestion, GenerateTestPayload } from "../../lib/tests/types";
-import { apiGenerateTest, apiSaveFinalTest } from "../../lib/tests/api";
+import { apiGenerateTest, apiSaveFinalTest, apiPublishTest } from "../../lib/tests/api";
 
 interface TestDraftState {
   questions: DraftQuestion[];
   isGenerating: boolean;
   isSaving: boolean;
   error: string | null;
-  status: "IDLE" | "DRAFT" | "SAVED";
+  status: "IDLE" | "DRAFT" | "SAVED" | "PUBLISHED";
+}
+
+interface SaveFinalTestPayload {
+  lessonId: string;
+  title: string;
+  timeLimitSec?: number;
 }
 
 const initialState: TestDraftState = {
@@ -33,12 +39,25 @@ export const generateTestThunk = createAsyncThunk(
 
 export const saveFinalTestThunk = createAsyncThunk(
   "testDraft/save",
-  async (courseId: string, { getState, rejectWithValue }) => {
+  async (payload: SaveFinalTestPayload, { getState, rejectWithValue }) => {
     try {
+      // Luam intrebarile din Redux
       const state = getState() as any;
       const questions = state.testDraft.questions;
-      await apiSaveFinalTest(courseId, questions);
+
+      // Salvam testul (fara intrebari)
+      const { testId } = await apiSaveFinalTest(
+        payload.lessonId,
+        questions,
+        payload.title,
+        payload.timeLimitSec
+      );
+
+      // Publicăm testul imediat după creare
+      await apiPublishTest(testId);
+
       return true;
+      
     } catch (err: any) {
       return rejectWithValue("Failed to save final test");
     }

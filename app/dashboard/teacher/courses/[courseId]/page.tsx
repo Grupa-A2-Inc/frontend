@@ -63,6 +63,14 @@ export default function CourseManagementPage({ params }: Props) {
             </Link>
 
             <Link
+             href={`/dashboard/teacher/courses/${courseId}/students`}
+             className="rounded-xl border border-brand-border bg-brand-card px-4 py-2 text-sm font-semibold text-brand-text shadow-sm transition hover:bg-brand-bg"
+  >
+             Manage students
+            </Link>
+
+
+            <Link
               href={`/dashboard/teacher/courses/${courseId}/test-builder`}
               className="rounded-xl bg-brand-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-primary/90"
             >
