@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useAppSelector } from "@/store/hooks";
+import SubscriptionSettingsSection from "@/components/subscriptions/SubscriptionSettingsSection";
 
 function SaveFeedback({ show }: { show: boolean }) {
   if (!show) return null;
@@ -263,6 +264,8 @@ export default function SettingsPage() {
           </div>
         </form>
       </section>
+
+      <SubscriptionSettingsSection />
 
       {/* ── DANGER ZONE ──────────────────────────────────────── */}
       <section className="border border-red-500/20 rounded-2xl p-6">

@@ -5,6 +5,8 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { register, clearError } from "@/store/slices/authSlice";
+import PlanSelector from "@/components/subscriptions/PlanSelector";
+import type { SubscriptionPlan } from "@/lib/subscriptions/types";
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -32,6 +34,7 @@ export default function RegisterPage() {
     const [organizationType, setOrganizationType] = useState("");
     const [address, setAddress] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("");
+    const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
 
     // ----------------------------------------
     // UI STATE
@@ -115,7 +118,7 @@ export default function RegisterPage() {
 
                 {/* DREAPTA */}
                 <div className="flex w-full lg:w-1/2 items-center justify-center p-10">
-                    <div className="bg-brand-card/80 backdrop-blur-xl shadow-2xl rounded-2xl p-10 w-full max-w-md border border-brand-border">
+                    <div className="bg-brand-card/80 backdrop-blur-xl shadow-2xl rounded-2xl p-10 w-full max-w-2xl border border-brand-border">
 
                         <h1 className="text-3xl font-bold text-brand-text mb-4">
                             Create a new organization
@@ -230,6 +233,27 @@ export default function RegisterPage() {
                                     className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
                                     value={phoneNumber}
                                     onChange={(e) => setPhoneNumber(e.target.value)}
+                                />
+                            </div>
+
+                            <div>
+                                <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+                                    <div>
+                                        <h2 className="text-lg font-semibold text-brand-text">Subscription Plan</h2>
+                                        <p className="text-sm text-brand-muted">
+                                            Choose the plan for this organization.
+                                        </p>
+                                    </div>
+                                    {selectedPlan && (
+                                        <span className="rounded-full border border-brand-primary/20 bg-brand-primary/10 px-3 py-1 text-xs font-semibold text-brand-text">
+                                            {selectedPlan.displayName}
+                                        </span>
+                                    )}
+                                </div>
+                                <PlanSelector
+                                    compact
+                                    storageKey="registerSelectedSubscriptionPlanId"
+                                    onPlanSelect={setSelectedPlan}
                                 />
                             </div>
 
