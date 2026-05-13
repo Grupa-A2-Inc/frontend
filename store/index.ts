@@ -9,6 +9,7 @@ import coursesReducer from "@/store/slices/coursesSlice";
 import studentCoursesReducer from "@/store/slices/studentCoursesSlice"; 
 import adaptiveReducer from "@/store/slices/adaptiveSlice";
 import customerSupportReducer from "@/store/slices/customerSupportSlice";
+import analyticsReducer from './slices/analyticsSlice';
 
 export const store = configureStore({
   reducer: {
@@ -21,6 +22,7 @@ export const store = configureStore({
     studentCourses: studentCoursesReducer,
     adaptive: adaptiveReducer,
     customerSupport: customerSupportReducer,
+    analytics: analyticsReducer,
   },
 });
 
