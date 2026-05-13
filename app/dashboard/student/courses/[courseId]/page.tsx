@@ -43,7 +43,7 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
   return (
     <div className="max-w-5xl mx-auto p-6 lg:p-8">
       <Link 
-        href="/dashboard/student/courses" 
+        href="/dashboard/student" 
         className="flex items-center gap-2 text-sm text-slate-500 dark:text-brand-muted hover:text-[#6366f1] mb-6 w-fit transition-colors" 
       >
         <ChevronLeft size={16} />
