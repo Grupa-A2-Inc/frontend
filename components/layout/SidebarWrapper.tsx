@@ -570,7 +570,7 @@ export default function SidebarWrapper({ children }: SidebarWrapperProps) {
       >
         {children}
       </motion.main>
-      <CustomerSupportChat
+      <CustomerSupportChat/>
     </div>
   );
 }

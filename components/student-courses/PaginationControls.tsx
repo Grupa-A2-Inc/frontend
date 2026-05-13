@@ -43,7 +43,7 @@ export default function PaginationControls({
         </select>
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 sm:mr-18">
         <button
           type="button"
           onClick={() => onPageChange(currentPage - 1)}
