@@ -4,8 +4,8 @@ import {
   AdaptiveSubmitRequest,
   AdaptiveResult,
 } from "./types";
-
-const API_BASE = "https://api.adaptiveelearning.online";
+import { API_BASE } from "@/lib/config";
+import { ENDPOINTS } from "@/lib/api-endpoints";
 
 async function apiFetch<T>(path: string, token: string, options?: RequestInit): Promise<T> {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -29,7 +29,7 @@ export async function startAdaptiveSession(
   token: string,
   req: AdaptiveStartRequest
 ): Promise<AdaptiveStartResponse> {
-  return apiFetch<AdaptiveStartResponse>("/api/v1/adaptive/start", token, {
+  return apiFetch<AdaptiveStartResponse>(ENDPOINTS.adaptive.start, token, {
     method: "POST",
     body: JSON.stringify(req),
   });
@@ -41,7 +41,7 @@ export async function submitAdaptiveSession(
   req: AdaptiveSubmitRequest
 ): Promise<AdaptiveResult> {
   return apiFetch<AdaptiveResult>(
-    `/api/v1/adaptive/sessions/${sessionId}/submit`,
+    ENDPOINTS.adaptive.submitSession(sessionId),
     token,
     {
       method: "POST",

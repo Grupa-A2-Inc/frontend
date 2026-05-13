@@ -1,8 +1,8 @@
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { CourseStatus, CourseVisibility } from "@/lib/courses/types";
 import { PaginatedCourses, StudentCourse } from "./types";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "https://api.adaptiveelearning.online";
+import { API_BASE } from "@/lib/config";
+import { ENDPOINTS } from "@/lib/api-endpoints";
 
 type PublicCourseDto = {
   id?: string;
@@ -91,7 +91,7 @@ export async function fetchPublicCourses(
   size: number = 10
 ): Promise<PaginatedCourses> {
   const response = await fetchWithAuth(
-    `${API_URL}/api/v1/courses/public?page=${page}&size=${size}`,
+    `${API_BASE}${ENDPOINTS.courses.public}?page=${page}&size=${size}`,
     token
   );
   if (!response.ok) {
@@ -108,7 +108,7 @@ export async function fetchMyCourses(
   size: number = 10
 ): Promise<PaginatedCourses> {
   const response = await fetchWithAuth(
-    `${API_URL}/api/v1/students/me/courses?page=${page}&size=${size}&sort=enrolledAt,desc`,
+    `${API_BASE}${ENDPOINTS.students.myCourses}?page=${page}&size=${size}&sort=enrolledAt,desc`,
     token
   );
   if (!response.ok) {
@@ -123,7 +123,7 @@ export async function enrollInCourse(
   courseId: string
 ): Promise<void> {
   const response = await fetchWithAuth(
-    `${API_URL}/api/v1/courses/${courseId}/enroll`,
+    `${API_BASE}${ENDPOINTS.courses.enroll(courseId)}`,
     token,
     { method: "POST" }
   );
@@ -138,7 +138,7 @@ export async function unenrollFromCourse(
   courseId: string
 ): Promise<void> {
   const response = await fetchWithAuth(
-    `${API_URL}/api/v1/courses/${courseId}/unenroll`,
+    `${API_BASE}${ENDPOINTS.courses.unenroll(courseId)}`,
     token,
     { method: "DELETE" }
   );

@@ -28,8 +28,8 @@ import {
     OrganizationUser,
 } from "./types";
 
-// URL-ul de baza al backend-ului
-const API_BASE = "https://api.adaptiveelearning.online";
+import { API_BASE } from "@/lib/config";
+import { ENDPOINTS } from "@/lib/api-endpoints";
 
 // ----- HELPER FUNCTIONS -----
 
@@ -88,7 +88,7 @@ export async function fetchCourseFullView(courseId: string): Promise<{
     course: Course;
     chapters: Chapter[];
 }> {
-    const data = await apiFetch<any>(`/api/v1/courses/${courseId}/full-view`);
+    const data = await apiFetch<any>(ENDPOINTS.courses.fullView(courseId));
     return mapCourseFullView(data);
 }
 
@@ -101,7 +101,7 @@ export async function fetchTestForLesson(
     lessonId: string
 ): Promise<CourseTest | null> {
     try {
-        const data = await apiFetch<any>(`/api/v1/lessons/${lessonId}/test`);
+        const data = await apiFetch<any>(ENDPOINTS.lessons.test(lessonId));
         return mapCourseTest(data, lessonId);
     } catch (error) {
         // Daca testul nu exista (404), returnam null in loc sa aruncam eroare
@@ -136,7 +136,7 @@ export async function fetchTestsForLessons(
 // Aduce toate clasele din organizația utilizatorului
 // Endpoint: GET /api/v1/classrooms
 export async function fetchClassrooms(): Promise<Classroom[]> {
-    const data = await apiFetch<any>(`/api/v1/classrooms`);
+    const data = await apiFetch<any>(ENDPOINTS.classrooms.list);
     const list = Array.isArray(data) ? data : data?.content ?? [];
     return list.map(mapClassroom);
 }
@@ -147,7 +147,7 @@ export async function fetchClassroomStudents(
     classroomId: string 
 ): Promise<ClassroomMember[]> {
     const data = await apiFetch<any>(
-        `/api/v1/classrooms/${classroomId}/members?role=STUDENT`
+        `${ENDPOINTS.classrooms.members(classroomId)}?role=STUDENT`
     );
     const list = Array.isArray(data) ? data : data?.members ?? [];
     return list.map(mapClassroomMember);
@@ -163,7 +163,7 @@ export async function fetchStudentsProgress(
     size: number = 100
 ): Promise<StudentProgress[]> {
     const data = await apiFetch<any>(
-        `/api/v1/courses/${courseId}/students-progress?page=${page}&size=${size}`
+        `${ENDPOINTS.courses.studentsProgress(courseId)}?page=${page}&size=${size}`
     );
     const list = Array.isArray(data) ? data : data?.content ?? [];
     return list.map(mapStudentProgress);
@@ -177,7 +177,7 @@ export async function fetchStudentAverages(
     size: number = 100
 ): Promise<StudentAverage[]> {
     const data = await apiFetch<any>(
-        `/api/v1/courses/${courseId}/analytics/student-averages?page=${page}&size=${size}`
+        `${ENDPOINTS.courses.analyticsStudentAverages(courseId)}?page=${page}&size=${size}`
     );
     const list = Array.isArray(data) ? data : data?.content ?? [];
     return list.map(mapStudentAverage);
@@ -196,7 +196,7 @@ export async function assignCourseToClassroom(
     };
 
     const data = await apiFetch<any>(
-        `/api/v1/classrooms/${classroomId}/courses`,
+        ENDPOINTS.classrooms.courses(classroomId),
         {
             method: "POST",
             body: JSON.stringify(payload),
@@ -212,7 +212,7 @@ export async function assignCourseToClassroom(
 // Toti studentii din organizatia utilizatorului
 // Endpoint: GET /api/v1/organizations/members?role=STUDENT
 export async function fetchOrganizationStudents(): Promise<OrganizationUser[]> {
-    const data = await apiFetch<any>(`/api/v1/users/organization?role=STUDENT`);
+    const data = await apiFetch<any>(`${ENDPOINTS.users.organization}?role=STUDENT`);
     const list = Array.isArray(data) ? data : data?.content ?? [];
     return list.map(mapOrganizationUser);
 }
@@ -223,7 +223,7 @@ export async function apiEnrollStudent(
     courseId: string,
     studentId: string
 ): Promise<void> {
-    await apiFetch<null>(`/api/v1/courses/${courseId}/enrollments`, {
+    await apiFetch<null>(ENDPOINTS.courses.enrollments(courseId), {
         method: "POST",
         body: JSON.stringify({ studentId }),
     });
@@ -235,7 +235,7 @@ export async function apiUnenrollStudent(
     courseId: string,
     studentId: string
 ): Promise<void> {
-    await apiFetch<null>(`/api/v1/courses/${courseId}/enrollments/${studentId}`, {
+    await apiFetch<null>(ENDPOINTS.courses.enrollmentById(courseId, studentId), {
         method: "DELETE",
     });
 }

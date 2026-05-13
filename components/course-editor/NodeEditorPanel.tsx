@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { Dispatch, RefObject, SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import type { EditorLeaf, EditorNodeType, NodeForm, SelectedRef } from "./types";
 import { nodeIcon, nodeLabel } from "./helpers";
 import { LinkifyText } from "./LinkifyText";
@@ -13,7 +13,6 @@ interface NodeEditorPanelProps {
   saveNodeOk: boolean;
   saveNodeError: string | null;
   courseId?: string;
-  fileInputRef: RefObject<HTMLInputElement | null>;
   onFormChange: Dispatch<SetStateAction<NodeForm>>;
   onSaveNode: () => void;
 }
@@ -27,7 +26,6 @@ export function NodeEditorPanel({
   saveNodeOk,
   saveNodeError,
   courseId,
-  fileInputRef,
   onFormChange,
   onSaveNode,
 }: NodeEditorPanelProps) {
@@ -48,7 +46,6 @@ export function NodeEditorPanel({
             <UploadField
               selectedType={selectedType}
               nodeForm={nodeForm}
-              fileInputRef={fileInputRef}
               onFormChange={onFormChange}
             />
           )}
@@ -149,78 +146,42 @@ function TextFields({ nodeForm, onFormChange }: NodeFormChildProps) {
 
 interface UploadFieldProps extends NodeFormChildProps {
   selectedType: "FILE" | "VIDEO";
-  fileInputRef: RefObject<HTMLInputElement | null>;
 }
 
-function UploadField({ selectedType, nodeForm, fileInputRef, onFormChange }: UploadFieldProps) {
+function UploadField({ selectedType, nodeForm, onFormChange }: UploadFieldProps) {
+  const isVideo = selectedType === "VIDEO";
+  const placeholder = isVideo
+    ? "https://youtube.com/watch?v=... or direct video URL"
+    : "https://example.com/document.pdf";
+
   return (
     <div className="mb-5">
       <label className="block text-xs font-medium text-brand-text/60 mb-1.5">
-        {selectedType === "VIDEO" ? "Video Upload" : "File Upload"}
+        {isVideo ? "Video URL" : "File URL"}
+        <span className="ml-1 text-brand-muted/50 font-normal">(paste a link)</span>
       </label>
-      <div className="mb-2 flex items-start gap-2 rounded-xl bg-yellow-500/10 border border-yellow-500/20 px-3 py-2.5">
-        <span className="material-symbols-rounded text-yellow-400 flex-shrink-0 mt-0.5" style={{ fontSize: "1rem" }}>info</span>
-        <p className="text-xs text-yellow-400/90 leading-relaxed">
-          File upload to the server is not yet supported by the backend. You can set the node title and save it — the file attachment will be added once the backend exposes an upload endpoint.
+      <input
+        type="url"
+        value={nodeForm.fileUrl}
+        onChange={e => onFormChange(form => ({ ...form, fileUrl: e.target.value }))}
+        placeholder={placeholder}
+        className="w-full bg-brand-card border border-brand-primary/20 rounded-xl px-4 py-2.5 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors"
+      />
+      {nodeForm.fileUrl && (
+        <p className="mt-1.5 text-xs text-brand-muted truncate">
+          <span className="material-symbols-rounded align-middle mr-1" style={{ fontSize: "0.85rem" }}>
+            {isVideo ? "videocam" : "attach_file"}
+          </span>
+          {nodeForm.fileUrl}
         </p>
-      </div>
-      <div
-        className="border-2 border-dashed border-brand-primary/20 rounded-xl p-8 text-center cursor-not-allowed opacity-50"
-      >
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={selectedType === "VIDEO" ? "video/*" : "*/*"}
-          className="hidden"
-          disabled
-        />
-        <UploadContent selectedType={selectedType} nodeForm={nodeForm} />
-      </div>
-    </div>
-  );
-}
-
-function UploadContent({
-  selectedType,
-  nodeForm,
-}: {
-  selectedType: "FILE" | "VIDEO";
-  nodeForm: NodeForm;
-}) {
-  if (nodeForm.pendingFile) {
-    return (
-      <div className="flex flex-col items-center gap-2">
-        <span className="material-symbols-rounded text-brand-primary" style={{ fontSize: "2rem" }}>
-          {selectedType === "VIDEO" ? "videocam" : "attach_file"}
-        </span>
-        <p className="text-sm font-medium text-brand-text">{nodeForm.pendingFile.name}</p>
-        <p className="text-xs text-brand-muted">{(nodeForm.pendingFile.size / 1024).toFixed(0)} KB - click to replace</p>
-      </div>
-    );
-  }
-
-  if (nodeForm.fileUrl) {
-    return (
-      <div className="flex flex-col items-center gap-2">
-        <span className="material-symbols-rounded text-brand-primary" style={{ fontSize: "2rem" }}>
-          {selectedType === "VIDEO" ? "videocam" : "attach_file"}
-        </span>
-        <p className="text-xs text-brand-muted">
-          Current: <span className="text-brand-text">{nodeForm.fileUrl.split("/").pop()}</span>
+      )}
+      {!nodeForm.fileUrl && (
+        <p className="mt-1.5 text-xs text-brand-muted/50">
+          {isVideo
+            ? "Supports YouTube, Vimeo, or any direct .mp4 / .webm link."
+            : "Supports PDF, Word, images, or any publicly accessible file link."}
         </p>
-        <p className="text-xs text-brand-muted/60">Click to replace</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <span className="material-symbols-rounded text-brand-text/20" style={{ fontSize: "2.5rem" }}>
-        {selectedType === "VIDEO" ? "video_file" : "upload_file"}
-      </span>
-      <p className="text-sm text-brand-text/40">
-        Click to upload {selectedType === "VIDEO" ? "a video" : "a file"}
-      </p>
+      )}
     </div>
   );
 }

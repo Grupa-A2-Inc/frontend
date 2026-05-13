@@ -1,6 +1,6 @@
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
-
-const API_BASE = "https://api.adaptiveelearning.online";
+import { API_BASE } from "@/lib/config";
+import { ENDPOINTS } from "@/lib/api-endpoints";
 
 function getToken(): string {
   if (typeof window === "undefined") return "";
@@ -33,15 +33,15 @@ export interface CoursePayload {
 }
 
 export async function createCourse(payload: CoursePayload): Promise<{ id: string }> {
-  return editorFetch("/api/v1/courses", { method: "POST", body: JSON.stringify(payload) });
+  return editorFetch(ENDPOINTS.courses.create, { method: "POST", body: JSON.stringify(payload) });
 }
 
 export async function updateCourse(courseId: string, payload: CoursePayload): Promise<void> {
-  return editorFetch(`/api/v1/courses/${courseId}`, { method: "PUT", body: JSON.stringify(payload) });
+  return editorFetch(ENDPOINTS.courses.byId(courseId), { method: "PUT", body: JSON.stringify(payload) });
 }
 
 export async function fetchCourseForEditor(courseId: string): Promise<any> {
-  return editorFetch(`/api/v1/courses/${courseId}/full-view`);
+  return editorFetch(ENDPOINTS.courses.fullView(courseId));
 }
 
 // ---------- Chapters ----------
@@ -50,7 +50,7 @@ export async function createChapter(
   courseId: string,
   payload: { title: string },
 ): Promise<{ id: string }> {
-  return editorFetch(`/api/v1/courses/${courseId}/chapters`, {
+  return editorFetch(ENDPOINTS.courses.chapters(courseId), {
     method: "POST",
     headers: { "Content-Type": "text/plain" },
     body: payload.title,
@@ -61,14 +61,14 @@ export async function updateChapter(
   chapterId: string,
   payload: { title?: string; orderIndex?: number },
 ): Promise<void> {
-  return editorFetch(`/api/v1/chapters/${chapterId}`, {
+  return editorFetch(ENDPOINTS.chapters.byId(chapterId), {
     method: "PATCH",
     body: JSON.stringify(payload),
   });
 }
 
 export async function deleteChapter(chapterId: string): Promise<void> {
-  return editorFetch(`/api/v1/chapters/${chapterId}`, { method: "DELETE" });
+  return editorFetch(ENDPOINTS.chapters.byId(chapterId), { method: "DELETE" });
 }
 
 // ---------- Lessons ----------
@@ -77,7 +77,7 @@ export async function createLesson(
   chapterId: string,
   payload: { title: string; contentMarkdown?: string },
 ): Promise<{ id: string }> {
-  return editorFetch(`/api/v1/chapters/${chapterId}/lessons`, {
+  return editorFetch(ENDPOINTS.chapters.lessons(chapterId), {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -90,7 +90,7 @@ export async function updateLesson(
   const calls: Promise<unknown>[] = [];
   if (payload.title !== undefined) {
     calls.push(
-      editorFetch(`/api/v1/lessons/${lessonId}/metadata`, {
+      editorFetch(ENDPOINTS.lessons.metadata(lessonId), {
         method: "PATCH",
         body: JSON.stringify({ title: payload.title }),
       }),
@@ -98,7 +98,7 @@ export async function updateLesson(
   }
   if (payload.content !== undefined && payload.content !== "") {
     calls.push(
-      editorFetch(`/api/v1/lessons/${lessonId}/content`, {
+      editorFetch(ENDPOINTS.lessons.content(lessonId), {
         method: "PATCH",
         headers: { "Content-Type": "text/plain" },
         body: payload.content,
@@ -109,5 +109,37 @@ export async function updateLesson(
 }
 
 export async function deleteLesson(lessonId: string): Promise<void> {
-  return editorFetch(`/api/v1/lessons/${lessonId}`, { method: "DELETE" });
+  return editorFetch(ENDPOINTS.lessons.byId(lessonId), { method: "DELETE" });
+}
+
+// ---------- Resources ----------
+
+export async function createResource(
+  lessonId: string,
+  payload: { title: string; url: string },
+): Promise<{ id: string }> {
+  return editorFetch(ENDPOINTS.lessons.resources(lessonId), {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateResource(
+  lessonId: string,
+  resourceId: string,
+  payload: { title?: string; url?: string },
+): Promise<void> {
+  return editorFetch(ENDPOINTS.lessons.resourceById(lessonId, resourceId), {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteResource(
+  lessonId: string,
+  resourceId: string,
+): Promise<void> {
+  return editorFetch(ENDPOINTS.lessons.resourceById(lessonId, resourceId), {
+    method: "DELETE",
+  });
 }
