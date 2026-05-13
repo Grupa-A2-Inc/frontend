@@ -1,6 +1,6 @@
 import { CustomerSupportRequest, CustomerSupportResponse } from "./types";
 
-const AI_API_URL = "https://api.adaptiveelearning.online/ai/api/v1/chat/customer-support";
+const AI_API_URL = "https://ai.adaptiveelearning.online/ai/api/v1/chat/customer-support";
 const AI_API_KEY = process.env.NEXT_PUBLIC_AI_API_KEY ?? "cheia_pe_care_o_foloseste_aiul";
 
 export async function apiSendSupportMessage(req: CustomerSupportRequest): Promise<CustomerSupportResponse> {
