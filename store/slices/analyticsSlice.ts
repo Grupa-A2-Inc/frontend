@@ -1,93 +1,87 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { fetchWithAuth } from '@/lib/fetchWithAuth';
-import { EnrolledCourseDto, StudentCourseAnalyticsDto } from '@/lib/analytics/types';
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { StudentCourseStats, TeacherCatalogResponse } from "@/lib/analytics/types";
 
-interface AnalyticsState {
-  coursesProgress: EnrolledCourseDto[];
-  selectedCourseAnalytics: StudentCourseAnalyticsDto | null;
-  isLoading: boolean;
-  error: string | null;
-}
+const BASE_URL = "https://api.adaptiveelearning.online/api/v1";
 
-const initialState: AnalyticsState = {
-  coursesProgress: [],
-  selectedCourseAnalytics: null,
-  isLoading: false,
-  error: null,
-};
 
-export const fetchStudentProgress = createAsyncThunk(
-  'analytics/fetchStudentProgress',
-  async (studentId: string, { rejectWithValue, getState }) => {
+export const fetchStudentCourseStats = createAsyncThunk(
+  "analytics/fetchStudentCourseStats",
+  async (courseId: string, { getState, rejectWithValue }) => {
     try {
-        const state = getState() as any;
-        const token = state.auth.accessToken; 
-    
-        const baseUrl = "https://api.adaptiveelearning.online";
-        const url = `${baseUrl}/api/v1/students/${studentId}/courses-progress`;
+      const token = (getState() as any).auth.accessToken;
+      const response = await fetchWithAuth(`${BASE_URL}/students/me/courses/${courseId}/stats`, token);
       
-
-        const response = await fetchWithAuth(
-            url,           
-            token,
-            { method: 'GET' }
-        );
-      
-      if (!response.ok) {
-        return rejectWithValue(`Eroare ${response.status}`);
-      }
-      
-      return await response.json();
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+      if (!response.ok) throw new Error("Eroare la preluarea datelor studentului");
+      return await response.json() as StudentCourseStats;
+    } catch (err: any) {
+      return rejectWithValue(err.message);
     }
   }
 );
 
-export const fetchCourseAnalytics = createAsyncThunk(
-  'analytics/fetchCourseAnalytics',
-  async ({ studentId, courseId }: { studentId: string; courseId: string }, { rejectWithValue, getState }) => {
+
+export const fetchTeacherCatalog = createAsyncThunk(
+  "analytics/fetchTeacherCatalog",
+  async ({ courseId, page = 0 }: { courseId: string; page?: number }, { getState, rejectWithValue }) => {
     try {
-      const state = getState() as any;
-      const token = state.auth.accessToken; 
-
-      const baseUrl = "https://api.adaptiveelearning.online";
-      const url = `${baseUrl}/api/v1/students/${studentId}/courses/${courseId}/stats`;
-
-      const response = await fetchWithAuth(url, token, { method: 'GET' });
+      const token = (getState() as any).auth.accessToken;
+      const url = `${BASE_URL}/courses/${courseId}/analytics/student-averages?page=${page}&size=10`;
       
-      if (!response.ok) return rejectWithValue('Failed to fetch course stats');
-      return await response.json();
-    } catch (error: any) {
-      return rejectWithValue(error.message);
+      const response = await fetchWithAuth(url, token);
+      if (!response.ok) throw new Error("Eroare la preluarea catalogului");
+      
+      return await response.json() as TeacherCatalogResponse;
+    } catch (err: any) {
+      return rejectWithValue(err.message);
     }
   }
 );
 
 const analyticsSlice = createSlice({
-  name: 'analytics',
-  initialState,
+  name: "analytics",
+  initialState: {
+    studentStats: null as StudentCourseStats | null,
+    teacherCatalog: null as TeacherCatalogResponse | null,
+    loading: false,
+    error: null as string | null,
+  },
   reducers: {
-    clearSelectedAnalytics: (state) => {
-      state.selectedCourseAnalytics = null;
+    
+    clearAnalyticsError: (state) => {
+      state.error = null;
     }
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchStudentProgress.pending, (state) => { state.isLoading = true; })
-      .addCase(fetchStudentProgress.fulfilled, (state, action) => {
-        state.isLoading = false;
-        state.coursesProgress = action.payload;
+      
+      .addCase(fetchStudentCourseStats.pending, (state) => { 
+        state.loading = true; 
+        state.error = null;
       })
-      .addCase(fetchStudentProgress.rejected, (state, action) => {
-        state.isLoading = false;
+      .addCase(fetchStudentCourseStats.fulfilled, (state, action) => {
+        state.loading = false;
+        state.studentStats = action.payload;
+      })
+      .addCase(fetchStudentCourseStats.rejected, (state, action) => {
+        state.loading = false;
         state.error = action.payload as string;
       })
-      .addCase(fetchCourseAnalytics.fulfilled, (state, action) => {
-        state.selectedCourseAnalytics = action.payload;
+
+      .addCase(fetchTeacherCatalog.pending, (state) => { 
+        state.loading = true; 
+        state.error = null;
+      })
+      .addCase(fetchTeacherCatalog.fulfilled, (state, action) => {
+        state.loading = false;
+        state.teacherCatalog = action.payload;
+      })
+      .addCase(fetchTeacherCatalog.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       });
   },
 });
 
-export const { clearSelectedAnalytics } = analyticsSlice.actions;
+export const { clearAnalyticsError } = analyticsSlice.actions;
 export default analyticsSlice.reducer;

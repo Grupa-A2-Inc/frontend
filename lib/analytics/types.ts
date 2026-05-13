@@ -1,44 +1,28 @@
-export interface EnrolledCourseDto {
-  unrollmentId: string;
-  courseId: string;
-  courseTitle: string;
-  courseCategory: string;
-  enrolledAt: string;
-  progressPercent: number;
-  completedAt: string | null;
-}
 
-export interface DifficultyLessonDto {
+export interface DifficultyLesson {
   lessonId: string;
   lessonTitle: string;
-  studentScore: number;
-  classAverage: number;
-  difficultyGap: number;
-}
-
-export interface LastAttemptDto {
-  testId: string;
-  testTitle: string;
-  score: number;
-  passed: boolean;
-  attemptedAt: string;
-}
-
-export interface CourseStatsDto {
-  totalTestsCount: number;
-  passedTestsCount: number;
-  failedTestsCount: number;
-  maxScore: number;
   averageScore: number;
-  totalAttemptCount: number;
-  difficultyLessons: DifficultyLessonDto[];
-  lastAttempts: LastAttemptDto[];
 }
 
-export interface StudentCourseAnalyticsDto {
+export interface StudentCourseStats {
+  averageGrade: number;
+  bestGrade: number;
+  totalAttempts: number;
+  lastFiveGrades: number[];
+  difficultyLessons: DifficultyLesson[];
+}
+
+export interface StudentAverage {
   studentId: string;
   studentName: string;
-  courseId: string;
-  courseTitle: string;
-  stats: CourseStatsDto;
+  averageGrade: number;
+  testsPassed: number;
+  totalTests: number;
+}
+
+export interface TeacherCatalogResponse {
+  content: StudentAverage[];
+  totalPages: number;
+  totalElements: number;
 }

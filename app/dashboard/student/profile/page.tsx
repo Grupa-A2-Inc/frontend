@@ -1,7 +1,6 @@
 "use client";
 
 import { useAppSelector } from "@/store/hooks";
-import { StudentProgressDashboard } from '@/components/analytics/StudentProgressDashboard'; 
 
 function InfoRow({ label, value }: { label: string; value?: string }) {
   return (
@@ -93,12 +92,6 @@ export default function StudentProfilePage() {
           <InfoRow label="Address" value={user.organizationAddress}     />
         </div>
       </div>
-
-      {user?.id ? (
-        <StudentProgressDashboard studentId={user.id} />
-      ) : (
-        <p className="text-brand-muted italic p-4">Loading student profile...</p>
-      )}
 
     </div>
   );

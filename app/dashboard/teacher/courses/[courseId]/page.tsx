@@ -2,7 +2,7 @@
 
 import { use, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, BookOpen, GraduationCap } from "lucide-react";
+import { ArrowLeft, BookOpen, GraduationCap, BarChart3 } from "lucide-react"; 
 
 import AssignmentControls from "@/components/course-management/AssignmentControls";
 import ContentTree from "@/components/course-management/ContentTree";
@@ -55,6 +55,15 @@ export default function CourseManagementPage({ params }: Props) {
           </div>
 
           <div className="flex flex-wrap gap-3">
+            
+            <Link
+              href={`/dashboard/teacher/courses/${courseId}/analytics`}
+              className="flex items-center gap-2 rounded-xl border border-[#6366f1]/20 bg-[#6366f1]/10 px-4 py-2 text-sm font-semibold text-[#6366f1] transition hover:bg-[#6366f1]/20 shadow-sm"
+            >
+              <BarChart3 className="h-4 w-4" />
+              View Gradebook
+            </Link>
+
             <Link
               href={`/dashboard/teacher/courses/${courseId}/edit`}
               className="rounded-xl border border-brand-border bg-brand-card px-4 py-2 text-sm font-semibold text-brand-text shadow-sm transition hover:bg-brand-bg"
@@ -160,6 +169,24 @@ export default function CourseManagementPage({ params }: Props) {
         ) : (
           <div className="grid gap-6">
             <AssignmentControls courseId={courseId} />
+            
+            {/* O mică notificare vizuală în tab-ul de Students pentru acces rapid la catalog */}
+            <div className="flex items-center justify-between rounded-xl border border-brand-border bg-brand-card p-4 shadow-sm">
+               <div className="flex items-center gap-3">
+                  <BarChart3 className="h-5 w-5 text-brand-primary" />
+                  <div>
+                    <p className="text-sm font-bold">Full Class Analytics</p>
+                    <p className="text-xs text-brand-muted">View detailed student averages and passing rates.</p>
+                  </div>
+               </div>
+               <Link 
+                 href={`/dashboard/teacher/courses/${courseId}/analytics`}
+                 className="text-sm font-semibold text-brand-primary hover:underline"
+               >
+                 Open Gradebook
+               </Link>
+            </div>
+
             <StudentsByClass />
           </div>
         )}
