@@ -9,6 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { logout, User } from "@/store/slices/authSlice";
 import { useTheme } from "@/components/ThemeProvider";
+import CustomerSupportChat from "@/components/layout/CustomerSupportChat";
 
 // ---------- Types ----------
 
@@ -569,6 +570,7 @@ export default function SidebarWrapper({ children }: SidebarWrapperProps) {
       >
         {children}
       </motion.main>
+      <CustomerSupportChat/>
     </div>
   );
 }
