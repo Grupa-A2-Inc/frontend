@@ -4,7 +4,10 @@ import {
   SubmitTestPayload,
   TestResult,
   TakeTestSession,
+  TestAnalytics
 } from "./types";
+
+import { StudentProgress } from "./types";
 
 // Baza API
 const API_BASE = "https://api.adaptiveelearning.online";
@@ -60,20 +63,24 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 //
 
 export async function apiGenerateTest(payload: GenerateTestPayload): Promise<DraftQuestion[]> {
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+  const data = await apiFetch<any>(
+    "/ai/api/v1/generate",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
 
-  const mockQuestions: DraftQuestion[] = Array.from({ length: payload.questionCount }).map((_, i) => ({
-    id: `q-${Date.now()}-${i}`,
-    prompt: `[Generat de AI] Aceasta este o întrebare de test numărul ${i + 1}?`,
-    options: [
-      { id: `opt-${Date.now()}-A`, label: "Varianta A (Corectă)", isCorrect: true },
-      { id: `opt-${Date.now()}-B`, label: "Varianta B", isCorrect: false },
-      { id: `opt-${Date.now()}-C`, label: "Varianta C", isCorrect: false },
-      { id: `opt-${Date.now()}-D`, label: "Varianta D", isCorrect: false },
-    ],
+  // Transformăm răspunsul backend‑ului în DraftQuestion[]
+  return data.questions.map((q: any, index: number) => ({
+    id: `ai-${Date.now()}-${index}`,
+    prompt: q.content,
+    options: q.options.map((opt: any, i: number) => ({
+      id: `opt-${Date.now()}-${i}`,
+      label: opt.text,
+      isCorrect: opt.isCorrect ?? false,
+    })),
   }));
-
-  return mockQuestions;
 }
 
 //
@@ -83,21 +90,21 @@ export async function apiGenerateTest(payload: GenerateTestPayload): Promise<Dra
 //
 
 export async function apiSaveFinalTest(
-  lessonId: string, 
-  questions: DraftQuestion[]
+  lessonId: string,
+  questions: DraftQuestion[],
+  title: string,
+  timeLimitSec?: number
 ): Promise<{ testId: string }> {
-  
+
+  // 1. Creează testul fără întrebări
   const body = {
-    questions: questions.map((q) => ({
-      prompt: q.prompt,
-      options: q.options.map((opt) => ({
-        label: opt.label,
-        isCorrect: opt.isCorrect,
-      })),
-    })),
+    title,
+    description: "",
+    timeLimitSec: timeLimitSec ?? 0,
+    aiEnabled: false
   };
 
-  const data = await apiFetch<any>(
+  const test = await apiFetch<any>(
     `/api/v1/lessons/${lessonId}/test`,
     {
       method: "POST",
@@ -105,7 +112,27 @@ export async function apiSaveFinalTest(
     }
   );
 
-  return { testId: data?.id ?? data?.testId };
+  const testId = test.id;
+
+  // 2. Adaugă întrebările una câte una
+  for (const q of questions) {
+    await apiFetch(
+      `/api/v1/tests/${testId}/questions`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          content: q.prompt,
+          questionType: "SINGLE_CHOICE",
+          options: q.options.map((opt, index) => ({
+            text: opt.label,
+            displayOrder: index + 1
+          }))
+        })
+      }
+    );
+  }
+
+  return { testId };
 }
 
 //
@@ -126,26 +153,33 @@ export async function apiPublishTest(testId: string): Promise<void> {
 // --------------------------------------------------
 //
 
-export async function apiStartTestSession(testId: string): Promise<TakeTestSession> {
-  const data = await apiFetch<any>(
-    `/api/v1/tests/${testId}/start`, 
-    { method: "POST" }
-  );
+export async function apiStartTestSession(testId: string) {
+    const data = await apiFetch<any>(`/api/v1/tests/${testId}/start`, {
+        method: "POST",
+    });
 
-  return {
-    testSessionId: data.attemptId,
-    testId: data.testId,
-    title: data.title,
-    timeLimitSec: data.timeLimitSec,
-    questions: data.questions.map((q: any) => ({
-      id: q.id,
-      prompt: q.prompt,
-      options: q.options.map((opt: any) => ({
-        id: opt.id,
-        label: opt.label,
-      })),
-    })),
-  };
+    return {
+        attemptId: data.attemptId,
+        attemptNumber: data.attemptNumber,
+        startedAt: data.startedAt,
+        timeLimitSec: data.timeLimitSec,
+
+        // test info
+        testId: data.test.id,
+        title: data.test.title,
+
+        // questions
+        questions: data.questions.map((q: any) => ({
+            questionId: q.questionId,
+            questionType: q.questionType,
+            prompt: q.content,
+            options: q.options.map((opt: any) => ({
+                id: opt.optionId,
+                label: opt.text,
+                order: opt.displayOrder,
+            })),
+        })),
+    };
 }
 
 //
@@ -154,27 +188,32 @@ export async function apiStartTestSession(testId: string): Promise<TakeTestSessi
 // --------------------------------------------------
 //
 
-export async function apiSubmitTest(
-  attemptId: string,
-  payload: SubmitTestPayload
-): Promise<TestResult> {
-  const data = await apiFetch<any>(
-    `/api/v1/attempts/${attemptId}/submit`,
-    {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }
-  );
+export async function apiSubmitTest(attemptId: string, payload: any): Promise<TestResult> {
+    const formattedPayload = {
+        answers: payload.answers.map((a: any) => ({
+            questionId: Number(a.questionId),
+            selectedOptionIds: [Number(a.selectedOptionId)],
+            timeSpent: 0
+        }))
+    };
 
-  return {
-    attemptId: data.attemptId,
-    testId: data.testId,
-    score: data.score,
-    passed: data.passed,
-    totalQuestions: data.totalQuestions,
-    correctAnswers: data.correctAnswers,
-    questions: data.questions,
-  };
+    const data = await apiFetch<any>(
+        `/api/v1/attempts/${attemptId}/submit`,
+        {
+            method: "POST",
+            body: JSON.stringify(formattedPayload),
+        }
+    );
+
+    return {
+        attemptId: data.attemptId,
+        testId: data.testId,
+        score: data.score,
+        passed: data.passed,
+        totalQuestions: data.totalQuestions,
+        correctAnswers: data.correctAnswers,
+        questions: data.questions,
+    };
 }
 
 //
@@ -184,20 +223,23 @@ export async function apiSubmitTest(
 // --------------------------------------------------
 //
 
-export async function apiGetTestResult(testId: string): Promise<TestResult> {
-  const data = await apiFetch<any>(
-    `/api/v1/tests/${testId}/result`,
-    { method: "GET" }
-  );
+export async function apiGetTestResult(attemptId: string): Promise<TestResult> {
+  const data = await apiFetch<any>(`/api/v1/attempts/${attemptId}/result`);
 
   return {
     attemptId: data.attemptId,
     testId: data.testId,
-    score: data.score,
-    passed: data.passed,
-    totalQuestions: data.totalQuestions,
-    correctAnswers: data.correctAnswers,
-    questions: data.questions,
+    score: data.scorePercentage ?? data.score ?? 0,
+    passed: data.passed ?? false,
+    totalQuestions: data.questions.length,
+    correctAnswers: data.questions.filter((q: any) => q.isCorrect).length,
+    questions: data.questions.map((q: any) => ({
+      id: q.id,
+      prompt: q.content,
+      selectedOptionLabel: q.options.find((o: any) => o.isSelected)?.text ?? "",
+      correctOptionLabel: q.options.find((o: any) => o.isCorrect)?.text ?? "",
+      isCorrect: q.isCorrect
+    }))
   };
 }
 
@@ -208,11 +250,8 @@ export async function apiGetTestResult(testId: string): Promise<TestResult> {
 // --------------------------------------------------
 //
 
-export async function apiGetStudentProgress(): Promise<any[]> {
-  return apiFetch<any[]>(
-    `/api/v1/tests/progress`,
-    { method: "GET" }
-  );
+export async function apiGetStudentProgress(courseId: string): Promise<StudentProgress> {
+  return apiFetch<StudentProgress>(`/api/v1/courses/${courseId}/my-progress`);
 }
 
 //
@@ -221,6 +260,14 @@ export async function apiGetStudentProgress(): Promise<any[]> {
 // --------------------------------------------------
 //
 
-export async function apiGetTestAnalytics(testId: string) {
-  return apiFetch(`/api/v1/tests/${testId}/analytics/class-average`);
+export async function apiGetTestAnalytics(testId: string): Promise<TestAnalytics> {
+  return apiFetch<TestAnalytics>(`/api/v1/tests/${testId}/analytics/class-average`);
+}
+
+export async function apiGetTestsForCourse(courseId: string): Promise<any[]> {
+  return apiFetch<any[]>(`/api/v1/courses/${courseId}/tests`);
+}
+
+export async function apiGetMyAttempts(testId: string): Promise<any[]> {
+  return apiFetch<any[]>(`/api/v1/tests/${testId}/my-attempts`);
 }

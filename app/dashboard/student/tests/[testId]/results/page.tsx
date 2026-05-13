@@ -4,21 +4,20 @@ import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "@/store";
 import { fetchTestResultThunk, resetTestState } from "@/store/slices/takeTestSlice";
+import { use } from "react";
 
 // --------------------------------------------------
 // Pagina de rezultate pentru student după trimiterea testului
 // --------------------------------------------------
 
-export default function Page({ params }: { params: { testId: string } }) {
+export default function Page({ params }: { params: Promise<{ attemptId: string }> }) {
+  const { attemptId } = use(params);
   const dispatch = useDispatch<AppDispatch>();
   const { result, loading, error } = useSelector((state: RootState) => state.takeTest);
 
-  // --------------------------------------------------
-  // La încărcarea paginii, cerem rezultatul testului
-  // --------------------------------------------------
   useEffect(() => {
-    dispatch(fetchTestResultThunk(params.testId));
-  }, [dispatch, params.testId]);
+    dispatch(fetchTestResultThunk(attemptId));
+  }, [dispatch, attemptId]);
 
   // --------------------------------------------------
   // Stare de încărcare
@@ -35,7 +34,7 @@ export default function Page({ params }: { params: { testId: string } }) {
       <div className="text-center mt-10 text-red-600">
         <p>Error: {error}</p>
         <button
-          onClick={() => dispatch(fetchTestResultThunk(params.testId))}
+          onClick={() => dispatch(fetchTestResultThunk(attemptId))}
           className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
         >
           Retry

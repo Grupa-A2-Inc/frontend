@@ -180,3 +180,10 @@ export type CourseManagementState = {
     assignError: string | null;
     assignSuccess: boolean;
 };
+
+export interface OrganizationUser {
+    id: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+}

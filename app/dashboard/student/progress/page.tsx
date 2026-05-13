@@ -10,20 +10,18 @@ import Link from "next/link";
 // Pagina de progres a studentului (lista testelor date)
 // --------------------------------------------------
 
-export default function StudentProgress() {
+export default function StudentProgress({ params }: any) {
+  const { courseId } = params;
   const dispatch = useDispatch<AppDispatch>();
 
-  // Preluăm progresul studentului din Redux
   const { progress, loading, error } = useSelector(
     (state: RootState) => state.takeTest
   );
 
-  // --------------------------------------------------
-  // La încărcarea paginii, cerem progresul studentului
-  // --------------------------------------------------
   useEffect(() => {
-    dispatch(fetchStudentProgressThunk());
-  }, [dispatch]);
+    dispatch(fetchStudentProgressThunk(courseId));
+  }, [dispatch, courseId]);
+
 
   // --------------------------------------------------
   // Stare de încărcare
@@ -40,7 +38,7 @@ export default function StudentProgress() {
       <div className="text-center mt-10 text-red-600">
         <p>Error: {error}</p>
         <button
-          onClick={() => dispatch(fetchStudentProgressThunk())}
+          onClick={() => dispatch(fetchStudentProgressThunk(courseId))}
           className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
         >
           Retry
@@ -52,10 +50,10 @@ export default function StudentProgress() {
   // --------------------------------------------------
   // Dacă nu există progres
   // --------------------------------------------------
-  if (!progress || progress.length === 0) {
+  if (!progress) {
     return (
       <p className="text-center mt-10 text-gray-300">
-        You haven't completed any tests yet.
+        No progress found for this course.
       </p>
     );
   }
@@ -65,39 +63,35 @@ export default function StudentProgress() {
   // --------------------------------------------------
 
   return (
-    <div className="max-w-3xl mx-auto mt-10">
-      <h1 className="text-3xl font-bold text-center mb-8 text-white">
-        My Progress
-      </h1>
+    <div className="border rounded p-5 bg-gray-900 shadow text-white">
+      <h2 className="text-xl font-semibold mb-2">Course Progress</h2>
 
-      <div className="space-y-4">
-        {progress.map((test: any) => (
-          <div
-            key={test.testId}
-            className="border rounded p-5 bg-gray-900 shadow text-white"
-          >
-            <h2 className="text-xl font-semibold mb-2">{test.title}</h2>
+      <p className="text-gray-300">
+        Lessons visited: {progress.visitedLessons} / {progress.totalLessons}
+      </p>
 
-            <p className="text-gray-300">
-              Score: <span className="font-medium">{test.score}</span>
-            </p>
+      <p className="text-gray-300">
+        Progress: {progress.progressPercent}%
+      </p>
 
-            <p className="text-gray-300">
-              Correct: {test.correctAnswers} / {test.totalQuestions}
-            </p>
+      <p className="text-gray-400 text-sm mt-1">
+        Completed at: {new Date(progress.completedAt).toLocaleDateString()}
+      </p>
 
-            <p className="text-gray-400 text-sm mt-1">
-              Taken on: {new Date(test.date).toLocaleDateString()}
-            </p>
-
-            <Link
-              href={`/dashboard/student/tests/${test.testId}/results`}
-              className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              View Results
-            </Link>
-          </div>
-        ))}
+      <div className="mt-4">
+        <h3 className="text-lg font-semibold mb-2">Lessons</h3>
+        <ul className="space-y-2">
+          {progress.lessons.map((lesson) => (
+            <li key={lesson.lessonId} className="border-b border-gray-700 pb-2">
+              <p className="font-medium">{lesson.title}</p>
+              <p className="text-sm text-gray-400">
+                {lesson.visited
+                  ? `Visited on ${new Date(lesson.visitedAt).toLocaleDateString()}`
+                  : "Not visited yet"}
+              </p>
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );

@@ -12,12 +12,14 @@ import {
     prevQuestion,
     resetTestState,
 } from "@/store/slices/takeTestSlice";
+import { use } from "react";
 
 // --------------------------------------------------
 // Pagina principala pentru studentul care da testul
 // --------------------------------------------------
 
-export default function Page({ params }: { params: { testId: string } }) {
+export default function Page({ params }: any) {
+    const { testId } = params;
     const dispatch = useDispatch<AppDispatch>();
 
     const {
@@ -31,8 +33,8 @@ export default function Page({ params }: { params: { testId: string } }) {
 
     // Pornim testul imediat ce pagina se incarca
     useEffect(() => {
-        dispatch(startTestThunk(params.testId));
-    }, [dispatch, params.testId]);
+        dispatch(startTestThunk(testId));
+    }, [dispatch, testId]);
 
     // Daca inca se incarca
     if (loading && !session) {
@@ -45,7 +47,7 @@ export default function Page({ params }: { params: { testId: string } }) {
             <div className="text-center mt-10 text-red-600">
                 <p>Error: {error}</p>
                 <button
-                    onClick={() => dispatch(startTestThunk(params.testId))}
+                    onClick={() => dispatch(startTestThunk(testId))}
                     className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
                 >
                     Retry 
@@ -101,7 +103,7 @@ export default function Page({ params }: { params: { testId: string } }) {
 
         dispatch(
             submitTestThunk({
-                attemptId: session.testSessionId,
+                attemptId: session.attemptId,
                 payload,
             })
         );
@@ -128,9 +130,9 @@ export default function Page({ params }: { params: { testId: string } }) {
                     {question.options.map((opt) => (
                         <button
                             key={opt.id}
-                            onClick={() => handleSelectAnswer(question.id, opt.id)}
+                            onClick={() => handleSelectAnswer(String(question.questionId), String(opt.id))}
                             className={`block w-full text-left px-4 py-2 rounded border ${
-                                answers[question.id] === opt.id 
+                                answers[String(question.questionId)] === String(opt.id) 
                                 ? "bg-green-500 text-white"
                                 : "bg-gray-100 hover:bg-gray-200"
                             }`}

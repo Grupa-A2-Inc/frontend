@@ -15,6 +15,7 @@ import {
     StudentProgress,
     StudentAverage,
     ClassroomCourseResponse,
+    OrganizationUser,
 } from "./types";
 
 // ----- MAPPERS PENTRU CURS -----
@@ -139,5 +140,14 @@ export function mapClassroomCourseResponse(data: any): ClassroomCourseResponse {
         classroomId: data.classroomId,
         courseId: data.courseId,
         assignedAt: data.assignedAt,
+    };
+}
+
+export function mapOrganizationUser(data: any): OrganizationUser {
+    return {
+        id: data.id ?? data.userId ?? "",
+        email: data.email ?? "",
+        firstName: data.firstName ?? data.first_name ?? undefined,
+        lastName: data.lastName ?? data.last_name ?? undefined,
     };
 }

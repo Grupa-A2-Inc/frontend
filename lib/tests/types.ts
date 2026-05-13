@@ -7,11 +7,12 @@ export interface TestOption {
 export interface DraftQuestion {
   id: string;
   prompt: string;
-  options: TestOption[];
+  options: { id: string; label: string; isCorrect: boolean }[];
 }
 
 export interface GenerateTestPayload {
-  courseId: string;
+  topic: string;
+  difficulty: string;
   questionCount: number;
 }
 
@@ -20,18 +21,24 @@ export interface GenerateTestPayload {
 // --------------------------------------------------
 
 export interface TakeTestSession {
-  testSessionId: string;   // attemptId din backend
-  testId: string;
-  title: string;
-  timeLimitSec: number;
-  questions: {
-    id: string;
-    prompt: string;
-    options: {
-      id: string;
-      label: string;
+    attemptId: string;
+    attemptNumber: number;
+    startedAt: string;
+    timeLimitSec: number;
+
+    testId: string;
+    title: string;
+
+    questions: {
+        questionId: number;
+        questionType: string;
+        prompt: string;
+        options: {
+            id: number;
+            label: string;
+            order: number;
+        }[];
     }[];
-  }[];
 }
 
 // --------------------------------------------------
@@ -41,7 +48,7 @@ export interface TakeTestSession {
 export interface SubmitTestPayload {
   answers: {
     questionId: string;
-    optionId: string;
+    selectedOptionId: string;
   }[];
 }
 
@@ -63,4 +70,61 @@ export interface TestResult {
     correctOptionLabel: string;
     isCorrect: boolean;
   }[];
+}
+
+// --------------------------------------------------
+// Tip analytics test (profesor)
+// --------------------------------------------------
+
+export interface TestAnalytics {
+  testId: string;
+  title?: string;
+  attemptsCount: number;
+  averageScore: number;
+  passRate: number;
+  failureRate: number;
+  classAverage: number;
+  bestScore: number;
+  worstScore: number;
+  passedCount: number;
+  failedCount: number;
+}
+
+export interface AttemptReportDTO {
+  score: number;
+  totalQuestions: number;
+  correctCount: number;
+  questions: {
+    id: string;
+    prompt: string;
+    options: {
+      text: string;
+      isCorrect: boolean;
+      isSelected: boolean;
+    }[];
+  }[];
+}
+
+export interface StudentProgress {
+  courseId: string;
+  courseTitle: string;
+  completedLessons: number;
+  totalLessons: number;
+  progressPercentage: number;
+  lastActivityDate: string;
+}
+
+export interface LessonProgress {
+  lessonId: string;
+  title: string;
+  visited: boolean;
+  visitedAt: string;
+}
+
+export interface StudentProgress {
+  totalLessons: number;
+  visitedLessons: number;
+  progressPercent: number;
+  completedAt: string;
+  lessons: LessonProgress[];
 }
