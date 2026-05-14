@@ -51,5 +51,6 @@ html-report/
 
 swagger.json
 
-# Generated html report from Sprint 5 tests
-Sprint-5-Tests/html-report/
+Sprint-5-Tests/html-report/    
+
+S5-TESTS/html-report/
