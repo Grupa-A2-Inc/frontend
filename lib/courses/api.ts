@@ -136,7 +136,7 @@ export async function fetchTestsForLessons(
 // Aduce toate clasele din organizația utilizatorului
 // Endpoint: GET /api/v1/classrooms
 export async function fetchClassrooms(): Promise<Classroom[]> {
-    const data = await apiFetch<any>(ENDPOINTS.classrooms.list);
+    const data = await apiFetch<any>(`/api/v1/classrooms/me`);
     const list = Array.isArray(data) ? data : data?.content ?? [];
     return list.map(mapClassroom);
 }
