@@ -34,7 +34,7 @@ function StatusBadge({ status }: { status: string }) {
 
 export default function StudentProfilePage() {
   const user = useAppSelector((state) => state.auth.user);
-
+  
   if (!user) {
     return (
       <div className="w-full px-6 py-10">
@@ -92,6 +92,7 @@ export default function StudentProfilePage() {
           <InfoRow label="Address" value={user.organizationAddress}     />
         </div>
       </div>
+
     </div>
   );
 }
