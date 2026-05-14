@@ -6,10 +6,8 @@ import type {
   OrganizationSubscriptionStatus,
   SubscriptionPlan,
 } from "./types";
-
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://api.adaptiveelearning.online";
+import { API_BASE } from "@/lib/config";
+import { ENDPOINTS } from "@/lib/api-endpoints";
 
 function isSubscriptionPlan(value: unknown): value is SubscriptionPlan {
   if (!value || typeof value !== "object") return false;
@@ -45,9 +43,7 @@ function requireAccessToken(): string {
 }
 
 function getOrganizationSubscriptionUrl(organizationId: string): string {
-  return `${API_BASE}/api/v1/organizations/${encodeURIComponent(
-    organizationId
-  )}/subscription`;
+  return `${API_BASE}${ENDPOINTS.organizations.subscription(encodeURIComponent(organizationId))}`;
 }
 
 async function getErrorMessage(response: Response): Promise<string> {
@@ -78,7 +74,7 @@ export async function getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
     },
     cache: "no-store",
   };
-  const url = `${API_BASE}/api/v1/subscription-plans`;
+  const url = `${API_BASE}${ENDPOINTS.subscriptionPlans}`;
   const response = token
     ? await fetchWithAuth(url, token, request)
     : await fetch(url, request);

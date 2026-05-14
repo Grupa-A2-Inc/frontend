@@ -63,13 +63,25 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 //
 
 export async function apiGenerateTest(payload: GenerateTestPayload): Promise<DraftQuestion[]> {
-  const data = await apiFetch<any>(
-    "/ai/api/v1/generate",
-    {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }
-  );
+  const token = getAccessToken();
+  const response = await fetch("/api/ai-generate", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    if (response.status === 401)
+      throw new Error("Unauthorized. Please sign in again.");
+    if (response.status === 403)
+      throw new Error("You do not have permission.");
+    throw new Error(`Request failed with status ${response.status}`);
+  }
+
+  const data = await response.json();
 
   // Transformăm răspunsul backend‑ului în DraftQuestion[]
   return data.questions.map((q: any, index: number) => ({

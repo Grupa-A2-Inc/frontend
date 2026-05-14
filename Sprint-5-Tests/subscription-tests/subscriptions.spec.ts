@@ -2,9 +2,13 @@ import { expect, test } from '@playwright/test';
 import { seedAdminSession } from '../helpers/auth';
 import {
   mockCheckoutSession,
+  mockCheckoutError,
   mockCurrentSubscription,
+  mockCurrentSubscriptionError,
   mockPlanChange,
+  mockPlanChangeError,
   mockSubscriptionPlans,
+  mockSubscriptionPlansError,
   plans,
 } from '../helpers/subscriptionMocks';
 
@@ -26,7 +30,7 @@ test.describe('Sprint 5 - subscriptions', () => {
     await expect(page.getByRole('heading', { name: 'Scale' })).toBeVisible();
 
     await page.getByRole('button', { name: /select plan|choose plan/i }).first().click();
-    await expect(page.getByText(/^Pro$/).first()).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Selected' }).first()).toBeVisible();
   });
 
   test('settings page shows current subscription and plan limits', async ({ page }) => {
@@ -104,5 +108,67 @@ test.describe('Sprint 5 - subscriptions', () => {
     expect(patchPayload).toMatchObject({
       planId: plans[2].id,
     });
+  });
+
+  test('shows error when subscription plans fail to load', async ({ page }) => {
+    await mockSubscriptionPlansError(page);
+
+    await page.goto('/register');
+
+    await expect(page.getByText('Subscription request failed.')).toBeVisible();
+  });
+
+  test('shows error when current subscription fails to load', async ({ page }) => {
+    await seedAdminSession(page);
+    await mockSubscriptionPlans(page);
+    await mockCurrentSubscriptionError(page);
+
+    await page.goto('/dashboard/admin/settings');
+
+    await expect(page.getByText('No current subscription loaded.')).toBeVisible();
+    await expect(page.getByText('Subscription request failed.')).toBeVisible();
+  });
+
+  test('checkout shows error message when API fails', async ({ page }) => {
+    await seedAdminSession(page);
+    await mockSubscriptionPlans(page);
+    await mockCurrentSubscription(page, plans[1]);
+    await mockCheckoutError(page);
+
+    await page.goto('/dashboard/admin/settings');
+
+    await page.getByRole('button', { name: /select plan/i }).last().click();
+    await page.getByRole('button', { name: /^checkout/i }).click();
+    await page.getByRole('button', { name: /continue to stripe/i }).click();
+
+    await expect(page.getByText('Subscription request failed.')).toBeVisible();
+  });
+
+  test('change plan shows error message when API fails', async ({ page }) => {
+    await seedAdminSession(page);
+    await mockSubscriptionPlans(page);
+    await mockPlanChangeError(page);
+
+    await page.goto('/dashboard/admin/settings');
+
+    await page.getByRole('button', { name: /select plan/i }).last().click();
+    await page.getByRole('button', { name: /change plan/i }).click();
+    await page.getByRole('button', { name: /confirm change/i }).click();
+
+    await expect(page.getByText('Subscription request failed.')).toBeVisible();
+  });
+
+  test('changing to the current plan disables confirm and shows a warning', async ({ page }) => {
+    await seedAdminSession(page);
+    await mockSubscriptionPlans(page);
+    await mockCurrentSubscription(page, plans[1]); // Pro is the active plan
+
+    await page.goto('/dashboard/admin/settings');
+
+    // Pro is already selected (the component selects the current plan on load)
+    await page.getByRole('button', { name: /change plan/i }).click();
+
+    await expect(page.getByText(/this plan is already active/i)).toBeVisible();
+    await expect(page.getByRole('button', { name: /confirm change/i })).toBeDisabled();
   });
 });

@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { ChatMessage } from "@/lib/customer-support/types";
-import { apiSendSupportMessage } from "@/lib/customer-support/api"
+import { apiSendSupportMessage } from "@/lib/customer-support/api";
+import { logout } from "@/store/slices/authSlice";
 
 const MAX_HISTORY = 8;
 
@@ -69,6 +70,8 @@ const customerSupportSlice = createSlice({
       state.error = action.payload as string;
       state.messages.pop(); // scoate mesajul user-ului adaugat optimistic
     });
+
+    builder.addCase(logout.pending, () => initialState);
   },
 });
 

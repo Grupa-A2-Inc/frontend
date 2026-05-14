@@ -125,3 +125,40 @@ export async function mockPlanChange(page: Page, nextPlan = plans[2]) {
     await route.fallback();
   });
 }
+
+export async function mockSubscriptionPlansError(page: Page) {
+  await page.route('**/api/v1/subscription-plans', async (route) => {
+    await route.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
+  });
+}
+
+export async function mockCurrentSubscriptionError(page: Page) {
+  await page.route('**/api/v1/organizations/*/subscription', async (route) => {
+    if (route.request().method() === 'GET') {
+      await route.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
+      return;
+    }
+    await route.fallback();
+  });
+}
+
+export async function mockCheckoutError(page: Page) {
+  await page.route('**/api/v1/organizations/*/subscription/checkout', async (route) => {
+    await route.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
+  });
+}
+
+export async function mockPlanChangeError(page: Page) {
+  await page.route('**/api/v1/organizations/*/subscription', async (route) => {
+    const method = route.request().method();
+    if (method === 'GET') {
+      await json(route, subscriptionFor(plans[1]));
+      return;
+    }
+    if (method === 'PATCH') {
+      await route.fulfill({ status: 500, contentType: 'application/json', body: '{}' });
+      return;
+    }
+    await route.fallback();
+  });
+}

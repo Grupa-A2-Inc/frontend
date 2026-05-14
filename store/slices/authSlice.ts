@@ -1,7 +1,6 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
-
-// URL-ul backend-ului
-const API_URL = "https://api.adaptiveelearning.online";
+import { API_BASE } from "@/lib/config";
+import { ENDPOINTS } from "@/lib/api-endpoints";
 
 
 export type UserRole = "ORGANIZATION_ADMIN" | "TEACHER" | "STUDENT";
@@ -77,7 +76,7 @@ export const login = createAsyncThunk(
   ) => {
     try {
       // Trimitem request-ul catre backend
-      const response = await fetch(`${API_URL}/api/v1/auth/login`, {
+      const response = await fetch(`${API_BASE}${ENDPOINTS.auth.login}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -115,7 +114,7 @@ export const register = createAsyncThunk(
   async (payload: RegisterPayload, { rejectWithValue }) => {
     try {
       // Trimitem request-ul catre backend
-      const response = await fetch (`${API_URL}/api/v1/auth/register`, {
+      const response = await fetch(`${API_BASE}${ENDPOINTS.auth.register}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -150,7 +149,7 @@ export const setPassword = createAsyncThunk(
   "auth/setPassword",
   async (payload: { token: string; password: string; confirmPassword: string }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${API_URL}/api/v1/auth/set-password`, {
+      const response = await fetch(`${API_BASE}${ENDPOINTS.auth.setPassword}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -171,7 +170,7 @@ export const requestPasswordReset = createAsyncThunk(
   "auth/requestPasswordReset",
   async (email: string, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${API_URL}/api/v1/auth/password-reset/request`, {
+      const response = await fetch(`${API_BASE}${ENDPOINTS.auth.passwordResetRequest}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -192,7 +191,7 @@ export const confirmPasswordReset = createAsyncThunk(
   "auth/confirmPasswordReset",
   async (payload: { token: string; newPassword: string; confirmPassword: string }, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${API_URL}/api/v1/auth/password-reset/confirm`, {
+      const response = await fetch(`${API_BASE}${ENDPOINTS.auth.passwordResetConfirm}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -220,7 +219,7 @@ export const logout = createAsyncThunk(
     document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
     // Tell the backend to blacklist the token
-    await fetch(`${API_URL}/api/v1/auth/logout`, {
+    await fetch(`${API_BASE}${ENDPOINTS.auth.logout}`, {
       method: "POST",
       credentials: "include",
       headers: token ? { Authorization: `Bearer ${token}` } : {},
