@@ -1,5 +1,15 @@
 "use client";
 
+import type { CSSProperties } from "react";
+
+type SparkleStyle = CSSProperties & {
+  "--duration": string;
+};
+
+function sparkleStyle(duration: string): SparkleStyle {
+  return { "--duration": duration };
+}
+
 export default function Constellation() {
   return (
     <div className="absolute inset-0 z-0 pointer-events-none overflow-hidden">
@@ -46,18 +56,18 @@ export default function Constellation() {
           </g>
 
           {/* Stelele cu 4 colțuri */}
-          <use href="#sparkle" transform="translate(150, 200) scale(0.8)" className="star-point" style={{ "--duration": '3s' } as any} />
-          <use href="#sparkle" transform="translate(280, 320) scale(1.2)" className="star-point" style={{ "--duration": '4s' } as any} />
-          <use href="#sparkle" transform="translate(120, 480) scale(0.7)" className="star-point" style={{ "--duration": '2.5s' } as any} />
-          <use href="#sparkle" transform="translate(220, 650) scale(1.1)" className="star-point" style={{ "--duration": '5s' } as any} />
-          <use href="#sparkle" transform="translate(90, 800) scale(0.9)" className="star-point" style={{ "--duration": '3.5s' } as any} />
-          <use href="#sparkle" transform="translate(380, 250) scale(0.6)" className="star-point" style={{ "--duration": '4.5s' } as any} />
+          <use href="#sparkle" transform="translate(150, 200) scale(0.8)" className="star-point" style={sparkleStyle("3s")} />
+          <use href="#sparkle" transform="translate(280, 320) scale(1.2)" className="star-point" style={sparkleStyle("4s")} />
+          <use href="#sparkle" transform="translate(120, 480) scale(0.7)" className="star-point" style={sparkleStyle("2.5s")} />
+          <use href="#sparkle" transform="translate(220, 650) scale(1.1)" className="star-point" style={sparkleStyle("5s")} />
+          <use href="#sparkle" transform="translate(90, 800) scale(0.9)" className="star-point" style={sparkleStyle("3.5s")} />
+          <use href="#sparkle" transform="translate(380, 250) scale(0.6)" className="star-point" style={sparkleStyle("4.5s")} />
 
           {/* sclipiri */}
-          <use href="#sparkle" transform="translate(80, 350) scale(0.4)" className="star-point" style={{ "--duration": '2s' } as any} />
-          <use href="#sparkle" transform="translate(320, 550) scale(0.5)" className="star-point" style={{ "--duration": '6s' } as any} />
-          <use href="#sparkle" transform="translate(180, 780) scale(0.4)" className="star-point" style={{ "--duration": '3.2s' } as any} />
-          <use href="#sparkle" transform="translate(250, 150) scale(0.3)" className="star-point" style={{ "--duration": '5.5s' } as any} />
+          <use href="#sparkle" transform="translate(80, 350) scale(0.4)" className="star-point" style={sparkleStyle("2s")} />
+          <use href="#sparkle" transform="translate(320, 550) scale(0.5)" className="star-point" style={sparkleStyle("6s")} />
+          <use href="#sparkle" transform="translate(180, 780) scale(0.4)" className="star-point" style={sparkleStyle("3.2s")} />
+          <use href="#sparkle" transform="translate(250, 150) scale(0.3)" className="star-point" style={sparkleStyle("5.5s")} />
         </g>
       </svg>
     </div>

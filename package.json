@@ -5,8 +5,14 @@
   "scripts": {
     "build": "next build --webpack",
     "start": "next start",
+    "typegen": "next typegen",
+    "typecheck": "next typegen && tsc --noEmit",
     "lint": "eslint",
-    "dev": "next dev"
+    "dev": "next dev",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:sprint2": "playwright test -c \"Sprint-2&3-Tests/playwright.config.ts\"",
+    "test:e2e:sprint5": "playwright test -c Sprint-5-Tests/playwright.config.ts"
   },
   "dependencies": {
     "@ducanh2912/next-pwa": "^10.2.9",
@@ -27,7 +33,6 @@
   "devDependencies": {
     "@playwright/test": "^1.59.1",
     "@tailwindcss/postcss": "^4",
-    "@types/next": "^8.0.7",
     "@types/node": "^20",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",

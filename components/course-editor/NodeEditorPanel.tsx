@@ -45,12 +45,11 @@ export function NodeEditorPanel({
           {selectedType === "CHAPTER" && <ChapterFields nodeForm={nodeForm} onFormChange={onFormChange} />}
           {selectedType === "TEXT" && <TextFields nodeForm={nodeForm} onFormChange={onFormChange} />}
           {(selectedType === "FILE" || selectedType === "VIDEO") && (
-            <UploadField
-              selectedType={selectedType}
-              nodeForm={nodeForm}
-              fileInputRef={fileInputRef}
-              onFormChange={onFormChange}
-            />
+          <UploadField
+            selectedType={selectedType}
+            nodeForm={nodeForm}
+            fileInputRef={fileInputRef}
+          />
           )}
           {selectedType === "TEST" && <TestEditorLink selectedLeaf={selectedLeaf} courseId={courseId} />}
           <SaveNodeButton
@@ -147,12 +146,13 @@ function TextFields({ nodeForm, onFormChange }: NodeFormChildProps) {
   );
 }
 
-interface UploadFieldProps extends NodeFormChildProps {
+interface UploadFieldProps {
   selectedType: "FILE" | "VIDEO";
+  nodeForm: NodeForm;
   fileInputRef: RefObject<HTMLInputElement | null>;
 }
 
-function UploadField({ selectedType, nodeForm, fileInputRef, onFormChange }: UploadFieldProps) {
+function UploadField({ selectedType, nodeForm, fileInputRef }: UploadFieldProps) {
   return (
     <div className="mb-5">
       <label className="block text-xs font-medium text-brand-text/60 mb-1.5">

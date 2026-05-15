@@ -1,17 +1,24 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getApiErrorMessage } from "@/lib/api/errors";
 import {
-  createCourse,
-  updateCourse,
-  fetchCourseForEditor,
-  createChapter,
-  updateChapter,
-  deleteChapter,
-  createLesson,
-  updateLesson,
-  deleteLesson,
-} from "@/lib/courses/editorApi";
+  useCreateCourseMutation,
+  useGetCourseFullViewQuery,
+  usePatchCourseMutation,
+} from "@/store/api/coursesApi";
+import {
+  useCreateChapterMutation,
+  useDeleteChapterMutation,
+  useUpdateChapterMutation,
+} from "@/store/api/chaptersApi";
+import {
+  useCreateLessonMutation,
+  useDeleteLessonMutation,
+  useUpdateLessonContentMutation,
+  useUpdateLessonMetadataMutation,
+} from "@/store/api/lessonsApi";
 import { EMPTY_FORM, tempId } from "./helpers";
+import type { CourseFullView } from "@/types/domain/courses";
 import type {
   AddTarget,
   CourseEditorProps,
@@ -24,35 +31,25 @@ import type {
   SelectedRef,
 } from "./types";
 
-interface EditorCourseResponse {
-  title?: string | null;
-  description?: string | null;
-  category?: string | null;
-  expirationDate?: string | null;
-  status?: "DRAFT" | "PUBLISHED" | null;
-  chapters?: EditorChapterResponse[] | null;
-}
-
-interface EditorChapterResponse {
-  id: string;
-  title?: string | null;
-  description?: string | null;
-  orderIndex?: number | null;
-  lessons?: EditorLessonResponse[] | null;
-}
-
-interface EditorLessonResponse {
-  id: string;
-  testId?: string | null;
-  title?: string | null;
-  contentMarkdown?: string | null;
-  lessonResources?: { url?: string | null }[] | null;
-  orderIndex?: number | null;
-}
-
 export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const loadedCourseIdRef = useRef<string | null>(null);
+  const shouldLoadCourse = mode === "edit" && Boolean(courseId);
+  const {
+    data: editorCourse,
+    isLoading: isCourseLoading,
+    error: courseLoadError,
+  } = useGetCourseFullViewQuery(courseId ?? "", { skip: !shouldLoadCourse });
+  const [createCourseMutation] = useCreateCourseMutation();
+  const [patchCourseMutation] = usePatchCourseMutation();
+  const [createChapterMutation] = useCreateChapterMutation();
+  const [updateChapterMutation] = useUpdateChapterMutation();
+  const [deleteChapterMutation] = useDeleteChapterMutation();
+  const [createLessonMutation] = useCreateLessonMutation();
+  const [updateLessonMetadataMutation] = useUpdateLessonMetadataMutation();
+  const [updateLessonContentMutation] = useUpdateLessonContentMutation();
+  const [deleteLessonMutation] = useDeleteLessonMutation();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
@@ -79,21 +76,25 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
   const [saveOk, setSaveOk] = useState(false);
 
   useEffect(() => {
-    if (mode !== "edit" || !courseId) return;
+    if (!shouldLoadCourse) {
+      setLoading(false);
+      setLoadErr(null);
+      return;
+    }
 
-    setLoading(true);
-    fetchCourseForEditor(courseId)
-      .then((data: EditorCourseResponse) => {
-        setTitle(data.title ?? "");
-        setDescription(data.description ?? "");
-        setCategory(data.category ?? "");
-        setExpiration(data.expirationDate ? data.expirationDate.slice(0, 10) : "");
-        setStatus(data.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT");
-        setChapters(mapCourseToChapters(data));
-      })
-      .catch((error: Error) => setLoadErr(error.message))
-      .finally(() => setLoading(false));
-  }, [mode, courseId]);
+    setLoading(isCourseLoading);
+    setLoadErr(courseLoadError ? getApiErrorMessage(courseLoadError) : null);
+
+    if (!editorCourse || loadedCourseIdRef.current === courseId) return;
+
+    loadedCourseIdRef.current = courseId ?? null;
+    setTitle(editorCourse.title);
+    setDescription(editorCourse.description);
+    setCategory(editorCourse.category);
+    setExpiration("");
+    setStatus(editorCourse.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT");
+    setChapters(mapCourseToChapters(editorCourse));
+  }, [courseId, courseLoadError, editorCourse, isCourseLoading, shouldLoadCourse]);
 
   useEffect(() => {
     setSaveNodeErr(null);
@@ -158,7 +159,7 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
       setSaveNodeOk(true);
       setTimeout(() => setSaveNodeOk(false), 2000);
     } catch (error) {
-      setSaveNodeErr(error instanceof Error ? error.message : "Failed to save node");
+      setSaveNodeErr(getApiErrorMessage(error));
     } finally {
       setSavingNode(false);
     }
@@ -166,7 +167,11 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
 
   async function saveChapterNode(selection: Extract<SelectedRef, { kind: "chapter" }>) {
     if (!selection.id.startsWith("temp_") && mode === "edit") {
-      await updateChapter(selection.id, { title: nodeForm.title });
+      await updateChapterMutation({
+        chapterId: selection.id,
+        courseId,
+        data: { title: nodeForm.title },
+      }).unwrap();
     }
 
     setChapters(prev => prev.map(chapter =>
@@ -179,10 +184,19 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
   async function saveLeafNode(selection: Extract<SelectedRef, { kind: "leaf" }>) {
     if (!selection.id.startsWith("temp_") && mode === "edit") {
       const isText = selectedLeaf?.type === "TEXT";
-      await updateLesson(selection.id, {
-        title: nodeForm.title,
-        content: isText ? nodeForm.content : undefined,
-      });
+      await updateLessonMetadataMutation({
+        lessonId: selection.id,
+        courseId,
+        data: { title: nodeForm.title },
+      }).unwrap();
+
+      if (isText) {
+        await updateLessonContentMutation({
+          lessonId: selection.id,
+          courseId,
+          content: nodeForm.content,
+        }).unwrap();
+      }
     }
 
     setChapters(prev => prev.map(chapter =>
@@ -243,7 +257,7 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
 
       setAddTarget(null);
     } catch (error) {
-      setAddNodeErr(error instanceof Error ? error.message : "Failed to add node");
+      setAddNodeErr(getApiErrorMessage(error));
     } finally {
       setAddingNode(false);
     }
@@ -255,16 +269,21 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     leafType: Exclude<EditorNodeType, "CHAPTER">,
   ) {
     if (target.kind === "chapter") {
-      const result = await createChapter(courseId!, {
+      const result = await createChapterMutation({
+        courseId: courseId!,
         title: form.title.trim(),
-      });
-      addNodeToState(target, result.id, form, leafType);
+      }).unwrap();
+      addNodeToState(target, requireCreatedId(result.id, "chapter"), form, leafType);
     } else {
-      const result = await createLesson(target.parentId!, {
-        title: form.title.trim(),
-        ...(leafType === "TEXT" && form.content ? { contentMarkdown: form.content } : {}),
-      });
-      addNodeToState(target, result.id, form, leafType);
+      const result = await createLessonMutation({
+        chapterId: target.parentId!,
+        courseId,
+        data: {
+          title: form.title.trim(),
+          ...(leafType === "TEXT" && form.content ? { contentMarkdown: form.content } : {}),
+        },
+      }).unwrap();
+      addNodeToState(target, requireCreatedId(result.id, "lesson"), form, leafType);
     }
   }
 
@@ -320,7 +339,9 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     setDeleteTarget({
       label: `chapter "${chapter.title || "Untitled"}"`,
       onConfirm: async () => {
-        if (mode === "edit" && !chapter.id.startsWith("temp_")) await deleteChapter(chapter.id);
+        if (mode === "edit" && !chapter.id.startsWith("temp_")) {
+          await deleteChapterMutation({ chapterId: chapter.id, courseId }).unwrap();
+        }
         setChapters(prev => prev.filter(item => item.id !== chapter.id));
         if (selected?.kind === "chapter" && selected.id === chapter.id) setSelected(null);
         if (selected?.kind === "leaf" && selected.chapterId === chapter.id) setSelected(null);
@@ -333,7 +354,9 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     setDeleteTarget({
       label: `"${leaf.title || "Untitled"}"`,
       onConfirm: async () => {
-        if (mode === "edit" && !leaf.id.startsWith("temp_")) await deleteLesson(leaf.id);
+        if (mode === "edit" && !leaf.id.startsWith("temp_")) {
+          await deleteLessonMutation({ lessonId: leaf.id, courseId }).unwrap();
+        }
         setChapters(prev => prev.map(chapter =>
           chapter.id === chapterId
             ? { ...chapter, children: chapter.children.filter(item => item.id !== leaf.id) }
@@ -354,7 +377,7 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
       await deleteTarget.onConfirm();
       setDeleteTarget(null);
     } catch (error) {
-      setDeleteErr(error instanceof Error ? error.message : "Failed to delete");
+      setDeleteErr(getApiErrorMessage(error));
     } finally {
       setDeleting(false);
     }
@@ -409,18 +432,39 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
       };
 
       if (mode === "create") {
-        const created = await createCourse(meta);
-        await createCourseTree(created.id, chapters);
+        const created = await createCourseMutation({ ...meta, chapters: [] }).unwrap();
+        await createCourseTree(requireCreatedId(created.id, "course"), chapters);
         router.push(`/dashboard/teacher/courses/${created.id}`);
       } else {
-        await updateCourse(courseId!, meta);
+        await patchCourseMutation({ courseId: courseId!, data: meta }).unwrap();
         setSaveOk(true);
         setTimeout(() => setSaveOk(false), 3000);
       }
     } catch (error) {
-      setSaveErr(error instanceof Error ? error.message : "Failed to save");
+      setSaveErr(getApiErrorMessage(error));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function createCourseTree(createdCourseId: string, draftChapters: EditorChapter[]) {
+    for (const chapter of [...draftChapters].sort((a, b) => a.orderIndex - b.orderIndex)) {
+      const chapterResult = await createChapterMutation({
+        courseId: createdCourseId,
+        title: chapter.title,
+      }).unwrap();
+      const chapterId = requireCreatedId(chapterResult.id, "chapter");
+
+      for (const leaf of [...chapter.children].sort((a, b) => a.orderIndex - b.orderIndex)) {
+        await createLessonMutation({
+          chapterId,
+          courseId: createdCourseId,
+          data: {
+            title: leaf.title,
+            ...(leaf.type === "TEXT" && leaf.content ? { contentMarkdown: leaf.content } : {}),
+          },
+        }).unwrap();
+      }
     }
   }
 
@@ -481,18 +525,23 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
   };
 }
 
-function inferLessonType(lesson: EditorLessonResponse): Exclude<EditorNodeType, "CHAPTER"> {
+function requireCreatedId(id: string | undefined, entityName: string) {
+  if (!id) throw new Error(`Backend did not return a ${entityName} id.`);
+  return id;
+}
+
+function inferLessonType(lesson: CourseFullView["chapters"][number]["lessons"][number]): Exclude<EditorNodeType, "CHAPTER"> {
   if (lesson.testId) return "TEST";
   const firstUrl = lesson.lessonResources?.[0]?.url ?? "";
   if (firstUrl) return /\.(mp4|webm|ogg|mov|avi)(\?|$)/i.test(firstUrl) ? "VIDEO" : "FILE";
   return "TEXT";
 }
 
-function mapCourseToChapters(data: EditorCourseResponse): EditorChapter[] {
+function mapCourseToChapters(data: CourseFullView): EditorChapter[] {
   return (data.chapters ?? []).map((chapter, chapterIndex) => ({
     id: chapter.id,
     title: chapter.title ?? "",
-    description: chapter.description ?? "",
+    description: "",
     orderIndex: chapter.orderIndex ?? chapterIndex,
     children: (chapter.lessons ?? []).map((lesson, lessonIndex): EditorLeaf => ({
       id: lesson.id,
@@ -504,19 +553,4 @@ function mapCourseToChapters(data: EditorCourseResponse): EditorChapter[] {
       orderIndex: lesson.orderIndex ?? lessonIndex,
     })),
   }));
-}
-
-async function createCourseTree(courseId: string, chapters: EditorChapter[]) {
-  for (const chapter of [...chapters].sort((a, b) => a.orderIndex - b.orderIndex)) {
-    const chapterResult = await createChapter(courseId, {
-      title: chapter.title,
-    });
-
-    for (const leaf of [...chapter.children].sort((a, b) => a.orderIndex - b.orderIndex)) {
-      await createLesson(chapterResult.id, {
-        title: leaf.title,
-        ...(leaf.type === "TEXT" && leaf.content ? { contentMarkdown: leaf.content } : {}),
-      });
-    }
-  }
 }

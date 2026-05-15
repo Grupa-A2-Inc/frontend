@@ -2,7 +2,6 @@ import { configureStore } from "@reduxjs/toolkit";
 
 import { baseApi } from "@/store/api/baseApi";
 import authReducer from "@/store/slices/authSlice";
-import testDraftReducer from "@/store/slices/testDraftSlice";
 import adaptiveReducer from "@/store/slices/adaptiveSlice";
 import customerSupportReducer from "@/store/slices/customerSupportSlice";
 
@@ -10,7 +9,6 @@ export const store = configureStore({
   reducer: {
     [baseApi.reducerPath]: baseApi.reducer,
     auth: authReducer,
-    testDraft: testDraftReducer,
     adaptive: adaptiveReducer,
     customerSupport: customerSupportReducer,
   },

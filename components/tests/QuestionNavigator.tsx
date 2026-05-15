@@ -1,5 +1,5 @@
 "use client";
-import { DraftQuestion } from "@/lib/tests/types";
+import type { DraftQuestion } from "@/types/domain/tests";
 
 export default function QuestionNavigator({ questions }: { questions: DraftQuestion[] }) {
   if (questions.length === 0) return null;

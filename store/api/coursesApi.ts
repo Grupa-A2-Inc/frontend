@@ -137,9 +137,10 @@ export function normalizeCourseFullView(response: ResponseCourseFullViewDto): Co
     id: response.id ?? "",
     title: response.title ?? "Untitled course",
     description: response.description ?? "",
-    category: "General",
+    category: response.category ?? "General",
     status: response.status ?? "DRAFT",
     visibility: response.visibility ?? "PRIVATE",
+    createdBy: response.createdBy,
     createdAt: response.createdAt,
     chapters: (response.chapters ?? []).map(normalizeChapter).filter((chapter) => chapter.id),
   };
@@ -296,11 +297,18 @@ export const coursesApi = baseApi.injectEndpoints({
     getCourseFullView: builder.query<CourseFullView, string>({
       query: (courseId) => `/api/v1/courses/${courseId}/full-view`,
       transformResponse: normalizeCourseFullView,
-      providesTags: (_result, _error, courseId) => [
-        { type: "Course", id: courseId },
-        { type: "Chapter", id: `${courseId}:chapters` },
-        { type: "Lesson", id: `${courseId}:lessons` },
-      ],
+      providesTags: (result, _error, courseId) => {
+        const chapters = result?.chapters ?? [];
+        const lessons = chapters.flatMap((chapter) => chapter.lessons);
+
+        return [
+          { type: "Course", id: courseId },
+          { type: "Chapter", id: `${courseId}:chapters` },
+          { type: "Lesson", id: `${courseId}:lessons` },
+          ...chapters.map((chapter) => ({ type: "Chapter" as const, id: chapter.id })),
+          ...lessons.map((lesson) => ({ type: "Lesson" as const, id: lesson.id })),
+        ];
+      },
     }),
     getCourseStudentProgress: builder.query<StudentProgress[], string>({
       query: (courseId) => ({

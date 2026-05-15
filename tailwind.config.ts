@@ -20,10 +20,10 @@ const config: Config = {
       muted: "rgba(var(--text-secondary), <alpha-value>)",
       border: "rgba(var(--border), <alpha-value>)",
     },
-  },
+      },
       fontFamily: {
-        display: ["Nunito", "sans-serif"],
-        mono: ["Fira Code", "monospace"],
+        display: ["var(--font-nunito)", "Nunito", "sans-serif"],
+        mono: ["var(--font-fira-code)", "Fira Code", "monospace"],
       },
       animation: {
         'float': 'float 6s ease-in-out infinite',

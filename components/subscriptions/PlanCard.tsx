@@ -1,5 +1,5 @@
 import { Check, Crown, Users, GraduationCap, BookOpen } from "lucide-react";
-import type { SubscriptionPlan } from "@/lib/subscriptions/types";
+import type { SubscriptionPlan } from "@/types/domain/subscriptions";
 import { formatPrice } from "@/lib/subscriptions/utils";
 
 type PlanCardProps = {

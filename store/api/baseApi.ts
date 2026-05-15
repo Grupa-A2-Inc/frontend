@@ -6,10 +6,9 @@ import {
   type FetchBaseQueryError,
 } from "@reduxjs/toolkit/query/react";
 import { config } from "@/lib/config";
+import { SESSION_EXPIRED_EVENT } from "@/lib/auth/events";
 import { mapFetchBaseQueryError } from "@/lib/api/errors";
 import type { ApiError } from "@/types/api/errors";
-
-const SESSION_EXPIRED_EVENT = "auth:sessionExpired";
 
 type AuthAwareState = {
   auth?: {
@@ -76,4 +75,3 @@ export const baseApi = createApi({
   ],
   endpoints: () => ({}),
 });
-

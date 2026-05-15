@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle2, XCircle, CircleHelp, Circle } from "lucide-react";
-import { ClientExercise, ClientResult, ExerciseType } from "@/lib/adaptive/types";
+import type { ClientExercise, ClientResult, ExerciseType } from "@/types/domain/adaptive";
 
 interface TakeProps {
   mode: "take";
@@ -26,6 +26,7 @@ function isMulti(type: ExerciseType) {
 
 export default function AdaptiveQuestionCard(props: AdaptiveQuestionCardProps) {
   const { exercise, index, mode } = props;
+  const exerciseId = exercise.exerciseId ?? String(index);
 
   const cardBorderClass =
     mode === "review"
@@ -36,7 +37,7 @@ export default function AdaptiveQuestionCard(props: AdaptiveQuestionCardProps) {
 
   return (
     <div
-      id={`q-${exercise.exerciseId}`}
+      id={`q-${exerciseId}`}
       className={`bg-brand-card border border-brand-border rounded-xl p-6 shadow-sm transition-colors ${cardBorderClass}`}
     >
       <div className="flex items-center gap-4 mb-5">
@@ -64,10 +65,10 @@ export default function AdaptiveQuestionCard(props: AdaptiveQuestionCardProps) {
                     : "bg-red-400/10 text-red-400"
                 }`}
               >
-                {props.result.correct ? `+${props.result.score.toFixed(1)}` : "0"}
+                {props.result.correct ? `+${(props.result.score ?? 0).toFixed(1)}` : "0"}
               </span>
             )}
-            {mode === "take" && isMulti(exercise.type) && (
+            {mode === "take" && isMulti(exercise.type ?? "SINGLE_CHOICE") && (
               <span className="text-xs px-2 py-0.5 rounded bg-brand-primary/10 text-brand-primary font-medium">
                 Multiple answers
               </span>
@@ -78,14 +79,18 @@ export default function AdaptiveQuestionCard(props: AdaptiveQuestionCardProps) {
       </div>
 
       <div className="space-y-2.5">
-        {exercise.answers.map((answer) => {
+        {(exercise.answers ?? []).map((answer) => {
           if (mode === "take") {
             const selected = props.selectedAnswers.includes(answer);
-            const multi = isMulti(exercise.type);
+            const multi = isMulti(exercise.type ?? "SINGLE_CHOICE");
             return (
               <button
                 key={answer}
-                onClick={() => props.onAnswer(exercise.exerciseId, answer, multi)}
+                onClick={() => {
+                  if (exercise.exerciseId) {
+                    props.onAnswer(exercise.exerciseId, answer, multi);
+                  }
+                }}
                 className={`w-full text-left px-4 py-3 rounded-lg border transition-all text-sm font-medium flex items-center gap-3 ${
                   selected
                     ? "bg-brand-primary/15 border-brand-primary text-white"
@@ -107,8 +112,8 @@ export default function AdaptiveQuestionCard(props: AdaptiveQuestionCardProps) {
           }
 
           // review mode
-          const isCorrect = props.result.correctAnswers.includes(answer);
-          const wasSelected = props.result.givenAnswers.includes(answer);
+          const isCorrect = (props.result.correctAnswers ?? []).includes(answer);
+          const wasSelected = (props.result.givenAnswers ?? []).includes(answer);
 
           let className =
             "w-full text-left px-4 py-3 rounded-lg border text-sm font-medium flex items-center gap-3 ";

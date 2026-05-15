@@ -7,6 +7,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { resetSession } from "@/store/slices/adaptiveSlice";
 import AdaptiveQuestionCard from "@/components/adaptive/AdaptiveQuestionCard";
 import mlData from "@/public/ml-tests.json";
+import type { ClientResult } from "@/types/domain/adaptive";
 
 export default function AdaptiveResultsPage() {
   const router = useRouter();
@@ -32,17 +33,20 @@ export default function AdaptiveResultsPage() {
 
   const resultMap = useMemo(() => {
     if (!results) return {};
-    const map: Record<string, (typeof results.clientResults)[0]> = {};
-    for (const r of results.clientResults) {
-      map[r.mlExerciseId] = r;
+    const map: Record<string, ClientResult> = {};
+    for (const r of results.clientResults ?? []) {
+      if (r.mlExerciseId) {
+        map[r.mlExerciseId] = r;
+      }
     }
     return map;
   }, [results]);
 
   if (!results) return null;
 
-  const correctCount = results.clientResults.filter((r) => r.correct).length;
-  const totalCount = results.clientResults.length;
+  const clientResults = results.clientResults ?? [];
+  const correctCount = clientResults.filter((r) => r.correct).length;
+  const totalCount = clientResults.length;
   const pct = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
   const scoreColor =
     pct >= 80 ? "text-green-400" : pct >= 50 ? "text-yellow-400" : "text-red-400";
@@ -91,8 +95,7 @@ export default function AdaptiveResultsPage() {
           <p className="text-brand-muted text-sm font-medium mb-1">Your score</p>
           <p className={`text-5xl font-bold ${scoreColor}`}>{pct}%</p>
           <p className="text-brand-muted text-sm mt-2">
-            {results.clientResults.filter((r) => r.correct).length} out of{" "}
-            {results.clientResults.length} questions correct
+            {correctCount} out of {totalCount} questions correct
           </p>
           {results.feedbackSent && (
             <span className="inline-flex items-center gap-1.5 mt-3 text-xs bg-brand-primary/10 text-brand-primary px-3 py-1 rounded-full font-medium">
@@ -107,11 +110,11 @@ export default function AdaptiveResultsPage() {
       <h2 className="text-lg font-bold text-brand-text mb-4">Question review</h2>
       <div className="space-y-6">
         {exercises.map((ex, index) => {
-          const result = resultMap[ex.exerciseId];
+          const result = resultMap[ex.exerciseId ?? ""];
           if (!result) return null;
           return (
             <AdaptiveQuestionCard
-              key={ex.exerciseId}
+              key={ex.exerciseId ?? index}
               mode="review"
               exercise={ex}
               index={index}

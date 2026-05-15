@@ -8,7 +8,7 @@ import {
     useRegisterMutation,
 } from "@/store/api/authApi";
 import PlanSelector from "@/components/subscriptions/PlanSelector";
-import type { SubscriptionPlan } from "@/lib/subscriptions/types";
+import type { SubscriptionPlan } from "@/types/domain/subscriptions";
 
 export default function RegisterPage() {
     const router = useRouter();

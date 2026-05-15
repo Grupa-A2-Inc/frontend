@@ -2,8 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import PlanCard from "./PlanCard";
-import { getSubscriptionPlans } from "@/lib/subscriptions/api";
-import type { SubscriptionPlan } from "@/lib/subscriptions/types";
+import { getApiErrorMessage } from "@/lib/api/errors";
+import { useGetSubscriptionPlansQuery } from "@/store/api/subscriptionsApi";
+import type { SubscriptionPlan } from "@/types/domain/subscriptions";
 
 type PlanSelectorProps = {
   selectedPlanId?: string;
@@ -42,72 +43,39 @@ export default function PlanSelector({
   storageKey,
   compact = false,
 }: PlanSelectorProps) {
-  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const {
+    data: plans = [],
+    isLoading: loading,
+    error,
+  } = useGetSubscriptionPlansQuery();
   const [localSelectedId, setLocalSelectedId] = useState(selectedPlanId ?? "");
   const initializedRef = useRef(false);
+  const storedPlanId = useMemo(
+    () =>
+      storageKey && typeof window !== "undefined"
+        ? localStorage.getItem(storageKey) ?? ""
+        : "",
+    [storageKey],
+  );
+  const initialPlanId =
+    selectedPlanId ||
+    localSelectedId ||
+    storedPlanId ||
+    plans.find((plan) => plan.priceMonthly === 0)?.id ||
+    plans[0]?.id ||
+    "";
 
   useEffect(() => {
-    let mounted = true;
-
-    async function loadPlans() {
-      try {
-        const nextPlans = await getSubscriptionPlans();
-        if (!mounted) return;
-
-        setPlans(nextPlans);
-        setError("");
-      } catch (error) {
-        if (!mounted) return;
-        setError(
-          error instanceof Error
-            ? error.message
-            : "Subscription plans could not be loaded."
-        );
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    }
-
-    loadPlans();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  useEffect(() => {
-    if (plans.length === 0) return;
-
-    if (initializedRef.current) {
-      if (selectedPlanId) {
-        setLocalSelectedId(selectedPlanId);
-      }
-      return;
-    }
-
+    if (plans.length === 0 || initializedRef.current) return;
     initializedRef.current = true;
-
-    const storedPlanId = storageKey
-      ? localStorage.getItem(storageKey) ?? ""
-      : "";
-    const initialPlanId =
-      selectedPlanId ||
-      storedPlanId ||
-      plans.find((plan) => plan.priceMonthly === 0)?.id ||
-      plans[0]?.id ||
-      "";
-
-    setLocalSelectedId(initialPlanId);
 
     const initialPlan = plans.find((plan) => plan.id === initialPlanId);
     if (initialPlan) {
       onPlanSelect?.(initialPlan, { source: "initial" });
     }
-  }, [plans, selectedPlanId, storageKey, onPlanSelect]);
+  }, [initialPlanId, plans, onPlanSelect]);
 
-  const selectedId = selectedPlanId ?? localSelectedId;
+  const selectedId = initialPlanId;
 
   const sortedPlans = useMemo(
     () => [...plans].sort((a, b) => a.priceMonthly - b.priceMonthly),
@@ -129,7 +97,7 @@ export default function PlanSelector({
   if (error) {
     return (
       <div className="rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-300">
-        {error}
+        {getApiErrorMessage(error)}
       </div>
     );
   }

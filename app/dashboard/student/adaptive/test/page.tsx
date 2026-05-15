@@ -3,11 +3,13 @@
 import { useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, Send } from "lucide-react";
+import { getApiErrorMessage } from "@/lib/api/errors";
+import { useSubmitAdaptiveSessionMutation } from "@/store/api/adaptiveApi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   toggleAnswer,
   markSessionStarted,
-  submitSessionThunk,
+  setResults,
 } from "@/store/slices/adaptiveSlice";
 import AdaptiveQuestionCard from "@/components/adaptive/AdaptiveQuestionCard";
 import AdaptiveQuestionNavigator from "@/components/adaptive/AdaptiveQuestionNavigator";
@@ -23,9 +25,8 @@ export default function AdaptiveTestPage() {
     sessionStartedAt,
     selectedSubjectId,
     selectedTopicId,
-    isLoading,
-    error,
   } = useAppSelector((s) => s.adaptive);
+  const [submitAdaptiveSession, { isLoading, error }] = useSubmitAdaptiveSessionMutation();
 
   useEffect(() => {
     if (!sessionId) {
@@ -48,8 +49,8 @@ export default function AdaptiveTestPage() {
     () =>
       new Set(
         exercises
-          .filter((ex) => (studentAnswers[ex.exerciseId] ?? []).length > 0)
-          .map((ex) => ex.exerciseId)
+          .filter((ex) => ex.exerciseId && (studentAnswers[ex.exerciseId] ?? []).length > 0)
+          .map((ex) => ex.exerciseId ?? "")
       ),
     [exercises, studentAnswers]
   );
@@ -61,9 +62,24 @@ export default function AdaptiveTestPage() {
     const now = Date.now();
     const elapsed = sessionStartedAt ? (now - sessionStartedAt) / 1000 : 0;
     const timePerExercise = exercises.length > 0 ? elapsed / exercises.length : 0;
-    const result = await dispatch(submitSessionThunk({ sessionId, timePerExercise }));
-    if (submitSessionThunk.fulfilled.match(result)) {
+
+    try {
+      const result = await submitAdaptiveSession({
+        sessionId,
+        data: {
+          answers: exercises
+            .filter((exercise) => exercise.exerciseId)
+            .map((exercise) => ({
+              exerciseId: exercise.exerciseId,
+              givenAnswers: studentAnswers[exercise.exerciseId ?? ""] ?? [],
+              timeSpent: Math.round(timePerExercise),
+            })),
+        },
+      }).unwrap();
+      dispatch(setResults(result));
       router.push("/dashboard/student/adaptive/results");
+    } catch {
+      // RTK Query exposes the normalized error below.
     }
   }
 
@@ -118,7 +134,7 @@ export default function AdaptiveTestPage() {
 
       {error && (
         <div className="bg-red-400/10 border border-red-400/30 rounded-xl p-4 text-red-400 text-sm mb-6">
-          {error}
+          {getApiErrorMessage(error)}
         </div>
       )}
 
@@ -126,11 +142,11 @@ export default function AdaptiveTestPage() {
         <div className="lg:col-span-3 space-y-6">
           {exercises.map((ex, index) => (
             <AdaptiveQuestionCard
-              key={ex.exerciseId}
+              key={ex.exerciseId ?? index}
               mode="take"
               exercise={ex}
               index={index}
-              selectedAnswers={studentAnswers[ex.exerciseId] ?? []}
+              selectedAnswers={studentAnswers[ex.exerciseId ?? ""] ?? []}
               onAnswer={(exerciseId, answer, multi) =>
                 dispatch(toggleAnswer({ exerciseId, answer, multi }))
               }

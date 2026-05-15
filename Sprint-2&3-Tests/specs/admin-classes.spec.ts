@@ -1,7 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { loginAsAdmin } from '../helpers/auth';
 import { uniqueName, testData } from '../fixtures/test-data';
-import { acceptNextDialog } from '../helpers/ui';
 
 // --------------------------------------------------
 // SUITĂ DE TESTE: Admin - Classroom Management

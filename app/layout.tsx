@@ -1,15 +1,25 @@
-"use client";
-
 import "./globals.css";
-import StoreProvider from "@/store/StoreProvider";
-import { ThemeProvider } from "@/components/ThemeProvider";
-import AutoLogin from "./AutoLogin";
+import { Fira_Code, Nunito } from "next/font/google";
+import Providers from "./Providers";
+
+const nunito = Nunito({
+  subsets: ["latin"],
+  weight: ["600", "700", "800", "900"],
+  variable: "--font-nunito",
+  display: "swap",
+});
+
+const firaCode = Fira_Code({
+  subsets: ["latin"],
+  weight: ["400", "500", "700"],
+  variable: "--font-fira-code",
+  display: "swap",
+});
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className={`${nunito.variable} ${firaCode.variable}`}>
       <head>
-        <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Fira+Code:wght@400;500;700&display=swap" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
         <link rel="manifest" href="/manifest.json" />
         <meta name="theme-color" content="#5b6ad0" />
         <meta name="application-name" content="TestifyAI" />
@@ -20,12 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="apple-touch-icon" href="/logo_192x192.png" />
       </head>
       <body className="bg-brand-bg text-brand-text antialiased">
-        <StoreProvider>
-          <AutoLogin />
-          <ThemeProvider>
-            {children}
-          </ThemeProvider>
-        </StoreProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );

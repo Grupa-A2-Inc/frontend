@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   AlertCircle,
   CalendarDays,
@@ -11,15 +11,16 @@ import {
   X,
 } from "lucide-react";
 import PlanSelector from "./PlanSelector";
+import { getApiErrorMessage } from "@/lib/api/errors";
 import {
-  changeOrganizationSubscriptionPlan,
-  createSubscriptionCheckoutSession,
-  getCurrentOrganizationSubscription,
-} from "@/lib/subscriptions/api";
+  useChangeOrganizationSubscriptionPlanMutation,
+  useCreateSubscriptionCheckoutSessionMutation,
+  useGetCurrentOrganizationSubscriptionQuery,
+} from "@/store/api/subscriptionsApi";
 import type {
   OrganizationSubscriptionStatus,
   SubscriptionPlan,
-} from "@/lib/subscriptions/types";
+} from "@/types/domain/subscriptions";
 import { formatPrice } from "@/lib/subscriptions/utils";
 import { useAppSelector } from "@/store/hooks";
 
@@ -50,10 +51,6 @@ const SUBSCRIPTION_ACTIONS: SubscriptionAction[] = [
     icon: <RefreshCcw size={16} />,
   },
 ];
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Subscription action failed.";
-}
 
 function formatDate(value?: string): string {
   if (!value) return "-";
@@ -228,10 +225,16 @@ export default function SubscriptionSettingsSection() {
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(
     null
   );
-  const [currentSubscription, setCurrentSubscription] =
-    useState<OrganizationSubscriptionStatus | null>(null);
-  const [subscriptionLoading, setSubscriptionLoading] = useState(true);
-  const [subscriptionError, setSubscriptionError] = useState("");
+  const {
+    data: currentSubscription,
+    isLoading: subscriptionLoading,
+    error: subscriptionError,
+    refetch: refetchCurrentSubscription,
+  } = useGetCurrentOrganizationSubscriptionQuery(organizationId, {
+    skip: !organizationId,
+  });
+  const [createCheckoutSession] = useCreateSubscriptionCheckoutSessionMutation();
+  const [changeSubscriptionPlan] = useChangeOrganizationSubscriptionPlanMutation();
   const [planNotice, setPlanNotice] = useState(false);
   const [activeAction, setActiveAction] = useState<SubscriptionAction | null>(
     null
@@ -247,36 +250,6 @@ export default function SubscriptionSettingsSection() {
     if (!currentSubscription) return "No subscription";
     return `${currentSubscription.status}: ${currentSubscription.plan.displayName}`;
   }, [currentSubscription, subscriptionLoading]);
-
-  const loadCurrentSubscription = useCallback(async () => {
-    if (!organizationId) {
-      setSubscriptionLoading(false);
-      setSubscriptionError("Organization was not found. Please sign in again.");
-      return null;
-    }
-
-    setSubscriptionLoading(true);
-
-    try {
-      const subscription = await getCurrentOrganizationSubscription(
-        organizationId
-      );
-      setCurrentSubscription(subscription);
-      setSelectedPlan(subscription.plan);
-      setSubscriptionError("");
-      return subscription;
-    } catch (error) {
-      setCurrentSubscription(null);
-      setSubscriptionError(getErrorMessage(error));
-      return null;
-    } finally {
-      setSubscriptionLoading(false);
-    }
-  }, [organizationId]);
-
-  useEffect(() => {
-    loadCurrentSubscription();
-  }, [loadCurrentSubscription]);
 
   const handlePlanSelect = useCallback(
     (plan: SubscriptionPlan, meta: { source: "initial" | "user" }) => {
@@ -320,14 +293,14 @@ export default function SubscriptionSettingsSection() {
         const successUrl = `${window.location.origin}${returnPath}?subscription=success`;
         const cancelUrl = `${window.location.origin}${returnPath}?subscription=cancel`;
 
-        const session = await createSubscriptionCheckoutSession(
+        const session = await createCheckoutSession({
           organizationId,
-          {
+          data: {
             planId: selectedPlan.id,
             successUrl,
             cancelUrl,
-          }
-        );
+          },
+        }).unwrap();
 
         if (!session.checkoutUrl) {
           throw new Error("Checkout session did not include a checkout URL.");
@@ -339,8 +312,11 @@ export default function SubscriptionSettingsSection() {
         return;
       }
 
-      await changeOrganizationSubscriptionPlan(organizationId, selectedPlan.id);
-      const subscription = await loadCurrentSubscription();
+      await changeSubscriptionPlan({
+        organizationId,
+        planId: selectedPlan.id,
+      }).unwrap();
+      const subscription = await refetchCurrentSubscription().unwrap();
 
       if (subscription) {
         setSelectedPlan(subscription.plan);
@@ -350,7 +326,7 @@ export default function SubscriptionSettingsSection() {
       setActionMessage("Subscription plan changed successfully.");
     } catch (error) {
       setActionStatus("error");
-      setActionMessage(getErrorMessage(error));
+      setActionMessage(getApiErrorMessage(error));
     }
   }
 
@@ -410,7 +386,7 @@ export default function SubscriptionSettingsSection() {
               </p>
               {subscriptionError && (
                 <p className="mt-1 text-xs leading-relaxed text-brand-muted">
-                  {subscriptionError}
+                  {getApiErrorMessage(subscriptionError)}
                 </p>
               )}
             </div>
@@ -447,7 +423,7 @@ export default function SubscriptionSettingsSection() {
         <ActionModal
           action={activeAction}
           selectedPlan={selectedPlan}
-          currentSubscription={currentSubscription}
+          currentSubscription={currentSubscription ?? null}
           status={actionStatus}
           message={actionMessage}
           onClose={closeAction}

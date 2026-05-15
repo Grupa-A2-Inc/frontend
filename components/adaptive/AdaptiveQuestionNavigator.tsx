@@ -1,6 +1,6 @@
 "use client";
 
-import { ClientExercise } from "@/lib/adaptive/types";
+import type { ClientExercise } from "@/types/domain/adaptive";
 
 interface Props {
   exercises: ClientExercise[];
@@ -17,12 +17,13 @@ export default function AdaptiveQuestionNavigator({ exercises, answeredIds }: Pr
       </h4>
       <div className="grid grid-cols-4 gap-2">
         {exercises.map((ex, index) => {
-          const answered = answeredIds.has(ex.exerciseId);
+          const exerciseId = ex.exerciseId ?? String(index);
+          const answered = answeredIds.has(exerciseId);
           return (
             <button
-              key={ex.exerciseId}
+              key={exerciseId}
               onClick={() => {
-                const el = document.getElementById(`q-${ex.exerciseId}`);
+                const el = document.getElementById(`q-${exerciseId}`);
                 if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
               }}
               className={`h-10 rounded-lg border transition font-medium text-sm flex items-center justify-center ${

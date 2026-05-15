@@ -1,45 +1,40 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Bot, Loader2 } from "lucide-react";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { generateTestThunk } from "@/store/slices/testDraftSlice";
-import { fetchCourseFullView } from "@/lib/courses/api";
-import { Chapter } from "@/lib/courses/types";
+import { useGetCourseFullViewQuery } from "@/store/api/coursesApi";
 
-export default function TestSettingsPanel({ courseId }: { courseId: string }) {
-  const dispatch = useAppDispatch();
-  const { isGenerating } = useAppSelector((state) => state.testDraft);
-  
-  const [chapters, setChapters] = useState<Chapter[]>([]);
-  const [loadingChapters, setLoadingChapters] = useState(true);
-  
-  const [qCount, setQCount] = useState(5);
-  const [selectedNode, setSelectedNode] = useState("ALL"); 
+type Props = {
+  courseId: string;
+  selectedLessonId: string;
+  questionCount: number;
+  isGenerating: boolean;
+  onLessonChange: (lessonId: string) => void;
+  onQuestionCountChange: (count: number) => void;
+  onGenerate: () => void;
+};
 
-  // Incarcam capitolele reale ale cursului
+export default function TestSettingsPanel({
+  courseId,
+  selectedLessonId,
+  questionCount,
+  isGenerating,
+  onLessonChange,
+  onQuestionCountChange,
+  onGenerate,
+}: Props) {
+  const { data: course, isLoading: loadingChapters } = useGetCourseFullViewQuery(courseId);
+  const chapters = useMemo(() => course?.chapters ?? [], [course?.chapters]);
+  const lessons = useMemo(
+    () => chapters.flatMap((chapter) => chapter.lessons),
+    [chapters],
+  );
+
   useEffect(() => {
-    async function loadChapters() {
-      try {
-        const { chapters } = await fetchCourseFullView(courseId);
-        setChapters(chapters);
-      } catch (err) {
-        console.error("Failed to load chapters for test settings", err);
-      } finally {
-        setLoadingChapters(false);
-      }
+    if (!selectedLessonId && lessons[0]?.id) {
+      onLessonChange(lessons[0].id);
     }
-    loadChapters();
-  }, [courseId]);
-
-  const handleGenerate = () => {
-    const payload = {
-      courseId,
-      questionCount: qCount,
-      sourceNodes: selectedNode === "ALL" ? [] : [selectedNode]
-    };
-    dispatch(generateTestThunk(payload));
-  };
+  }, [lessons, onLessonChange, selectedLessonId]);
 
   return (
     <div className="bg-brand-card border border-brand-border p-6 rounded-xl shadow-sm">
@@ -48,14 +43,20 @@ export default function TestSettingsPanel({ courseId }: { courseId: string }) {
         <div className="flex-1 w-full">
           <label className="text-xs font-medium text-brand-muted mb-1 block uppercase tracking-wider">SOURCE CONTENT</label>
           <select 
-            value={selectedNode}
-            onChange={(e) => setSelectedNode(e.target.value)}
+            value={selectedLessonId}
+            onChange={(e) => onLessonChange(e.target.value)}
             disabled={loadingChapters || isGenerating}
             className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-brand-text focus:border-brand-primary outline-none transition disabled:opacity-60"
           >
-            <option value="ALL">{loadingChapters ? "Loading..." : "Entire Course"}</option>
-            {chapters.map((chap) => (
-              <option key={chap.id} value={chap.id}>Chapter: {chap.title}</option>
+            <option value="">{loadingChapters ? "Loading..." : "Select a lesson"}</option>
+            {chapters.map((chapter) => (
+              <optgroup key={chapter.id} label={chapter.title}>
+                {chapter.lessons.map((lesson) => (
+                  <option key={lesson.id} value={lesson.id}>
+                    {lesson.title}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </div>
@@ -64,8 +65,8 @@ export default function TestSettingsPanel({ courseId }: { courseId: string }) {
           <label className="text-xs font-medium text-brand-muted mb-1 block uppercase tracking-wider">QUESTIONS</label>
           <input 
             type="number" 
-            value={qCount}
-            onChange={(e) => setQCount(Number(e.target.value))}
+            value={questionCount}
+            onChange={(e) => onQuestionCountChange(clampQuestionCount(Number(e.target.value)))}
             min={1} max={50} 
             disabled={isGenerating}
             className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-brand-text focus:border-brand-primary outline-none transition disabled:opacity-60" 
@@ -73,8 +74,8 @@ export default function TestSettingsPanel({ courseId }: { courseId: string }) {
         </div>
 
         <button 
-          onClick={handleGenerate}
-          disabled={isGenerating || loadingChapters} 
+          onClick={onGenerate}
+          disabled={isGenerating || loadingChapters || !selectedLessonId}
           className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-2.5 rounded-lg flex items-center justify-center gap-2 font-medium disabled:opacity-50 transition"
         >
           {isGenerating ? <Loader2 className="animate-spin" size={20} /> : <Bot size={20} />}
@@ -83,4 +84,9 @@ export default function TestSettingsPanel({ courseId }: { courseId: string }) {
       </div>
     </div>
   );
+}
+
+function clampQuestionCount(value: number) {
+  if (!Number.isFinite(value)) return 1;
+  return Math.min(50, Math.max(1, value));
 }

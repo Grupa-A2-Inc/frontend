@@ -196,6 +196,17 @@ export type CreateChapterDTO = {
   orderIndex?: number;
 };
 
+export type ChapterDtoResponse = {
+  id?: Uuid;
+  title?: string;
+  orderIndex?: number;
+};
+
+export type ChapterDtoPost = {
+  title?: string;
+  orderIndex?: number;
+};
+
 export type ClassroomCourseDetailsResponse = {
   courseId?: Uuid;
   title?: string;
@@ -224,8 +235,10 @@ export type ResponseCourseFullViewDto = {
   id?: Uuid;
   title?: string;
   description?: string;
+  category?: string;
   status?: CourseStatus;
   visibility?: CourseVisibility;
+  createdBy?: Uuid;
   createdAt?: IsoDateTime;
   chapters?: ChapterFullViewDTO[];
 };
@@ -268,6 +281,23 @@ export type LessonDtoEntity = {
   updatedAt?: IsoDateTime;
 };
 
+export type LessonDtoPost = {
+  title?: string;
+  contentMarkdown?: string;
+};
+
+export type LessonDtoMetadata = {
+  title?: string;
+  orderIndex?: number;
+};
+
+export type CreateLessonResourceDto = {
+  title?: string;
+  url?: string;
+};
+
+export type UpdateLessonResourceDto = CreateLessonResourceDto;
+
 export type TestEntityDto = {
   id?: Uuid;
   lessonId?: Uuid;
@@ -279,6 +309,160 @@ export type TestEntityDto = {
   aiEnabled?: boolean;
   createdAt?: IsoDateTime;
   updatedAt?: IsoDateTime;
+};
+
+export type TestEditDto = {
+  title?: string;
+  description?: string;
+  timeLimitSec?: number;
+  aiEnabled?: boolean;
+};
+
+export type AiGenerateRequestDto = {
+  count?: number;
+};
+
+export type AiGenerateResponseDto = {
+  requestId?: Uuid;
+  status?: "PENDING" | "SUCCESS" | "FAILED" | "FALLBACK";
+  lessonId?: Uuid;
+};
+
+export type AiRequestStatusDto = {
+  requestId?: Uuid;
+  status?: "PENDING" | "SUCCESS" | "FAILED" | "FALLBACK";
+};
+
+export type InjectRequestDto = {
+  testIdOpt?: Uuid;
+};
+
+export type InjectionResultDto = {
+  testId?: Uuid;
+  testCreated?: boolean;
+  injectedCount?: number;
+  newTotalQuestions?: number;
+  lessonId?: Uuid;
+};
+
+export type QuestionType = "SINGLE_CHOICE" | "MULTI_CHOICE" | "TRUE_FALSE";
+
+export type OptionRequestDto = {
+  text?: string;
+  displayOrder?: number;
+  isCorrect?: boolean;
+};
+
+export type QuestionRequestDto = {
+  questionType?: QuestionType;
+  content?: string;
+  difficulty?: number;
+  options?: OptionRequestDto[];
+};
+
+export type OptionResponseDto = {
+  optionId?: number;
+  text?: string;
+  displayOrder?: number;
+  isCorrect?: boolean;
+};
+
+export type QuestionResponseDto = {
+  questionId?: number;
+  questionType?: QuestionType;
+  content?: string;
+  difficulty?: number;
+  options?: OptionResponseDto[];
+};
+
+export type OptionForStudentDto = {
+  optionId?: string | number;
+  text?: string;
+};
+
+export type QuestionForStudentDto = {
+  questionId?: number;
+  questionType?: QuestionType;
+  content?: string;
+  difficulty?: number;
+  options?: OptionForStudentDto[];
+};
+
+export type TestInfoForAttemptDto = {
+  id?: Uuid;
+  title?: string;
+};
+
+export type StartAttemptResponseDto = {
+  attemptId?: Uuid;
+  attemptNumber?: number;
+  startedAt?: IsoDateTime;
+  timeLimitSec?: number;
+  test?: TestInfoForAttemptDto;
+  questions?: QuestionForStudentDto[];
+};
+
+export type SubmitAnswerDto = {
+  questionId?: number;
+  selectedOptionIds?: number[];
+  timeSpent?: number;
+};
+
+export type SubmitRequestDto = {
+  answers?: SubmitAnswerDto[];
+};
+
+export type TestResultQuestionDto = {
+  questionId?: number;
+  questionType?: QuestionType;
+  content?: string;
+  selectedOptionIds?: number[];
+  correctOptionIds?: number[];
+  correct?: boolean;
+};
+
+export type TestResultDto = {
+  attemptId?: Uuid;
+  score?: number;
+  scorePercent?: number;
+  passed?: boolean;
+  completedAt?: IsoDateTime;
+  questions?: TestResultQuestionDto[];
+};
+
+export type QuestionForAttemptReportDTO = {
+  questionId?: number;
+  questionType?: QuestionType;
+  content?: string;
+  selectedOptionIds?: number[];
+  correctOptionIds?: number[];
+};
+
+export type AttemptReportDTO = {
+  attemptId?: Uuid;
+  score?: number;
+  scorePercent?: number;
+  passed?: boolean;
+  completedAt?: IsoDateTime;
+  question?: QuestionForAttemptReportDTO[];
+};
+
+export type QuestionOptionsDataDto = {
+  id?: number;
+  text?: string;
+  displayOrder?: number;
+};
+
+export type QuestionDataForUsersDto = {
+  id?: number;
+  subjectId?: number;
+  topicId?: number;
+  questionType?: QuestionType;
+  content?: string;
+  difficulty?: number;
+  isActive?: boolean;
+  options?: QuestionOptionsDataDto[];
+  correctAnswers?: QuestionOptionsDataDto[];
 };
 
 export type StudentProgressDto = {
@@ -303,6 +487,116 @@ export type StudentAverageDto = {
 
 export type PageStudentAverageDto = Page<StudentAverageDto>;
 
+export type LessonStatusDto = {
+  lessonId?: Uuid;
+  title?: string;
+  visited?: boolean;
+  visitedAt?: IsoDateTime;
+};
+
+export type ProgressWithLessonListDto = {
+  totalLessons?: number;
+  visitedLessons?: number;
+  progressPercent?: number;
+  completedAt?: IsoDateTime;
+  lessons?: LessonStatusDto[];
+};
+
+export type DifficultyLessonDto = {
+  lessonId?: Uuid;
+  lessonTitle?: string;
+  myBestScore?: number;
+  classAverage?: number;
+  gap?: number;
+};
+
+export type AttemptDetailsDto = {
+  attemptId?: Uuid;
+  testId?: Uuid;
+  testTitle?: string;
+  score?: number;
+  scorePercent?: number;
+  passed?: boolean;
+  completedAt?: IsoDateTime;
+};
+
+export type MySummaryDataDto = {
+  courseTitle?: string;
+  totalTestCount?: number;
+  totalTestDone?: number;
+  totalTestPassed?: number;
+  bestScore?: number;
+  lowestScore?: number;
+  averageScore?: number;
+  difficultyLessons?: DifficultyLessonDto[];
+  lastAttempts?: AttemptDetailsDto[];
+};
+
+export type AttemptStatusDTO = {
+  attemptID?: Uuid;
+  attemptNumber?: number;
+  score?: number;
+  scorePercent?: number;
+  passed?: boolean;
+  startedAt?: IsoDateTime;
+  status?: "IN_PROGRESS" | "DONE" | "EXPIRED";
+};
+
+export type MyTestStatsDto = {
+  testId?: Uuid;
+  testTitle?: string;
+  totalAttemptCount?: number;
+  bestScore?: number;
+  lowestScore?: number;
+  averageScore?: number;
+  lastScore?: number;
+  totalStudentCount?: number;
+  classAverage?: number;
+  classMedian?: number;
+  rank?: number;
+  percentile?: number;
+};
+
+export type ClassAverageDto = {
+  testId?: Uuid;
+  testTitle?: string;
+  totalAttempts?: number;
+  passedCount?: number;
+  failedCount?: number;
+  averageScore?: number;
+  minScore?: number;
+  maxScore?: number;
+  failureRate?: number;
+};
+
+export type FailureRateDTO = {
+  failureRate?: number;
+  threshold?: number;
+  alertTriggered?: boolean;
+};
+
+export type FailureRateChartPointDTO = {
+  date?: string;
+  dailyFailureRate?: number;
+};
+
+export type TestFailureRateChartDTO = {
+  failureRatePoints?: FailureRateChartPointDTO[];
+};
+
+export type ThresholdDTO = {
+  failureThreshold?: number;
+};
+
+export type AlertDTO = {
+  alertId?: Uuid;
+  testId?: Uuid;
+  professorId?: Uuid;
+  failureThreshold?: number;
+  currentFailureRate?: number;
+  isActive?: boolean;
+};
+
 export type AdaptiveStartRequestDto = {
   subjectId?: number;
   topicId?: number;
@@ -311,18 +605,15 @@ export type AdaptiveStartRequestDto = {
 
 export type AnswerDto = {
   exerciseId?: string;
-  selectedOptionId?: string;
+  givenAnswers?: string[];
+  timeSpent?: number;
 };
 
 export type ClientExerciseDto = {
   exerciseId?: string;
-  question?: string;
-  options?: OptionForStudentDto[];
-};
-
-export type OptionForStudentDto = {
-  optionId?: string;
   text?: string;
+  type?: QuestionType;
+  answers?: string[];
 };
 
 export type AdaptiveStartDto = {
@@ -336,10 +627,11 @@ export type AdaptiveSubmitRequestDto = {
 };
 
 export type ClientResultDto = {
-  exerciseId?: string;
+  mlExerciseId?: string;
   correct?: boolean;
   score?: number;
-  explanation?: string;
+  correctAnswers?: string[];
+  givenAnswers?: string[];
 };
 
 export type AdaptiveResultDto = {
@@ -369,4 +661,31 @@ export type OrganizationSubscriptionStatusResponse = {
   currentPeriodStart?: IsoDateTime;
   currentPeriodEnd?: IsoDateTime;
   plan?: SubscriptionPlanResponse;
+};
+
+export type SubscriptionProvider = "STRIPE" | "MANUAL" | "INTERNAL";
+
+export type OrganizationSubscriptionResponse = {
+  id?: Uuid;
+  organizationId?: Uuid;
+  subscriptionPlanId?: Uuid;
+  status?: "ACTIVE" | "TRIALING" | "PAST_DUE" | "CANCELED" | "EXPIRED";
+  provider?: SubscriptionProvider;
+  providerCustomerId?: string;
+  providerSubscriptionId?: string;
+  currentPeriodStart?: IsoDateTime;
+  currentPeriodEnd?: IsoDateTime;
+  createdAt?: IsoDateTime;
+  updatedAt?: IsoDateTime;
+};
+
+export type CreateCheckoutSessionRequest = {
+  planId: Uuid;
+  successUrl: string;
+  cancelUrl: string;
+};
+
+export type CheckoutSessionResponse = {
+  checkoutUrl?: string;
+  sessionId?: string;
 };

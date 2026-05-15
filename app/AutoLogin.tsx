@@ -4,9 +4,9 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/store/hooks";
 import { useLogoutMutation } from "@/store/api/authApi";
+import { SESSION_EXPIRED_EVENT } from "@/lib/auth/events";
 import { getPersistedAuthSession } from "@/lib/auth/session";
 import { setSession } from "@/store/slices/authSlice";
-import { SESSION_EXPIRED_EVENT } from "@/lib/fetchWithAuth";
 
 export default function AutoLogin() {
   const dispatch = useAppDispatch();

@@ -21,6 +21,7 @@ The rewrite must keep those flows recognizable. The priority is to clean communi
 - [04 Migration Phases](./04-migration-phases.md)
 - [05 Continuation Prompts](./05-continuation-prompts.md)
 - [06 Implementation Log](./06-implementation-log.md)
+- [07 Final Cleanup And Hardening Plan](./07-final-cleanup-and-hardening-plan.md)
 
 ## Rewrite Principles
 

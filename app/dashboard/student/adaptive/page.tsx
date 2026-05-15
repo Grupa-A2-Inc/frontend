@@ -4,19 +4,22 @@ import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { Brain, ChevronDown, Hash } from "lucide-react";
 import mlData from "@/public/ml-tests.json";
+import { getApiErrorMessage } from "@/lib/api/errors";
+import { useStartAdaptiveSessionMutation } from "@/store/api/adaptiveApi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   setSubject,
   setTopic,
   setQuestionCount,
-  startSessionThunk,
+  setSession,
 } from "@/store/slices/adaptiveSlice";
 
 export default function AdaptivePickerPage() {
   const router = useRouter();
   const dispatch = useAppDispatch();
-  const { selectedSubjectId, selectedTopicId, questionCount, isLoading, error } =
+  const { selectedSubjectId, selectedTopicId, questionCount } =
     useAppSelector((s) => s.adaptive);
+  const [startAdaptiveSession, { isLoading, error }] = useStartAdaptiveSessionMutation();
 
   const subjects = mlData.subjects;
   const topics = useMemo(
@@ -31,11 +34,17 @@ export default function AdaptivePickerPage() {
 
   async function handleStart() {
     if (!canStart || selectedSubjectId === null || selectedTopicId === null) return;
-    const result = await dispatch(
-      startSessionThunk({ subjectId: selectedSubjectId, topicId: selectedTopicId, count: questionCount })
-    );
-    if (startSessionThunk.fulfilled.match(result)) {
+
+    try {
+      const session = await startAdaptiveSession({
+        subjectId: selectedSubjectId,
+        topicId: selectedTopicId,
+        count: questionCount,
+      }).unwrap();
+      dispatch(setSession(session));
       router.push("/dashboard/student/adaptive/test");
+    } catch {
+      // RTK Query exposes the normalized error below.
     }
   }
 
@@ -145,7 +154,7 @@ export default function AdaptivePickerPage() {
 
           {error && (
             <div className="bg-red-400/10 border border-red-400/30 rounded-xl p-4 text-red-400 text-sm">
-              {error}
+              {getApiErrorMessage(error)}
             </div>
           )}
 

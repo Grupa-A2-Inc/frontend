@@ -3,8 +3,23 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { usePathname } from "next/navigation";
+import { getApiErrorMessage } from "@/lib/api/errors";
+import { useSendSupportMessageMutation } from "@/store/api/supportApi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { sendMessageThunk } from "@/store/slices/customerSupportSlice";
+import {
+  addAssistantMessage,
+  addUserMessage,
+  removeLastUserMessage,
+  setSupportError,
+} from "@/store/slices/customerSupportSlice";
+
+const MAX_HISTORY = 8;
+
+function getUserType(role: string | undefined): string {
+  if (!role) return "guest";
+  if (role === "ORGANIZATION_ADMIN") return "admin";
+  return role.toLowerCase();
+}
 
 export default function CustomerSupportChat() {
   const [open, setOpen]   = useState(false);
@@ -13,8 +28,8 @@ export default function CustomerSupportChat() {
   const dispatch = useAppDispatch();
   const pathname = usePathname();
   const messages = useAppSelector((s) => s.customerSupport.messages);
-  const isSending = useAppSelector((s) => s.customerSupport.isSending);
   const error = useAppSelector((s) => s.customerSupport.error);
+  const [sendSupportMessage, { isLoading: isSending }] = useSendSupportMessageMutation();
 
   const bottomRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -31,8 +46,27 @@ export default function CustomerSupportChat() {
   const handleSend = async () => {
     if (!input.trim() || isSending) return;
     const message = input.trim();
+    const history = messages.slice(-MAX_HISTORY);
+    const userType = getUserType(authUser?.role);
+
     setInput("");
-    dispatch(sendMessageThunk({ message, page: pathname ?? "unknown" }));
+    dispatch(addUserMessage(message));
+
+    try {
+      const response = await sendSupportMessage({
+        message,
+        history,
+        context: {
+          page: pathname ?? "unknown",
+          userType,
+        },
+      }).unwrap();
+
+      dispatch(addAssistantMessage(response.answer));
+    } catch (sendError) {
+      dispatch(removeLastUserMessage());
+      dispatch(setSupportError(getApiErrorMessage(sendError)));
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -70,7 +104,7 @@ export default function CustomerSupportChat() {
                 </div>
                 <div className="flex flex-col">
                   <span className="text-brand-text text-sm font-semibold leading-tight">TestifyAI Support</span>
-                  <span className="text-brand-muted text-xs leading-tight">We're here to help</span>
+                  <span className="text-brand-muted text-xs leading-tight">We are here to help</span>
                 </div>
               </div>
               <button
