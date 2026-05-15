@@ -18,7 +18,7 @@ export default function UsersHeader({ totalUsers, onAddUser, onImportCsv }: Prop
       const lines = text.split("\n").filter((line) => line.trim() !== "");
 
       const newUsers: User[] = lines.slice(1).map((line, index) => {
-        const [firstName, lastName, email, role] = line.split(",").map((s) => s.trim());
+      const [email, firstName, lastName, role] = line.split(",").map((s) => s.trim());
         return {
           id: String(Date.now() + index),
           firstName: firstName ?? "",
