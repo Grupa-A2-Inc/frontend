@@ -6,15 +6,17 @@ import {
 } from "./types";
 import { API_BASE } from "@/lib/config";
 import { ENDPOINTS } from "@/lib/api-endpoints";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 async function apiFetch<T>(path: string, token: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const headers = new Headers(options?.headers);
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const response = await fetchWithAuth(`${API_BASE}${path}`, token, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...(options?.headers ?? {}),
-    },
+    headers,
   });
 
   if (!response.ok) {

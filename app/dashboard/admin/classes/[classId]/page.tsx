@@ -13,6 +13,7 @@ import AddStudentModal from "@/components/class-management/AddStudentModal";
 import ConfirmRemoveModal from "@/components/class-management/ConfirmRemoveModal";
 import Toast from "@/components/class-ui/Toast";
 import Spinner from "@/components/class-ui/Spinner";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 const API_URL = "https://api.adaptiveelearning.online";
 
@@ -53,9 +54,9 @@ export default function ClassManagementPage({ params }: { params: Promise<{ clas
     if (!removeTarget || !cls) return;
     setRemoving(true);
     try {
-      const res = await fetch(`${API_URL}/api/v1/classrooms/${cls.id}/members`, {
+      const res = await fetchWithAuth(`${API_URL}/api/v1/classrooms/${cls.id}/members`, token, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ memberIds: [removeTarget.userId] }),
       });
       if (!res.ok) {
@@ -65,8 +66,11 @@ export default function ClassManagementPage({ params }: { params: Promise<{ clas
       setToast({ message: "Member removed.", type: "success" });
       setRemoveTarget(null);
       dispatch(fetchClassStudents({ token, classId }));
-    } catch (e: any) {
-      setToast({ message: e.message, type: "error" });
+    } catch (e) {
+      setToast({
+        message: e instanceof Error ? e.message : "Failed to remove member",
+        type: "error",
+      });
     } finally {
       setRemoving(false);
     }

@@ -3,8 +3,11 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAppDispatch } from "@/store/hooks";
-import { loadUserFromStorage, logout } from "@/store/slices/authSlice";
-import { SESSION_EXPIRED_EVENT } from "@/lib/fetchWithAuth";
+import { loadUserFromStorage, logout, setAccessToken } from "@/store/slices/authSlice";
+import {
+  ACCESS_TOKEN_REFRESHED_EVENT,
+  SESSION_EXPIRED_EVENT,
+} from "@/lib/fetchWithAuth";
 
 export default function AutoLogin() {
   const dispatch = useAppDispatch();
@@ -19,9 +22,25 @@ export default function AutoLogin() {
       router.push("/login");
     }
 
+    function handleAccessTokenRefreshed(event: Event) {
+      const accessToken = (event as CustomEvent<{ accessToken?: string }>).detail
+        ?.accessToken;
+
+      if (accessToken) {
+        dispatch(setAccessToken(accessToken));
+      }
+    }
+
     window.addEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
-    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
-  }, []);
+    window.addEventListener(ACCESS_TOKEN_REFRESHED_EVENT, handleAccessTokenRefreshed);
+    return () => {
+      window.removeEventListener(SESSION_EXPIRED_EVENT, handleSessionExpired);
+      window.removeEventListener(
+        ACCESS_TOKEN_REFRESHED_EVENT,
+        handleAccessTokenRefreshed,
+      );
+    };
+  }, [dispatch, router]);
 
   return null;
 }

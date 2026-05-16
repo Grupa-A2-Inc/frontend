@@ -30,33 +30,20 @@ import {
 
 import { API_BASE } from "@/lib/config";
 import { ENDPOINTS } from "@/lib/api-endpoints";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 // ----- HELPER FUNCTIONS -----
 
-// Returneaza token-ul de autentificare din localStorage
-function getAccessToken(): string | null {
-    if (typeof window === "undefined") 
-        return null;
-    return localStorage.getItem("accessToken");
-}
-
-// Construieste header-ele pentru request-urile autentificate
-function getAuthHeaders(): HeadersInit {
-    const token = getAccessToken();
-    return {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-}
-
 // Functie generica pentru fetch cu gestionarea erorilor
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-    const response = await fetch(`${API_BASE}${path}`, {
+    const headers = new Headers(options?.headers);
+    if (!headers.has("Content-Type")) {
+        headers.set("Content-Type", "application/json");
+    }
+
+    const response = await fetchWithAuth(`${API_BASE}${path}`, undefined, {
         ...options,
-        headers: {
-            ...getAuthHeaders(),
-            ...(options?.headers ?? {}),
-        },
+        headers,
     });
 
     // Gestionam erorile HTTP

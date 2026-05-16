@@ -1,6 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { API_BASE } from "@/lib/config";
 import { ENDPOINTS } from "@/lib/api-endpoints";
+import { fetchWithAuth, getXsrfHeaders } from "@/lib/fetchWithAuth";
 
 
 export type UserRole = "ORGANIZATION_ADMIN" | "TEACHER" | "STUDENT";
@@ -102,7 +103,7 @@ export const login = createAsyncThunk(
 
       // Returnam datele catre reducer
       return data;
-    } catch (err) {
+    } catch {
       return rejectWithValue("Network error");
     }
   }
@@ -138,7 +139,7 @@ export const register = createAsyncThunk(
 
       // Returnam datele catre reducer
       return data;
-    } catch (err) {
+    } catch {
       return rejectWithValue("Network error");
     }
   }
@@ -219,10 +220,11 @@ export const logout = createAsyncThunk(
     document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
     // Tell the backend to blacklist the token
-    await fetch(`${API_BASE}${ENDPOINTS.auth.logout}`, {
+    await fetchWithAuth(`${API_BASE}${ENDPOINTS.auth.logout}`, token, {
       method: "POST",
       credentials: "include",
-      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      headers: getXsrfHeaders(),
+      skipAuthRefresh: true,
     }).catch(() => {});
   }
 );
@@ -249,21 +251,9 @@ const authSlice = createSlice({
 
       if (!token || !user) return;
 
- 
-      try {
-        const base64url = token.split(".")[1];
-        const base64    = base64url.replace(/-/g, "+").replace(/_/g, "/");
-        const padded    = base64.padEnd(base64.length + (4 - (base64.length % 4)) % 4, "=");
-        const payload   = JSON.parse(atob(padded));
-        if (payload.exp && Date.now() / 1000 > payload.exp) {
-          localStorage.removeItem("accessToken");
-          localStorage.removeItem("user");
-          return;
-        }
-      } catch {
-        // If we can't decode the token at all, leave it alone rather than
-        // clearing the session — the backend will reject it if truly invalid.
-      }
+      // Access tokens are short-lived. Keep the local session shell even when
+      // the token is expired so the next authenticated request can refresh it
+      // through the HttpOnly refresh-token cookie.
 
       const parsedUser = JSON.parse(user);
 

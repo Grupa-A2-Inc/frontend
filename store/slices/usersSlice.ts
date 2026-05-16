@@ -1,4 +1,5 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 const API_URL = "https://api.adaptiveelearning.online";
 
@@ -32,6 +33,10 @@ export interface UpdateUserPayload {
   organizationId?: string;
 }
 
+type UserResponse = User & {
+  roleName?: UserRole;
+};
+
 interface UsersState {
   users: User[];
   loading: boolean;
@@ -56,9 +61,7 @@ export const fetchUsers = createAsyncThunk(
   "users/fetchUsers",
   async (token: string, { rejectWithValue }) => {
     try {
-      const response = await fetch(`${API_URL}/api/v1/users/organization`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await fetchWithAuth(`${API_URL}/api/v1/users/organization`, token);
       if (!response.ok) {
         const err = await response.json();
         return rejectWithValue(err.message || "Failed to load users");
@@ -79,11 +82,10 @@ export const createUser = createAsyncThunk(
   ) => {
     try {
       const { email, firstName, lastName, roleName, organizationId } = payload.data;
-      const response = await fetch(`${API_URL}/api/v1/users`, {
+      const response = await fetchWithAuth(`${API_URL}/api/v1/users`, payload.token, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${payload.token}`,
         },
         body: JSON.stringify({ email, firstName, lastName, roleName, organizationId }),
       });
@@ -106,11 +108,10 @@ export const updateUser = createAsyncThunk(
   ) => {
     try {
       const { firstName, lastName, email, organizationId } = payload.data;
-      const response = await fetch(`${API_URL}/api/v1/users/${payload.userId}`, {
+      const response = await fetchWithAuth(`${API_URL}/api/v1/users/${payload.userId}`, payload.token, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${payload.token}`,
         },
         body: JSON.stringify({ firstName, lastName, email, organizationId }),
       });
@@ -133,11 +134,10 @@ export const toggleUserStatus = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await fetch(`${API_URL}/api/v1/users/${payload.userId}/status`, {
+      const response = await fetchWithAuth(`${API_URL}/api/v1/users/${payload.userId}/status`, payload.token, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${payload.token}`,
         },
         body: JSON.stringify({ status: payload.status }),
       });
@@ -159,9 +159,8 @@ export const deleteUser = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await fetch(`${API_URL}/api/v1/users/${payload.userId}`, {
+      const response = await fetchWithAuth(`${API_URL}/api/v1/users/${payload.userId}`, payload.token, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${payload.token}` },
       });
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
@@ -195,7 +194,7 @@ const usersSlice = createSlice({
       })
       .addCase(fetchUsers.fulfilled, (state, action) => {
         state.loading = false;
-        state.users = action.payload.map((u: any) => ({
+        state.users = (action.payload as UserResponse[]).map((u) => ({
           ...u,
           role: u.roleName ?? u.role,
         }));

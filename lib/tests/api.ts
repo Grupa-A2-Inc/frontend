@@ -8,33 +8,96 @@ import {
 } from "./types";
 
 import { StudentProgress } from "./types";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 // Baza API
 const API_BASE = "https://api.adaptiveelearning.online";
 
-// Functie utilitara: ia token-ul din localStorage
-function getAccessToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem("accessToken");
-}
+type AiOptionDto = {
+  text?: string;
+  isCorrect?: boolean;
+};
 
-// Construim header-ele pentru request (inclusiv Authorization daca exista token)
-function getAuthHeaders(): HeadersInit {
-  const token = getAccessToken();
-  return {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+type AiQuestionDto = {
+  content?: string;
+  options?: AiOptionDto[];
+};
+
+type AiGenerateResponse = {
+  questions?: AiQuestionDto[];
+};
+
+type CreatedTestDto = {
+  id: string;
+};
+
+type StartTestOptionDto = {
+  optionId: number;
+  text: string;
+  displayOrder: number;
+};
+
+type StartTestQuestionDto = {
+  questionId: number;
+  questionType: string;
+  content: string;
+  options?: StartTestOptionDto[];
+};
+
+type StartTestDto = {
+  attemptId: string;
+  attemptNumber: number;
+  startedAt: string;
+  timeLimitSec: number;
+  test: {
+    id: string;
+    title: string;
   };
-}
+  questions?: StartTestQuestionDto[];
+};
+
+type SubmitResultDto = {
+  attemptId: string;
+  testId: string;
+  score: number;
+  passed: boolean;
+  totalQuestions: number;
+  correctAnswers: number;
+  questions: TestResult["questions"];
+};
+
+type ResultOptionDto = {
+  text?: string;
+  isCorrect?: boolean;
+  isSelected?: boolean;
+};
+
+type ResultQuestionDto = {
+  id?: string | number;
+  content?: string;
+  options?: ResultOptionDto[];
+  isCorrect?: boolean;
+};
+
+type AttemptResultDto = {
+  attemptId: string;
+  testId: string;
+  scorePercentage?: number;
+  score?: number;
+  passed?: boolean;
+  questions?: ResultQuestionDto[];
+};
 
 // Functie generica pentru request-uri catre backend
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE}${path}`, {
+  const headers = new Headers(options?.headers);
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const response = await fetchWithAuth(`${API_BASE}${path}`, undefined, {
     ...options,
-    headers: {
-      ...getAuthHeaders(),
-      ...(options?.headers ?? {}),
-    },
+    headers,
   });
 
   // Gestionam erorile standard
@@ -63,12 +126,10 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 //
 
 export async function apiGenerateTest(payload: GenerateTestPayload): Promise<DraftQuestion[]> {
-  const token = getAccessToken();
-  const response = await fetch("/api/ai-generate", {
+  const response = await fetchWithAuth("/api/ai-generate", undefined, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
     },
     body: JSON.stringify(payload),
   });
@@ -81,15 +142,15 @@ export async function apiGenerateTest(payload: GenerateTestPayload): Promise<Dra
     throw new Error(`Request failed with status ${response.status}`);
   }
 
-  const data = await response.json();
+  const data = (await response.json()) as AiGenerateResponse;
 
   // Transformăm răspunsul backend‑ului în DraftQuestion[]
-  return data.questions.map((q: any, index: number) => ({
+  return (data.questions ?? []).map((q, index) => ({
     id: `ai-${Date.now()}-${index}`,
-    prompt: q.content,
-    options: q.options.map((opt: any, i: number) => ({
+    prompt: q.content ?? "",
+    options: (q.options ?? []).map((opt, i) => ({
       id: `opt-${Date.now()}-${i}`,
-      label: opt.text,
+      label: opt.text ?? "",
       isCorrect: opt.isCorrect ?? false,
     })),
   }));
@@ -116,7 +177,7 @@ export async function apiSaveFinalTest(
     aiEnabled: false
   };
 
-  const test = await apiFetch<any>(
+  const test = await apiFetch<CreatedTestDto>(
     `/api/v1/lessons/${lessonId}/test`,
     {
       method: "POST",
@@ -165,8 +226,8 @@ export async function apiPublishTest(testId: string): Promise<void> {
 // --------------------------------------------------
 //
 
-export async function apiStartTestSession(testId: string) {
-    const data = await apiFetch<any>(`/api/v1/tests/${testId}/start`, {
+export async function apiStartTestSession(testId: string): Promise<TakeTestSession> {
+    const data = await apiFetch<StartTestDto>(`/api/v1/tests/${testId}/start`, {
         method: "POST",
     });
 
@@ -181,11 +242,11 @@ export async function apiStartTestSession(testId: string) {
         title: data.test.title,
 
         // questions
-        questions: data.questions.map((q: any) => ({
+        questions: (data.questions ?? []).map((q) => ({
             questionId: q.questionId,
             questionType: q.questionType,
             prompt: q.content,
-            options: q.options.map((opt: any) => ({
+            options: (q.options ?? []).map((opt) => ({
                 id: opt.optionId,
                 label: opt.text,
                 order: opt.displayOrder,
@@ -200,16 +261,16 @@ export async function apiStartTestSession(testId: string) {
 // --------------------------------------------------
 //
 
-export async function apiSubmitTest(attemptId: string, payload: any): Promise<TestResult> {
+export async function apiSubmitTest(attemptId: string, payload: SubmitTestPayload): Promise<TestResult> {
     const formattedPayload = {
-        answers: payload.answers.map((a: any) => ({
+        answers: payload.answers.map((a) => ({
             questionId: Number(a.questionId),
             selectedOptionIds: [Number(a.selectedOptionId)],
             timeSpent: 0
         }))
     };
 
-    const data = await apiFetch<any>(
+    const data = await apiFetch<SubmitResultDto>(
         `/api/v1/attempts/${attemptId}/submit`,
         {
             method: "POST",
@@ -236,21 +297,22 @@ export async function apiSubmitTest(attemptId: string, payload: any): Promise<Te
 //
 
 export async function apiGetTestResult(attemptId: string): Promise<TestResult> {
-  const data = await apiFetch<any>(`/api/v1/attempts/${attemptId}/result`);
+  const data = await apiFetch<AttemptResultDto>(`/api/v1/attempts/${attemptId}/result`);
+  const questions = data.questions ?? [];
 
   return {
     attemptId: data.attemptId,
     testId: data.testId,
     score: data.scorePercentage ?? data.score ?? 0,
     passed: data.passed ?? false,
-    totalQuestions: data.questions.length,
-    correctAnswers: data.questions.filter((q: any) => q.isCorrect).length,
-    questions: data.questions.map((q: any) => ({
-      id: q.id,
-      prompt: q.content,
-      selectedOptionLabel: q.options.find((o: any) => o.isSelected)?.text ?? "",
-      correctOptionLabel: q.options.find((o: any) => o.isCorrect)?.text ?? "",
-      isCorrect: q.isCorrect
+    totalQuestions: questions.length,
+    correctAnswers: questions.filter((q) => q.isCorrect).length,
+    questions: questions.map((q) => ({
+      id: String(q.id ?? ""),
+      prompt: q.content ?? "",
+      selectedOptionLabel: (q.options ?? []).find((o) => o.isSelected)?.text ?? "",
+      correctOptionLabel: (q.options ?? []).find((o) => o.isCorrect)?.text ?? "",
+      isCorrect: q.isCorrect ?? false
     }))
   };
 }
@@ -276,10 +338,10 @@ export async function apiGetTestAnalytics(testId: string): Promise<TestAnalytics
   return apiFetch<TestAnalytics>(`/api/v1/tests/${testId}/analytics/class-average`);
 }
 
-export async function apiGetTestsForCourse(courseId: string): Promise<any[]> {
-  return apiFetch<any[]>(`/api/v1/courses/${courseId}/tests`);
+export async function apiGetTestsForCourse(courseId: string): Promise<unknown[]> {
+  return apiFetch<unknown[]>(`/api/v1/courses/${courseId}/tests`);
 }
 
-export async function apiGetMyAttempts(testId: string): Promise<any[]> {
-  return apiFetch<any[]>(`/api/v1/tests/${testId}/my-attempts`);
+export async function apiGetMyAttempts(testId: string): Promise<unknown[]> {
+  return apiFetch<unknown[]>(`/api/v1/tests/${testId}/my-attempts`);
 }

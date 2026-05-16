@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { ClassMember } from "@/lib/classes/types";
 import Avatar from "@/components/class-ui/Avatar";
 import Spinner from "@/components/class-ui/Spinner";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 const API_URL = "https://api.adaptiveelearning.online";
 
@@ -34,21 +35,21 @@ export default function AddStudentModal({ token, classId, existingUserIds, roleF
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/v1/users/organization`, {
-          headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        const res = await fetchWithAuth(`${API_URL}/api/v1/users/organization`, token, {
+          headers: { "Content-Type": "application/json" },
         });
         if (!res.ok) throw new Error("Failed to load users");
         const data = await res.json();
         const arr: OrgUser[] = Array.isArray(data) ? data : (data.content ?? data.users ?? data.items ?? []);
         setAllStudents(arr.filter((u) => (u.roleName ?? u.role) === roleFilter));
-      } catch (e: any) {
-        setError(e.message);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to load users");
       } finally {
         setLoadingStudents(false);
       }
     };
     load();
-  }, [token]);
+  }, [token, roleFilter]);
 
   const filtered = allStudents.filter((u) => {
     if (existingUserIds.includes(u.id)) return false;
@@ -64,9 +65,9 @@ export default function AddStudentModal({ token, classId, existingUserIds, roleF
     setAdding(user.id);
     setError(null);
     try {
-      const res = await fetch(`${API_URL}/api/v1/classrooms/${classId}/members`, {
+      const res = await fetchWithAuth(`${API_URL}/api/v1/classrooms/${classId}/members`, token, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ memberIds: [user.id] }),
       });
       if (!res.ok) {
@@ -74,8 +75,8 @@ export default function AddStudentModal({ token, classId, existingUserIds, roleF
         throw new Error(err.message || "Failed to add member");
       }
       onAdded({ userId: user.id, email: user.email, membershipType: roleFilter });
-    } catch (e: any) {
-      setError(e.message);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to add member");
     } finally {
       setAdding(null);
     }
