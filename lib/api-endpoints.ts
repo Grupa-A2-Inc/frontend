@@ -50,9 +50,6 @@ export const ENDPOINTS = {
     chapters: (courseId: string) => `/api/v1/courses/${courseId}/chapters`,
     enroll: (courseId: string) => `/api/v1/courses/${courseId}/enroll`,
     unenroll: (courseId: string) => `/api/v1/courses/${courseId}/unenroll`,
-    enrollments: (courseId: string) => `/api/v1/courses/${courseId}/enrollments`,
-    enrollmentById: (courseId: string, studentId: string) =>
-      `/api/v1/courses/${courseId}/enrollments/${studentId}`,
     studentsProgress: (courseId: string) =>
       `/api/v1/courses/${courseId}/students-progress`,
     analyticsStudentAverages: (courseId: string) =>

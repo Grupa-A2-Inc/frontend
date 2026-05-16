@@ -1,12 +1,12 @@
 "use client";
 
-import { use,useCallback, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, Loader2, UserPlus } from "lucide-react";
 
 import AssignStudentsModal from "@/components/course-management/AssignStudentsModal";
 import {
-  fetchOrganizationStudents,
+  fetchTeacherStudentDirectory,
   fetchStudentsProgress,
 } from "@/lib/courses/api";
 import { OrganizationUser, StudentProgress } from "@/lib/courses/types";
@@ -24,40 +24,38 @@ export default function CourseStudentsPage({ params }: Props) {
   const { courseId } = use(params);
 
   const [students, setStudents] = useState<StudentProgress[]>([]);
-  const [organizationStudents, setOrganizationStudents] = useState<
+  const [studentDirectory, setStudentDirectory] = useState<
     OrganizationUser[]
   >([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-const loadStudents = useCallback(async () => {
+  const loadStudents = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      const [progressData, usersData] = await Promise.all([
+      const [progressData, directoryData] = await Promise.all([
         fetchStudentsProgress(courseId),
-        fetchOrganizationStudents(),
+        fetchTeacherStudentDirectory().catch(() => []),
       ]);
 
       setStudents(progressData);
-      setOrganizationStudents(usersData);
+      setStudentDirectory(directoryData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load students.");
     } finally {
       setLoading(false);
     }
   }, [courseId]);
-  
-  useEffect(() => {
-  loadStudents();
-}, [loadStudents]);
 
-  const enrolledStudentIds = students.map((student) => student.studentId);
+  useEffect(() => {
+    loadStudents();
+  }, [loadStudents]);
 
   const studentsWithDetails: StudentWithDetails[] = students.map((student) => {
-    const user = organizationStudents.find(
+    const user = studentDirectory.find(
       (orgStudent) => orgStudent.id === student.studentId
     );
 
@@ -142,7 +140,6 @@ const loadStudents = useCallback(async () => {
         {modalOpen && (
           <AssignStudentsModal
             courseId={courseId}
-            enrolledStudentIds={enrolledStudentIds}
             onChanged={loadStudents}
             onClose={() => setModalOpen(false)}
           />

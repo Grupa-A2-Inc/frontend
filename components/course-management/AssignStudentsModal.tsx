@@ -1,45 +1,31 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Search, UserMinus, UserPlus, X } from "lucide-react";
+import { CheckCircle2, Loader2, Search, Users, X } from "lucide-react";
 
 import {
-  apiEnrollStudent,
-  apiUnenrollStudent,
-  fetchOrganizationStudents,
+  assignCourseToClassroom,
+  fetchClassrooms,
 } from "@/lib/courses/api";
-import { OrganizationUser } from "@/lib/courses/types";
+import { Classroom } from "@/lib/courses/types";
 
 type Props = {
   courseId: string;
-  enrolledStudentIds: string[];
   onChanged: () => void;
   onClose: () => void;
 };
 
-function getName(user: OrganizationUser) {
-  const name = `${user.firstName ?? ""} ${user.lastName ?? ""}`.trim();
-  return name || user.email;
-}
-
 export default function AssignStudentsModal({
   courseId,
-  enrolledStudentIds,
   onChanged,
   onClose,
 }: Props) {
-  const [students, setStudents] = useState<OrganizationUser[]>([]);
+  const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [query, setQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [workingId, setWorkingId] = useState<string | null>(null);
-  const [localEnrolledIds, setLocalEnrolledIds] = useState(
-    () => new Set(enrolledStudentIds),
-  );
+  const [assignedId, setAssignedId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setLocalEnrolledIds(new Set(enrolledStudentIds));
-  }, [enrolledStudentIds]);
 
   useEffect(() => {
     let active = true;
@@ -48,11 +34,11 @@ export default function AssignStudentsModal({
       try {
         setLoading(true);
         setError(null);
-        const data = await fetchOrganizationStudents();
-        if (active) setStudents(data);
+        const data = await fetchClassrooms();
+        if (active) setClassrooms(data);
       } catch (err) {
         if (active) {
-          setError(err instanceof Error ? err.message : "Failed to load students.");
+          setError(err instanceof Error ? err.message : "Failed to load classrooms.");
         }
       } finally {
         if (active) setLoading(false);
@@ -67,38 +53,31 @@ export default function AssignStudentsModal({
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return students;
+    if (!q) return classrooms;
 
-    return students.filter((student) => {
-      const name = getName(student).toLowerCase();
-      return name.includes(q) || student.email.toLowerCase().includes(q);
+    return classrooms.filter((classroom) => {
+      const description = classroom.description?.toLowerCase() ?? "";
+      return (
+        classroom.name.toLowerCase().includes(q) ||
+        description.includes(q)
+      );
     });
-  }, [query, students]);
+  }, [query, classrooms]);
 
-  async function handleToggle(student: OrganizationUser) {
-    const isEnrolled = localEnrolledIds.has(student.id);
-    setWorkingId(student.id);
+  async function handleAssign(classroom: Classroom) {
+    setWorkingId(classroom.id);
+    setAssignedId(null);
     setError(null);
 
     try {
-      if (isEnrolled) {
-        await apiUnenrollStudent(courseId, student.id);
-        setLocalEnrolledIds((prev) => {
-          const next = new Set(prev);
-          next.delete(student.id);
-          return next;
-        });
-      } else {
-        await apiEnrollStudent(courseId, student.id);
-        setLocalEnrolledIds((prev) => new Set(prev).add(student.id));
-      }
-
+      await assignCourseToClassroom(classroom.id, courseId);
+      setAssignedId(classroom.id);
       onChanged();
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
-          : "Student assignment failed. Check that the backend supports teacher-managed enrollment.",
+          : "Classroom assignment failed.",
       );
     } finally {
       setWorkingId(null);
@@ -112,7 +91,7 @@ export default function AssignStudentsModal({
           <div>
             <h3 className="text-lg font-semibold text-brand-text">Assign students</h3>
             <p className="mt-1 text-sm text-brand-muted">
-              Enroll or remove individual students for this course.
+              Assign this course to one of your classrooms.
             </p>
           </div>
 
@@ -133,7 +112,7 @@ export default function AssignStudentsModal({
               autoFocus
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Search students..."
+              placeholder="Search classrooms..."
               className="h-11 w-full rounded-xl border border-brand-border bg-brand-bg pl-9 pr-3 text-sm text-brand-text outline-none placeholder:text-brand-muted focus:border-brand-primary"
             />
           </div>
@@ -149,48 +128,50 @@ export default function AssignStudentsModal({
           {loading ? (
             <div className="flex items-center justify-center py-12 text-brand-muted">
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Loading students...
+              Loading classrooms...
             </div>
           ) : filtered.length === 0 ? (
             <div className="rounded-xl border border-dashed border-brand-border p-8 text-center text-sm text-brand-muted">
-              No students found.
+              No classrooms found.
             </div>
           ) : (
             <div className="space-y-2">
-              {filtered.map((student) => {
-                const isEnrolled = localEnrolledIds.has(student.id);
-                const isWorking = workingId === student.id;
+              {filtered.map((classroom) => {
+                const isWorking = workingId === classroom.id;
+                const wasAssigned = assignedId === classroom.id;
 
                 return (
                   <div
-                    key={student.id}
+                    key={classroom.id}
                     className="flex items-center justify-between gap-4 rounded-xl border border-brand-border bg-brand-bg px-4 py-3"
                   >
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-brand-text">
-                        {getName(student)}
+                        {classroom.name}
                       </p>
-                      <p className="truncate text-xs text-brand-muted">{student.email}</p>
+                      <p className="truncate text-xs text-brand-muted">
+                        {classroom.description || "Classroom"}
+                      </p>
                     </div>
 
                     <button
                       type="button"
-                      onClick={() => handleToggle(student)}
-                      disabled={isWorking || !!workingId}
+                      onClick={() => handleAssign(classroom)}
+                      disabled={wasAssigned || isWorking || !!workingId}
                       className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition disabled:cursor-not-allowed disabled:opacity-50 ${
-                        isEnrolled
-                          ? "border border-red-400/30 bg-red-400/10 text-red-300 hover:bg-red-400/20"
+                        wasAssigned
+                          ? "border border-green-400/30 bg-green-400/10 text-green-300"
                           : "bg-brand-primary text-white hover:bg-brand-primary/90"
                       }`}
                     >
                       {isWorking ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : isEnrolled ? (
-                        <UserMinus className="h-4 w-4" />
+                      ) : wasAssigned ? (
+                        <CheckCircle2 className="h-4 w-4" />
                       ) : (
-                        <UserPlus className="h-4 w-4" />
+                        <Users className="h-4 w-4" />
                       )}
-                      {isEnrolled ? "Unenroll" : "Enroll"}
+                      {wasAssigned ? "Assigned" : "Assign course"}
                     </button>
                   </div>
                 );
