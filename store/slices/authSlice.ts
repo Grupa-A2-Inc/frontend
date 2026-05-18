@@ -4,7 +4,7 @@ import { ENDPOINTS } from "@/lib/api-endpoints";
 import { fetchWithAuth, getXsrfHeaders } from "@/lib/fetchWithAuth";
 
 
-export type UserRole = "ORGANIZATION_ADMIN" | "TEACHER" | "STUDENT";
+export type UserRole = "ADMIN" | "ORGANIZATION_ADMIN" | "TEACHER" | "STUDENT";
 
 export type UserStatus = "ACTIVE" | "INACTIVE";
 

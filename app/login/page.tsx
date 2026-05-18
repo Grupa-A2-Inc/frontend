@@ -41,7 +41,7 @@ export default function LoginPage() {
       return;
     const role = result.payload.user.role;
 
-    if (role === "ORGANIZATION_ADMIN") 
+    if (role === "ADMIN" || role === "ORGANIZATION_ADMIN") 
       router.push("/dashboard/admin");
 
     if (role === "TEACHER") 
@@ -126,7 +126,7 @@ export default function LoginPage() {
 
             {/* LINK CATRE REGISTER */}
             <p className="text-sm text-brand-muted text-center mt-4">            
-              Don't have an account?
+              Don&apos;t have an account?
               <a
                 href="/register"
                 className="text-brand-primary hover:opacity-80 ml-1"

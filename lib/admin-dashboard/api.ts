@@ -163,7 +163,7 @@ export async function getDashboardStats(): Promise<AdminDashboardStats> {
         headers: getAuthHeaders(),
         cache: "no-store",
       }),
-      fetchWithAuth(`${API_BASE}/api/courses/public`, token, {
+      fetchWithAuth(`${API_BASE}${ENDPOINTS.courses.public}`, token, {
         headers: getAuthHeaders(),
         cache: "no-store",
       }),
