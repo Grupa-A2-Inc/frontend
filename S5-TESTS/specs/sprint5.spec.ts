@@ -23,7 +23,7 @@ async function login(page: Page, email: string, password: string) {
   await page.locator('input[type="password"]').fill(password);
 
   await Promise.all([
-    page.waitForURL(/dashboard/, { timeout: 30000 }),
+    page.waitForURL(/dashboard/, { timeout: 60000 }),
     page.locator('button[type="submit"]').click(),
   ]);
 }

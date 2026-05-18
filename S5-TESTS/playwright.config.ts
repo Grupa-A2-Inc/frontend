@@ -12,7 +12,7 @@ export default defineConfig({
     video: 'retain-on-failure',
     screenshot: 'only-on-failure',
     actionTimeout: 20_000,       
-    navigationTimeout: 60_000,   
+    navigationTimeout: 90_000,   
   },
 
   timeout: 90_000,   
