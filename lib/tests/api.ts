@@ -27,6 +27,17 @@ type AiGenerateResponse = {
   questions?: AiQuestionDto[];
 };
 
+type AiGenerateRequestResponse = {
+  requestId: string;
+  status: "PENDING" | "SUCCESS" | "FAILED";
+};
+
+type AiRequestStatusResponse = {
+  requestId: string;
+  status: "PENDING" | "SUCCESS" | "FAILED";
+  questions?: AiQuestionDto[];
+};
+
 type CreatedTestDto = {
   id: string;
 };
@@ -125,27 +136,56 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
 // --------------------------------------------------
 //
 
-export async function apiGenerateTest(payload: GenerateTestPayload): Promise<DraftQuestion[]> {
-  const response = await fetchWithAuth("/api/ai-generate", undefined, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
+// Helper de polling
+async function pollAiRequestStatus(
+  requestId: string,
+  intervalMs = 5000,
+  maxAttempts = 60
+): Promise<AiRequestStatusResponse> {
+  for (let i = 0; i< maxAttempts; i++) {
+    const data = await apiFetch<AiRequestStatusResponse>(
+      `/api/v1/ai/requests/${requestId}/status`
+    );
+    if (data.status === "SUCCESS" || data.status === "FAILED") {
+      return data;
+    }
+    await new Promise((resolve) => setTimeout (resolve, intervalMs));
+  }
+  throw new Error("AI generation timed out. Please try again");
+}
 
-  if (!response.ok) {
-    if (response.status === 401)
-      throw new Error("Unauthorized. Please sign in again.");
-    if (response.status === 403)
-      throw new Error("You do not have permission.");
-    throw new Error(`Request failed with status ${response.status}`);
+export async function apiGenerateTest(
+  lessonId: string,
+  payload: GenerateTestPayload
+): Promise<DraftQuestion[]> {
+  // PASUL 1: porneste generarea
+  const initData = await apiFetch<AiGenerateRequestResponse>(
+    `/api/v1/lessons/${lessonId}/ai/generate-test`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (initData.status === "FAILED") {
+    throw new Error("AI generation failed. Please try again.=");
   }
 
-  const data = (await response.json()) as AiGenerateResponse;
+  // PASUl 2: polling pana la SUCCESS/FAILED
+  const result = await pollAiRequestStatus(initData.requestId);
 
-  // Transformăm răspunsul backend‑ului în DraftQuestion[]
-  return (data.questions ?? []).map((q, index) => ({
+  if (result.status === "FAILED") {
+    throw new Error("AI generation failed. Please try again");
+  }
+
+  // PASUL 3: inject intrebari
+  await apiFetch(`/api/v1/ai/request/${initData.requestId}/inject`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+
+  // Transformare in DraftQuestion[]
+  return (result.questions ?? []).map((q, index) => ({
     id: `ai-${Date.now()}-${index}`,
     prompt: q.content ?? "",
     options: (q.options ?? []).map((opt, i) => ({
