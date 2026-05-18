@@ -11,6 +11,12 @@ import UserFormModal from "./UserFormModal";
 type RoleFilter = "ALL" | "STUDENT" | "TEACHER";
 type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 
+function matchesStatusFilter(userStatus: User["status"], statusFilter: StatusFilter): boolean {
+  if (statusFilter === "ALL") return true;
+  if (statusFilter === "ACTIVE") return userStatus === "ACTIVE";
+  return userStatus !== "ACTIVE";
+}
+
 export default function UsersPage() {
   const dispatch = useAppDispatch();
   const { users, loading, error, createError } = useAppSelector((state) => state.users);
@@ -34,7 +40,7 @@ export default function UsersPage() {
       u.lastName.toLowerCase().includes(search.toLowerCase()) ||
       u.email.toLowerCase().includes(search.toLowerCase());
     const matchesRole   = roleFilter   === "ALL" || u.role   === roleFilter;
-    const matchesStatus = statusFilter === "ALL" || u.status === statusFilter;
+    const matchesStatus = matchesStatusFilter(u.status, statusFilter);
     return matchesSearch && matchesRole && matchesStatus;
   });
 
