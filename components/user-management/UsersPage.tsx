@@ -1,7 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { User, fetchUsers, createUser, toggleUserStatus, deleteUser, addUsersLocally, updateUser } from "@/store/slices/usersSlice";
+import {
+  User,
+  fetchUsers,
+  createUser,
+  toggleUserStatus,
+  deleteUser,
+  updateUser,
+  uploadUsersCsv,
+  importUsersCsvStarted,
+  importUsersCsvSucceeded,
+  importUsersCsvFailed,
+} from "@/store/slices/usersSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import UsersHeader from "./UsersHeader";
 import UsersToolbar from "./UsersToolbar";
@@ -19,7 +30,7 @@ function matchesStatusFilter(userStatus: User["status"], statusFilter: StatusFil
 
 export default function UsersPage() {
   const dispatch = useAppDispatch();
-  const { users, loading, error, createError } = useAppSelector((state) => state.users);
+  const { users, loading, error, createError, importing, importError, importResult } = useAppSelector((state) => state.users);
   const { accessToken, user: authUser } = useAppSelector((state) => state.auth);
   const token = accessToken ?? (typeof window !== "undefined" ? localStorage.getItem("accessToken") : null) ?? "";
 
@@ -91,8 +102,16 @@ export default function UsersPage() {
     await dispatch(deleteUser({ token, userId }));
   }
 
-  function handleImportCsv(newUsers: User[]) {
-    dispatch(addUsersLocally(newUsers));
+  async function handleImportCsv(file: File) {
+    dispatch(importUsersCsvStarted());
+
+    try {
+      const result = await uploadUsersCsv(token, file);
+      dispatch(importUsersCsvSucceeded(result));
+      dispatch(fetchUsers(token));
+    } catch (error) {
+      dispatch(importUsersCsvFailed(error instanceof Error ? error.message : "Failed to import CSV"));
+    }
   }
 
   if (loading) {
@@ -130,7 +149,21 @@ export default function UsersPage() {
         totalUsers={users.length}
         onAddUser={openAddModal}
         onImportCsv={handleImportCsv}
+        importing={importing}
       />
+
+      {importError && (
+        <p className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          {importError}
+        </p>
+      )}
+
+      {importResult && (
+        <p className="mb-4 rounded-xl border border-brand-primary/20 bg-brand-primary/10 px-4 py-3 text-sm text-brand-text">
+          Imported {importResult.succeeded ?? 0} of {importResult.total ?? 0} users
+          {(importResult.failed ?? 0) > 0 ? `, ${importResult.failed} failed.` : "."}
+        </p>
+      )}
 
       <UsersToolbar
         users={users}
