@@ -17,8 +17,16 @@ jobs:
       run: npm ci
     - name: Install Playwright Browsers
       run: npx playwright install --with-deps
-    - name: Run Playwright tests
-      run: npx playwright test
+
+    - name: Run S5 tests
+      run: npx playwright test --config=S5-TESTS/playwright.config.ts
+
+    - name: Run Sprint 2&3 tests
+      run: npx playwright test --config="Sprint-2&3-Tests/playwright.config.ts"
+
+    - name: Run Sprint 5 tests
+      run: npx playwright test --config=Sprint-5-Tests/playwright.config.ts
+
     - uses: actions/upload-artifact@v4
       if: ${{ !cancelled() }}
       with:
