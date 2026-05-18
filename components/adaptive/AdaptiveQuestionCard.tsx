@@ -58,11 +58,10 @@ export default function AdaptiveQuestionCard(props: AdaptiveQuestionCardProps) {
             </span>
             {mode === "review" && (
               <span
-                className={`text-xs px-2 py-0.5 rounded font-medium ${
-                  props.result.correct
-                    ? "bg-green-500/10 text-green-500"
-                    : "bg-red-400/10 text-red-400"
-                }`}
+                className={`text-xs px-2 py-0.5 rounded font-medium ${props.result.correct
+                  ? "bg-green-500/10 text-green-500"
+                  : "bg-red-400/10 text-red-400"
+                  }`}
               >
                 {props.result.correct ? `+${props.result.score.toFixed(1)}` : "0"}
               </span>
@@ -86,18 +85,16 @@ export default function AdaptiveQuestionCard(props: AdaptiveQuestionCardProps) {
               <button
                 key={answer}
                 onClick={() => props.onAnswer(exercise.exerciseId, answer, multi)}
-                className={`w-full text-left px-4 py-3 rounded-lg border transition-all text-sm font-medium flex items-center gap-3 ${
-                  selected
-                    ? "bg-brand-primary/15 border-brand-primary text-white"
-                    : "bg-brand-bg border-brand-border text-brand-text hover:border-brand-primary/50 hover:bg-brand-primary/5"
-                }`}
+                className={`w-full text-left px-4 py-3 rounded-lg border transition-all text-sm font-medium flex items-center gap-3 ${selected
+                  ? "bg-brand-primary/15 border-brand-primary text-brand-primary dark:text-white"
+                  : "bg-brand-bg border-brand-border text-gray-700 dark:text-brand-text hover:border-brand-primary/50 hover:bg-brand-primary/5"
+                  }`}
               >
                 <span
-                  className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${
-                    selected
-                      ? "border-brand-primary bg-brand-primary"
-                      : "border-brand-border"
-                  }`}
+                  className={`w-5 h-5 rounded-full border-2 flex-shrink-0 flex items-center justify-center transition-colors ${selected
+                    ? "border-brand-primary bg-brand-primary"
+                    : "border-brand-border"
+                    }`}
                 >
                   {selected && <span className="w-2 h-2 rounded-full bg-white" />}
                 </span>
@@ -112,13 +109,12 @@ export default function AdaptiveQuestionCard(props: AdaptiveQuestionCardProps) {
 
           let className =
             "w-full text-left px-4 py-3 rounded-lg border text-sm font-medium flex items-center gap-3 ";
-
           if (isCorrect && wasSelected) {
-            className += "bg-green-500/15 border-green-500 text-green-100";
+            className += "bg-green-500/15 border-green-500 text-green-700 dark:text-green-100";
           } else if (isCorrect && !wasSelected) {
-            className += "bg-green-500/5 border-green-500/40 border-dashed text-green-300";
+            className += "bg-green-500/5 border-green-500/40 border-dashed text-green-700 dark:text-green-300";
           } else if (!isCorrect && wasSelected) {
-            className += "bg-red-400/15 border-red-400 text-red-200";
+            className += "bg-red-400/15 border-red-400 text-red-700 dark:text-red-200";
           } else {
             className += "bg-brand-bg border-brand-border text-brand-muted";
           }
