@@ -32,6 +32,44 @@ export interface CoursePayload {
   status?: "DRAFT" | "PUBLISHED";
 }
 
+interface CourseSummaryDto {
+  id?: string;
+  category?: string | null;
+}
+
+interface CoursePageDto {
+  content?: CourseSummaryDto[];
+  courses?: CourseSummaryDto[];
+  items?: CourseSummaryDto[];
+  totalPages?: number;
+}
+
+function getCourses(data: CoursePageDto | CourseSummaryDto[]): CourseSummaryDto[] {
+  if (Array.isArray(data)) return data;
+  return data.content ?? data.courses ?? data.items ?? [];
+}
+
+async function fetchCourseSummaryForEditor(courseId: string): Promise<CourseSummaryDto | null> {
+  let page = 0;
+  let totalPages = 1;
+
+  while (page < totalPages) {
+    const data = await editorFetch<CoursePageDto | CourseSummaryDto[]>(
+      `${ENDPOINTS.courses.myCourses}?page=${page}&size=100`,
+    );
+    const courses = getCourses(data);
+    const match = courses.find(course => course.id === courseId);
+
+    if (match) return match;
+    if (Array.isArray(data)) return null;
+
+    totalPages = data.totalPages ?? totalPages;
+    page += 1;
+  }
+
+  return null;
+}
+
 export async function createCourse(payload: CoursePayload): Promise<{ id: string }> {
   return editorFetch(ENDPOINTS.courses.create, { method: "POST", body: JSON.stringify(payload) });
 }
@@ -40,8 +78,17 @@ export async function updateCourse(courseId: string, payload: CoursePayload): Pr
   return editorFetch(ENDPOINTS.courses.byId(courseId), { method: "PUT", body: JSON.stringify(payload) });
 }
 
-export async function fetchCourseForEditor(courseId: string): Promise<any> {
-  return editorFetch(ENDPOINTS.courses.fullView(courseId));
+export async function fetchCourseForEditor(courseId: string): Promise<Record<string, unknown> & { category: string }> {
+  const [fullView, summary] = await Promise.all([
+    editorFetch<Record<string, unknown>>(ENDPOINTS.courses.fullView(courseId)),
+    fetchCourseSummaryForEditor(courseId).catch(() => null),
+  ]);
+  const fullViewCategory = typeof fullView.category === "string" ? fullView.category : "";
+
+  return {
+    ...fullView,
+    category: fullViewCategory.trim() ? fullViewCategory : summary?.category ?? "",
+  };
 }
 
 // ---------- Chapters ----------

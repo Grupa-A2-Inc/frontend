@@ -31,7 +31,6 @@ interface EditorCourseResponse {
   title?: string | null;
   description?: string | null;
   category?: string | null;
-  expirationDate?: string | null;
   status?: "DRAFT" | "PUBLISHED" | null;
   chapters?: EditorChapterResponse[] | null;
 }
@@ -59,7 +58,6 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
-  const [expirationDate, setExpiration] = useState("");
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
   const [chapters, setChapters] = useState<EditorChapter[]>([]);
   const [selected, setSelected] = useState<SelectedRef | null>(null);
@@ -90,7 +88,6 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
         setTitle(data.title ?? "");
         setDescription(data.description ?? "");
         setCategory(data.category ?? "");
-        setExpiration(data.expirationDate ? data.expirationDate.slice(0, 10) : "");
         setStatus(data.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT");
         setChapters(mapCourseToChapters(data));
       })
@@ -425,6 +422,11 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
       return;
     }
 
+    if (!category.trim()) {
+      setSaveErr("Course category is required.");
+      return;
+    }
+
     setSaving(true);
     setSaveErr(null);
     setSaveOk(false);
@@ -465,8 +467,6 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     setDescription,
     category,
     setCategory,
-    expirationDate,
-    setExpiration,
     status,
     setStatus,
     chapters,

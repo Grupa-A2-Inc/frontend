@@ -2,12 +2,10 @@ interface CourseMetaFormProps {
   title: string;
   description: string;
   category: string;
-  expirationDate: string;
   status: "DRAFT" | "PUBLISHED";
   onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
-  onExpirationChange: (value: string) => void;
   onStatusChange: (value: "DRAFT" | "PUBLISHED") => void;
 }
 
@@ -15,12 +13,10 @@ export function CourseMetaForm({
   title,
   description,
   category,
-  expirationDate,
   status,
   onTitleChange,
   onDescriptionChange,
   onCategoryChange,
-  onExpirationChange,
   onStatusChange,
 }: CourseMetaFormProps) {
   return (
@@ -59,18 +55,6 @@ export function CourseMetaForm({
             onChange={e => onCategoryChange(e.target.value)}
             placeholder="e.g. Mathematics, Science, History"
             className="w-full bg-brand-card border border-brand-primary/20 rounded-xl px-3 py-2 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-brand-text/60 mb-1.5">
-            Expiration Date
-            <span className="text-brand-muted/50 font-normal ml-1">(auto-archives on this date)</span>
-          </label>
-          <input
-            type="date"
-            value={expirationDate}
-            onChange={e => onExpirationChange(e.target.value)}
-            className="w-full bg-brand-card border border-brand-primary/20 rounded-xl px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-brand-primary/60 transition-colors"
           />
         </div>
         <div>
