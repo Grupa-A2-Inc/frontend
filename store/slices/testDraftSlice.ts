@@ -16,6 +16,11 @@ interface SaveFinalTestPayload {
   timeLimitSec?: number;
 }
 
+interface GenerateTestThunkPayload {
+  lessonId: string;
+  payload: GenerateTestPayload;
+}
+
 const initialState: TestDraftState = {
   questions: [],
   isGenerating: false,
@@ -24,12 +29,11 @@ const initialState: TestDraftState = {
   status: "IDLE",
 };
 
-// Asincron
 export const generateTestThunk = createAsyncThunk(
-  "testDraft/generate",
-  async (payload: GenerateTestPayload, { rejectWithValue }) => {
+  "testDraft/generate", 
+  async ({ lessonId, payload }: GenerateTestThunkPayload, { rejectWithValue }) => {
     try {
-      const data = await apiGenerateTest(payload);
+      const data = await apiGenerateTest(lessonId, payload);
       return data;
     } catch (err: any) {
       return rejectWithValue(err.message || "Failed to generate test");

@@ -11,9 +11,7 @@ export interface DraftQuestion {
 }
 
 export interface GenerateTestPayload {
-  topic: string;
-  difficulty: string;
-  questionCount: number;
+  count: number;
 }
 
 // --------------------------------------------------
@@ -26,6 +24,7 @@ export interface TakeTestSession {
     startedAt: string;
     timeLimitSec: number;
 
+    
     testId: string;
     title: string;
 

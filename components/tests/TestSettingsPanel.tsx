@@ -6,7 +6,6 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { generateTestThunk } from "@/store/slices/testDraftSlice";
 import { fetchCourseFullView } from "@/lib/courses/api";
 import { Chapter } from "@/lib/courses/types";
-import { difference } from "next/dist/build/utils";
 
 type Props = {
   courseId: string;
@@ -33,8 +32,7 @@ export default function TestSettingsPanel({
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [loadingChapters, setLoadingChapters] = useState(true);
   
-  const [qCount, setQCount] = useState(5);
-  const [selectedNode, setSelectedNode] = useState("ALL"); 
+  const [qCount, setQCount] = useState(5); 
 
   // Incarcam capitolele reale ale cursului
   useEffect(() => {
@@ -52,14 +50,20 @@ export default function TestSettingsPanel({
   }, [courseId]);
 
   const handleGenerate = () => {
-    const payload = {
-      topic: selectedNode === "ALL" ? "Entire Course" : selectedNode,
-      difficulty: "MEDIUM",
-      questionCount: qCount
-    };
-    
-    dispatch(generateTestThunk(payload));
-  };
+    if (!selectedLessonId) {
+      alert("Please select a lesson first.");
+      return;
+    }
+
+    dispatch(
+      generateTestThunk({
+        lessonId: selectedLessonId,
+        payload: {
+          count: qCount,
+        },
+      })
+    );
+  }
 
   return (
     <div className="bg-brand-card border border-brand-border p-6 rounded-xl shadow-sm">
@@ -67,15 +71,21 @@ export default function TestSettingsPanel({
         
         <div className="flex-1 w-full">
           <label className="text-xs font-medium text-brand-muted mb-1 block uppercase tracking-wider">SOURCE CONTENT</label>
-          <select 
-            value={selectedNode}
-            onChange={(e) => setSelectedNode(e.target.value)}
-            disabled={loadingChapters || isGenerating}
-            className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-brand-text focus:border-brand-primary outline-none transition disabled:opacity-60"
+          <select
+              value={selectedLessonId}
+              onChange={(e) => onLessonChange(e.target.value)}
+              disabled={loadingChapters || isGenerating}
+              className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-brand-text focus:border-brand-primary outline-none transition disabled:opacity-60"
           >
-            <option value="ALL">{loadingChapters ? "Loading..." : "Entire Course"}</option>
+            <option value="">{loadingChapters ? "Loading..." : "Select a lesson..."}</option>
             {chapters.map((chap) => (
-              <option key={chap.id} value={chap.id}>Chapter: {chap.title}</option>
+              <optgroup key={chap.id} label={chap.title}>
+                {chap.lessons.map((lesson) => (
+                  <option key={lesson.id} value={lesson.id}>
+                    {lesson.title}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </div>
