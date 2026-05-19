@@ -41,11 +41,9 @@ export async function POST(req: NextRequest) {
   }
 
   if (!aiResponse.ok) {
-    const text = await aiResponse.text().catch(() => "");
     return NextResponse.json(
-      { error: `HTTP ${aiResponse.status}: ${text || aiResponse.statusText}` },
-      { status: aiResponse.status }
-    );
+  { error: "Customer support service is temporarily unavailable. Please try again later." },
+  { status: aiResponse.status });
   }
 
   const data = await aiResponse.json();
