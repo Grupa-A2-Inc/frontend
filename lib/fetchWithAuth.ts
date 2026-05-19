@@ -77,7 +77,7 @@ function handleRefreshHttpError(status: number, tokenThatTriggeredRefresh: strin
   return null;
 }
 
-async function refreshAccessToken(tokenThatTriggeredRefresh: string | null): Promise<string | null> {
+export async function refreshAccessToken(tokenThatTriggeredRefresh: string | null): Promise<string | null> {
   if (typeof window === "undefined") return null;
 
   if (!refreshPromise) {

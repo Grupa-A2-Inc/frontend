@@ -8,7 +8,7 @@ import {
 } from "./types";
 
 import { StudentProgress } from "./types";
-import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { fetchWithAuth, refreshAccessToken, getStoredAccessToken } from "@/lib/fetchWithAuth";
 
 // Baza API
 const API_BASE = "https://api.adaptiveelearning.online";
@@ -196,6 +196,9 @@ export async function apiGenerateTest(
   if (result.status === "FAILED") {
     throw new Error("AI generation failed. Please try again.");
   }
+
+  // Refresh token inainte de inject (polling-ul poate dura si token-ul expira)
+  await refreshAccessToken(getStoredAccessToken());
 
   // PASUL 3: inject
   const injectResult = await apiFetch<AiInjectResponse>(
