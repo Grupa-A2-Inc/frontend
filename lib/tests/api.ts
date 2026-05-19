@@ -29,14 +29,18 @@ type AiGenerateResponse = {
 
 type AiGenerateRequestResponse = {
   requestId: string;
-  status: "PENDING" | "SUCCESS" | "FAILED";
+  status: "PENDING" | "DONE" | "SUCCESS" | "FAILED";
 };
 
 type AiRequestStatusResponse = {
   requestId: string;
-  status: "PENDING" | "SUCCESS" | "FAILED";
+  status: "PENDING" | "DONE" | "SUCCESS" | "FAILED";
   questions?: AiQuestionDto[];
 };
+
+type AiInjectResponse = {
+  questions?: AiQuestionDto[];
+}
 
 type CreatedTestDto = {
   id: string;
@@ -146,7 +150,7 @@ async function pollAiRequestStatus(
     const data = await apiFetch<AiRequestStatusResponse>(
       `/api/v1/ai/requests/${requestId}/status`
     );
-    if (data.status === "SUCCESS" || data.status === "FAILED") {
+    if (data.status === "DONE" || data.status === "SUCCESS" || data.status === "FAILED") {
       return data;
     }
     await new Promise((resolve) => setTimeout (resolve, intervalMs));
@@ -179,13 +183,14 @@ export async function apiGenerateTest(
   }
 
   // PASUL 3: inject intrebari
-  await apiFetch(`/api/v1/ai/request/${initData.requestId}/inject`, {
+  const injectResult = await apiFetch<AiInjectResponse>(`/api/v1/ai/request/${initData.requestId}/inject`, {
     method: "POST",
     body: JSON.stringify({}),
   });
 
-  // Transformare in DraftQuestion[]
-  return (result.questions ?? []).map((q, index) => ({
+  const questions = injectResult.questions ?? result.questions ?? [];
+
+  return questions.map((q, index) => ({
     id: `ai-${Date.now()}-${index}`,
     prompt: q.content ?? "",
     options: (q.options ?? []).map((opt, i) => ({
