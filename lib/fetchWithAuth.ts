@@ -15,6 +15,7 @@ type CsrfToken = {
 
 const DEFAULT_XSRF_HEADER_NAME = "X-XSRF-TOKEN";
 const XSRF_COOKIE_NAME = "XSRF-TOKEN";
+const REFRESH_TOKEN_STORAGE_KEY = "refreshToken";
 
 let refreshPromise: Promise<string | null> | null = null;
 let csrfToken: CsrfToken | null = null;
@@ -121,6 +122,21 @@ export function getStoredAccessToken(): string | null {
   return localStorage.getItem("accessToken");
 }
 
+export function getStoredRefreshToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(REFRESH_TOKEN_STORAGE_KEY);
+}
+
+export function storeRefreshToken(token: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(REFRESH_TOKEN_STORAGE_KEY, token);
+}
+
+export function clearStoredRefreshToken(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(REFRESH_TOKEN_STORAGE_KEY);
+}
+
 export function storeAccessToken(token: string): void {
   if (typeof window === "undefined") return;
 
@@ -136,6 +152,7 @@ export function clearStoredAccessToken(): void {
 
   localStorage.removeItem("accessToken");
   document.cookie = "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  clearStoredRefreshToken();
   clearStoredCsrfToken();
 }
 
@@ -156,7 +173,7 @@ function handleRefreshFailure(tokenThatTriggeredRefresh: string | null): null {
 }
 
 function handleRefreshHttpError(status: number, tokenThatTriggeredRefresh: string | null): null {
-  if (status === 401) {
+  if (status === 401 || status === 403) {
     return handleRefreshFailure(tokenThatTriggeredRefresh);
   }
 
@@ -181,6 +198,8 @@ export async function refreshAccessToken(tokenThatTriggeredRefresh: string | nul
 
         const data = (await response.json().catch(() => null)) as {
           accessToken?: string;
+          refreshToken?: string;
+          refresh_token?: string;
         } | null;
 
         if (!data?.accessToken) {
@@ -188,6 +207,10 @@ export async function refreshAccessToken(tokenThatTriggeredRefresh: string | nul
         }
 
         storeAccessToken(data.accessToken);
+        const rotatedRefreshToken = data.refreshToken ?? data.refresh_token;
+        if (rotatedRefreshToken) {
+          storeRefreshToken(rotatedRefreshToken);
+        }
         return data.accessToken;
       } catch {
         return null;
@@ -202,16 +225,24 @@ export async function refreshAccessToken(tokenThatTriggeredRefresh: string | nul
 
 async function refreshAccessTokenRequest(forceCsrfRefresh: boolean): Promise<Response> {
   const headers = toHeaders({ Accept: "application/json" });
+  const refreshToken = getStoredRefreshToken();
+
   Object.entries(await getXsrfHeadersAsync({ forceRefresh: forceCsrfRefresh })).forEach(
     ([key, value]) => {
       headers.set(key, value);
     }
   );
 
+  const body = refreshToken ? JSON.stringify({ refreshToken }) : undefined;
+  if (body) {
+    headers.set("Content-Type", "application/json");
+  }
+
   return fetch(`${API_BASE}${ENDPOINTS.auth.refresh}`, {
     method: "POST",
     credentials: "include",
     headers,
+    body,
     cache: "no-store",
   });
 }

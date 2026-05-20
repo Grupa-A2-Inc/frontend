@@ -6,6 +6,7 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { generateTestThunk } from "@/store/slices/testDraftSlice";
 import { fetchCourseFullView } from "@/lib/courses/api";
 import { Chapter } from "@/lib/courses/types";
+import { lessonHasVideoResource } from "@/lib/courses/resourceType";
 
 type Props = {
   courseId: string;
@@ -21,16 +22,13 @@ export default function TestSettingsPanel({
   courseId,
   selectedLessonId,
   onLessonChange,
-  title,
-  onTitleChange,
-  timeLimitSec,
-  onTimeLimitChange,
 }: Props) {
   const dispatch = useAppDispatch();
   const { isGenerating } = useAppSelector((state) => state.testDraft);
   
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [loadingChapters, setLoadingChapters] = useState(true);
+  const [sourceWarning, setSourceWarning] = useState<string | null>(null);
   
   const [qCount, setQCount] = useState(5); 
 
@@ -49,12 +47,32 @@ export default function TestSettingsPanel({
     loadChapters();
   }, [courseId]);
 
+  const videoLessons = chapters.flatMap((chapter) =>
+    chapter.lessons.filter(lessonHasVideoResource)
+  );
+  const selectableChapters = chapters
+    .map((chapter) => ({
+      ...chapter,
+      lessons: chapter.lessons.filter((lesson) => !lessonHasVideoResource(lesson)),
+    }))
+    .filter((chapter) => chapter.lessons.length > 0);
+  const selectedLesson = chapters
+    .flatMap((chapter) => chapter.lessons)
+    .find((lesson) => lesson.id === selectedLessonId);
+  const selectedLessonIsVideo = selectedLesson ? lessonHasVideoResource(selectedLesson) : false;
+
   const handleGenerate = () => {
     if (!selectedLessonId) {
-      alert("Please select a lesson first.");
+      setSourceWarning("Choose a text lesson or a non-video resource for generation.");
       return;
     }
 
+    if (selectedLessonIsVideo) {
+      setSourceWarning("Tests cannot be generated from video content.");
+      return;
+    }
+
+    setSourceWarning(null);
     dispatch(
       generateTestThunk({
         lessonId: selectedLessonId,
@@ -72,13 +90,16 @@ export default function TestSettingsPanel({
         <div className="flex-1 w-full">
           <label className="text-xs font-medium text-brand-muted mb-1 block uppercase tracking-wider">SOURCE CONTENT</label>
           <select
-              value={selectedLessonId}
-              onChange={(e) => onLessonChange(e.target.value)}
+              value={selectedLessonIsVideo ? "" : selectedLessonId}
+              onChange={(e) => {
+                onLessonChange(e.target.value);
+                setSourceWarning(null);
+              }}
               disabled={loadingChapters || isGenerating}
               className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-brand-text focus:border-brand-primary outline-none transition disabled:opacity-60"
           >
             <option value="">{loadingChapters ? "Loading..." : "Select a lesson..."}</option>
-            {chapters.map((chap) => (
+            {selectableChapters.map((chap) => (
               <optgroup key={chap.id} label={chap.title}>
                 {chap.lessons.map((lesson) => (
                   <option key={lesson.id} value={lesson.id}>
@@ -88,6 +109,11 @@ export default function TestSettingsPanel({
               </optgroup>
             ))}
           </select>
+          {(sourceWarning || selectedLessonIsVideo || videoLessons.length > 0) && (
+            <p className="mt-2 text-xs text-amber-300">
+              {sourceWarning ?? "Tests cannot be generated from video content. Video nodes were removed from the AI source list."}
+            </p>
+          )}
         </div>
 
         <div className="w-full sm:w-32">
@@ -104,7 +130,7 @@ export default function TestSettingsPanel({
 
         <button 
           onClick={handleGenerate}
-          disabled={isGenerating || loadingChapters} 
+          disabled={isGenerating || loadingChapters || selectedLessonIsVideo} 
           className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-2.5 rounded-lg flex items-center justify-center gap-2 font-medium disabled:opacity-50 transition"
         >
           {isGenerating ? <Loader2 className="animate-spin" size={20} /> : <Bot size={20} />}

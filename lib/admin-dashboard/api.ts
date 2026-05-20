@@ -20,7 +20,8 @@ function getDataList(data: unknown): unknown[] {
   if (Array.isArray(data)) return data;
   if (!data || typeof data !== "object") return [];
 
-  const list = (data as Record<string, unknown>).data;
+  const record = data as Record<string, unknown>;
+  const list = record.data ?? record.content ?? record.users ?? record.items ?? record.classrooms;
   return Array.isArray(list) ? list : [];
 }
 
@@ -158,12 +159,16 @@ export async function getDashboardStats(): Promise<AdminDashboardStats> {
   const warnings: string[] = [];
 
   try {
-    const [usersRes, coursesRes] = await Promise.all([
-      fetchWithAuth(`${API_BASE}${ENDPOINTS.users.list}`, token, {
+    const [usersRes, coursesRes, classroomsRes] = await Promise.all([
+      fetchWithAuth(`${API_BASE}${ENDPOINTS.users.organization}`, token, {
         headers: getAuthHeaders(),
         cache: "no-store",
       }),
       fetchWithAuth(`${API_BASE}${ENDPOINTS.courses.public}`, token, {
+        headers: getAuthHeaders(),
+        cache: "no-store",
+      }),
+      fetchWithAuth(`${API_BASE}${ENDPOINTS.classrooms.list}`, token, {
         headers: getAuthHeaders(),
         cache: "no-store",
       }),
@@ -184,7 +189,7 @@ export async function getDashboardStats(): Promise<AdminDashboardStats> {
         (user) => getUserRole(user) === "TEACHER"
       ).length;
     } else {
-      warnings.push("Could not load users data.");
+      warnings.push("Could not load organization users data.");
     }
 
     let totalCourses = 0;
@@ -198,10 +203,19 @@ export async function getDashboardStats(): Promise<AdminDashboardStats> {
       warnings.push("Could not load courses data.");
     }
 
+    let totalClasses = 0;
+
+    if (classroomsRes.ok) {
+      const classrooms = await classroomsRes.json();
+      totalClasses = getDataList(classrooms).length;
+    } else {
+      warnings.push("Could not load classes data.");
+    }
+
     return {
       totalStudents,
       totalTeachers,
-      totalClasses: 0,
+      totalClasses,
       totalCourses,
       warnings,
     };
