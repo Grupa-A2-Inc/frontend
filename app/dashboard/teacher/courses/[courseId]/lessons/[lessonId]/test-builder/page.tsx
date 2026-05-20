@@ -16,6 +16,7 @@ import QuestionCard from "@/components/tests/QuestionCard";
 import QuestionNavigator from "@/components/tests/QuestionNavigator";
 import TestSettingsPanel from "@/components/tests/TestSettingsPanel";
 import { fetchCourseFullView } from "@/lib/courses/api";
+import { lessonHasVideoResource } from "@/lib/courses/resourceType";
 import { Chapter } from "@/lib/courses/types";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
@@ -50,6 +51,7 @@ export default function LessonTestBuilderPage({ params }: Props) {
   const [descriptionDraft, setDescriptionDraft] = useState<string | null>(null);
   const [timeLimitSecDraft, setTimeLimitSecDraft] = useState<number | null>(null);
   const [lessonError, setLessonError] = useState<string | null>(null);
+  const [isVideoLesson, setIsVideoLesson] = useState(false);
 
   useEffect(() => {
     dispatch(loadLessonTestDraftThunk(lessonId));
@@ -68,6 +70,7 @@ export default function LessonTestBuilderPage({ params }: Props) {
         const lesson = lessons.find((item) => item.id === lessonId);
         if (isMounted) {
           setLessonTitle(lesson?.title ?? "Selected lesson");
+          setIsVideoLesson(lesson ? lessonHasVideoResource(lesson) : false);
         }
       })
       .catch((err) => {
@@ -93,6 +96,7 @@ export default function LessonTestBuilderPage({ params }: Props) {
 
   function handleGenerate(count: number) {
     if (readOnly) return;
+    if (isVideoLesson) return;
     dispatch(generateQuestionsThunk({ lessonId, payload: { count } }));
   }
 
@@ -180,6 +184,12 @@ export default function LessonTestBuilderPage({ params }: Props) {
         </div>
       )}
 
+      {isVideoLesson && !readOnly && (
+        <div className="mb-6 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-200">
+          Tests cannot be generated from video content. Add text content if you want to use AI test generation for this lesson.
+        </div>
+      )}
+
       {(error || lessonError) && (
         <div className="mb-6 flex items-start gap-3 rounded-xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-300">
           <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0" />
@@ -213,6 +223,10 @@ export default function LessonTestBuilderPage({ params }: Props) {
               onGenerate={handleGenerate}
               metadataReadOnly
               readOnly={readOnly}
+              generateDisabled={isVideoLesson}
+              generateWarning={
+                isVideoLesson ? "Tests cannot be generated from video content." : null
+              }
             />
 
             <div className="mt-8 space-y-6">

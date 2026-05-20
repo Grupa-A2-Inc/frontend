@@ -205,6 +205,11 @@ function UploadField({ selectedType, nodeForm, onFormChange }: UploadFieldProps)
             : "Supports PDF, Word, images, or any publicly accessible file link."}
         </p>
       )}
+      {isVideo && (
+        <p className="mt-2 rounded-lg border border-amber-400/20 bg-amber-400/10 px-3 py-2 text-xs text-amber-300">
+          Tests cannot be generated from video content. Add text content if you want to use AI test generation for this lesson.
+        </p>
+      )}
     </div>
   );
 }

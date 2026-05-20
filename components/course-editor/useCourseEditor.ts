@@ -14,6 +14,7 @@ import {
   updateResource,
   deleteResource,
 } from "@/lib/courses/editorApi";
+import { isVideoResourceUrl } from "@/lib/courses/resourceType";
 import { EMPTY_FORM, tempId } from "./helpers";
 import type {
   AddTarget,
@@ -522,14 +523,8 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
 function inferLessonType(lesson: EditorLessonResponse): Exclude<EditorNodeType, "CHAPTER"> {
   if (lesson.testId) return "TEST";
   const firstUrl = lesson.lessonResources?.[0]?.url ?? "";
-  if (firstUrl) if (firstUrl) {
-    // Verificăm dacă are extensie de video SAU dacă e un link de YouTube/Vimeo
-    const isVideo = /\.(mp4|webm|ogg|mov|avi)(\?|$)/i.test(firstUrl) || 
-                    /(youtube\.com|youtu\.be|vimeo\.com)/i.test(firstUrl);
-                    
-    return isVideo ? "VIDEO" : "FILE";
-  }
-    return "TEXT";
+  if (firstUrl) return isVideoResourceUrl(firstUrl) ? "VIDEO" : "FILE";
+  return "TEXT";
 }
 
 function mapCourseToChapters(data: EditorCourseResponse): EditorChapter[] {

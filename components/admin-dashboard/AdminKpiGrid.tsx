@@ -22,7 +22,7 @@ export default function AdminKpiGrid({ stats }: { stats: AdminDashboardStats }) 
       <AdminKpiCard
         label="Total Classes"
         value={stats.totalClasses}
-        helperText="Pending backend support."
+        helperText="Calculated from the current class list."
       />
       <AdminKpiCard
         label="Total Courses"
