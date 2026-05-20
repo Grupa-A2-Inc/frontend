@@ -8,12 +8,10 @@ import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchTestResultThunk } from "@/store/slices/takeTestSlice";
 
 type Props = {
-  params: Promise<{ testId: string }>;
   searchParams?: Promise<{ attemptId?: string }>;
 };
 
-export default function TestResultsPage({ params, searchParams }: Props) {
-  const { testId } = use(params);
+export default function TestResultsPage({ searchParams }: Props) {
   const resolvedSearchParams = searchParams ? use(searchParams) : {};
   const attemptId = resolvedSearchParams.attemptId;
   const dispatch = useAppDispatch();
@@ -21,9 +19,9 @@ export default function TestResultsPage({ params, searchParams }: Props) {
 
   useEffect(() => {
     if (attemptId) {
-      dispatch(fetchTestResultThunk({ attemptId, testId }));
+      dispatch(fetchTestResultThunk(attemptId));
     }
-  }, [attemptId, dispatch, testId]);
+  }, [attemptId, dispatch]);
 
   if (!attemptId) {
     return (
@@ -51,7 +49,7 @@ export default function TestResultsPage({ params, searchParams }: Props) {
         </div>
         <button
           type="button"
-          onClick={() => dispatch(fetchTestResultThunk({ attemptId, testId }))}
+          onClick={() => dispatch(fetchTestResultThunk(attemptId))}
           className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white"
         >
           Retry

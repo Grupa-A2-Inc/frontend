@@ -363,42 +363,9 @@ export async function apiSubmitTest(
   return normalizeResult(data);
 }
 
-export async function apiGetTestResult(
-  attemptId: string,
-  testId?: string
-): Promise<TestResult> {
+export async function apiGetTestResult(attemptId: string): Promise<TestResult> {
   const data: any = await apiFetch(ENDPOINTS.attempts.result(attemptId));
-  const result = normalizeResult(data);
-
-  if (!testId && !result.testId) {
-    return result;
-  }
-
-  const questions = await apiGetQuestionsForTest(testId ?? result.testId ?? "");
-  const questionsById = new Map(
-    questions
-      .filter((question) => question.id !== undefined)
-      .map((question) => [question.id as number, question])
-  );
-
-  return {
-    ...result,
-    testId: testId ?? result.testId,
-    questions: result.questions.map((question) => {
-      const source = questionsById.get(question.questionId);
-      const options = (source?.options ?? []).map((option) => ({
-        id: option.id ?? 0,
-        label: option.text,
-        isSelected: question.selectedOptionIds.includes(option.id ?? -1),
-        isCorrect: question.correctOptionIds.includes(option.id ?? -1),
-      }));
-
-      return {
-        ...question,
-        options,
-      };
-    }),
-  };
+  return normalizeResult(data);
 }
 
 function normalizeResult(data: any): TestResult {

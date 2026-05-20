@@ -59,9 +59,9 @@ export const submitTestThunk = createAsyncThunk(
 
 export const fetchTestResultThunk = createAsyncThunk(
   "takeTest/fetchResult",
-  async ({ attemptId, testId }: { attemptId: string; testId?: string }, { rejectWithValue }) => {
+  async (attemptId: string, { rejectWithValue }) => {
     try {
-      return await apiGetTestResult(attemptId, testId);
+      return await apiGetTestResult(attemptId);
     } catch (err: unknown) {
       return rejectWithValue(getErrorMessage(err, "Failed to load result."));
     }
