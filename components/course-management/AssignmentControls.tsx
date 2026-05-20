@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AlertCircle, CheckCircle2, Loader2, Plus } from "lucide-react";
 
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -40,6 +40,25 @@ export default function AssignmentControls({ courseId }: Props) {
     );
   }
 
+  //solved bug
+  //timer pentru ascunderea mesajului dupa asignarea unui curs la o clasa
+   useEffect(() => {
+    let timeoutId: NodeJS.Timeout;
+
+    if (assignSuccess || assignError) {
+      timeoutId = setTimeout(() => {
+        dispatch(clearAssignState());
+      }, 4000); 
+    }
+
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [assignSuccess, assignError, dispatch]);
+  //
+  
   return (
     <section className="rounded-2xl border border-brand-border bg-brand-card p-6 shadow-sm">
       <div className="mb-5">
