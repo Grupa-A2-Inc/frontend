@@ -3,12 +3,12 @@ import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { API_BASE } from "@/lib/config";
 import { ENDPOINTS } from "@/lib/api-endpoints";
 
-const API_URL = "https://api.adaptiveelearning.online";
-
 // ---------- Types ----------
 
 export type UserRole = "ADMIN" | "STUDENT" | "TEACHER" | "ORGANIZATION_ADMIN" | "PARENT";
 export type UserStatus = "ACTIVE" | "INACTIVE" | "BLOCKED" | "PENDING";
+export type UserRoleFilter = "ALL" | UserRole;
+export type UserStatusFilter = "ALL" | UserStatus;
 
 export interface User {
   id: string;
@@ -39,6 +39,41 @@ type UserResponse = User & {
   roleName?: UserRole;
 };
 
+export type UsersPaginationMeta = {
+  totalElements: number;
+  totalPages: number;
+  number: number;
+  size: number;
+  numberOfElements: number;
+  first: boolean;
+  last: boolean;
+};
+
+type UsersPageResponse = {
+  content?: UserResponse[];
+  users?: UserResponse[];
+  items?: UserResponse[];
+  totalElements?: number;
+  totalPages?: number;
+  number?: number;
+  size?: number;
+  numberOfElements?: number;
+  first?: boolean;
+  last?: boolean;
+};
+
+export type FetchUsersParams = {
+  token: string;
+  scope?: "global" | "organization";
+  page?: number;
+  size?: number;
+  search?: string;
+  role?: UserRoleFilter;
+  status?: UserStatusFilter;
+  sortBy?: "firstName" | "lastName" | "email" | "createdAt";
+  sortDir?: "asc" | "desc";
+};
+
 export type UserImportResult = {
   email?: string;
   success?: boolean;
@@ -62,9 +97,20 @@ interface UsersState {
   importing: boolean;
   importError: string | null;
   importResult: BulkImportResponse | null;
+  pagination: UsersPaginationMeta;
 }
 
 // ---------- Initial state ----------
+
+const DEFAULT_USERS_PAGINATION: UsersPaginationMeta = {
+  totalElements: 0,
+  totalPages: 0,
+  number: 0,
+  size: 10,
+  numberOfElements: 0,
+  first: true,
+  last: true,
+};
 
 const initialState: UsersState = {
   users: [],
@@ -75,6 +121,7 @@ const initialState: UsersState = {
   importing: false,
   importError: null,
   importResult: null,
+  pagination: DEFAULT_USERS_PAGINATION,
 };
 
 async function parseError(response: Response, fallback: string): Promise<string> {
@@ -88,15 +135,59 @@ async function parseError(response: Response, fallback: string): Promise<string>
 
 export const fetchUsers = createAsyncThunk(
   "users/fetchUsers",
-  async (token: string, { rejectWithValue }) => {
+  async (params: FetchUsersParams, { rejectWithValue }) => {
     try {
-      const response = await fetchWithAuth(`${API_URL}/api/v1/users/organization`, token);
+      const {
+        token,
+        scope = "organization",
+        page = 0,
+        size = 10,
+        search,
+        role = "ALL",
+        status = "ALL",
+        sortBy = "firstName",
+        sortDir = "asc",
+      } = params;
+      const query = new URLSearchParams({
+        page: String(Math.max(0, page)),
+        size: String(Math.max(1, size)),
+        sortBy,
+        sortDir,
+      });
+      const trimmedSearch = search?.trim();
+      if (trimmedSearch) query.set("search", trimmedSearch);
+      if (role !== "ALL") query.set("role", role);
+      if (status !== "ALL") query.set("status", status);
+
+      const endpoint = scope === "global" ? ENDPOINTS.users.list : ENDPOINTS.users.organization;
+      const response = await fetchWithAuth(`${API_BASE}${endpoint}?${query.toString()}`, token);
       if (!response.ok) {
         const err = await response.json();
         return rejectWithValue(err.message || "Failed to load users");
       }
-      const data = await response.json();
-      return Array.isArray(data) ? data : (data.content ?? data.users ?? data.items ?? []);
+      const data = (await response.json()) as UsersPageResponse | UserResponse[];
+      const users = Array.isArray(data) ? data : (data.content ?? data.users ?? data.items ?? []);
+      const pagination: UsersPaginationMeta = Array.isArray(data)
+        ? {
+            totalElements: users.length,
+            totalPages: users.length > 0 ? 1 : 0,
+            number: 0,
+            size: users.length || size,
+            numberOfElements: users.length,
+            first: true,
+            last: true,
+          }
+        : {
+            totalElements: data.totalElements ?? users.length,
+            totalPages: data.totalPages ?? (users.length > 0 ? 1 : 0),
+            number: data.number ?? page,
+            size: data.size ?? size,
+            numberOfElements: data.numberOfElements ?? users.length,
+            first: data.first ?? page <= 0,
+            last: data.last ?? (data.totalPages ? page >= data.totalPages - 1 : true),
+          };
+
+      return { users, pagination };
     } catch {
       return rejectWithValue("Network error");
     }
@@ -111,7 +202,7 @@ export const createUser = createAsyncThunk(
   ) => {
     try {
       const { email, firstName, lastName, roleName, organizationId } = payload.data;
-      const response = await fetchWithAuth(`${API_URL}/api/v1/users`, payload.token, {
+      const response = await fetchWithAuth(`${API_BASE}${ENDPOINTS.users.list}`, payload.token, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -153,7 +244,7 @@ export const updateUser = createAsyncThunk(
   ) => {
     try {
       const { firstName, lastName, email, organizationId } = payload.data;
-      const response = await fetchWithAuth(`${API_URL}/api/v1/users/${payload.userId}`, payload.token, {
+      const response = await fetchWithAuth(`${API_BASE}${ENDPOINTS.users.byId(payload.userId)}`, payload.token, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -179,7 +270,7 @@ export const toggleUserStatus = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await fetchWithAuth(`${API_URL}/api/v1/users/${payload.userId}/status`, payload.token, {
+      const response = await fetchWithAuth(`${API_BASE}${ENDPOINTS.users.status(payload.userId)}`, payload.token, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -204,7 +295,7 @@ export const deleteUser = createAsyncThunk(
     { rejectWithValue }
   ) => {
     try {
-      const response = await fetchWithAuth(`${API_URL}/api/v1/users/${payload.userId}`, payload.token, {
+      const response = await fetchWithAuth(`${API_BASE}${ENDPOINTS.users.byId(payload.userId)}`, payload.token, {
         method: "DELETE",
       });
       if (!response.ok) {
@@ -249,10 +340,11 @@ const usersSlice = createSlice({
       })
       .addCase(fetchUsers.fulfilled, (state, action) => {
         state.loading = false;
-        state.users = (action.payload as UserResponse[]).map((u) => ({
+        state.users = action.payload.users.map((u) => ({
           ...u,
           role: u.roleName ?? u.role,
         }));
+        state.pagination = action.payload.pagination;
       })
       .addCase(fetchUsers.rejected, (state, action) => {
         state.loading = false;

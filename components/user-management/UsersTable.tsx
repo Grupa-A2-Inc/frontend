@@ -1,19 +1,29 @@
 "use client";
 
-import { User } from "@/store/slices/usersSlice";
-
-type RoleFilter = "ALL" | "STUDENT" | "TEACHER";
-type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
+import { User, UserRoleFilter, UserStatusFilter } from "@/store/slices/usersSlice";
 
 type Props = {
   filtered: User[];
   search: string;
-  roleFilter: RoleFilter;
-  statusFilter: StatusFilter;
+  roleFilter: UserRoleFilter;
+  statusFilter: UserStatusFilter;
   onEdit: (user: User) => void;
   onToggleStatus: (userId: string) => void;
   onDelete: (userId: string) => void;
 };
+
+function formatRole(role: User["role"]): string {
+  if (role === "ORGANIZATION_ADMIN") return "Org Admin";
+  return role
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatStatus(status: User["status"]): string {
+  return status.charAt(0) + status.slice(1).toLowerCase();
+}
 
 export default function UsersTable({ filtered, search, roleFilter, statusFilter, onEdit, onToggleStatus, onDelete }: Props) {
 
@@ -62,10 +72,10 @@ export default function UsersTable({ filtered, search, roleFilter, statusFilter,
             </div>
             <div className="flex items-center gap-2">
               <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-brand-primary/15 text-brand-primary">
-                {user.role === "STUDENT" ? "Student" : user.role === "TEACHER" ? "Teacher" : "Admin"}
+                {formatRole(user.role)}
               </span>
               <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${user.status === "ACTIVE" ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400"}`}>
-                {user.status === "ACTIVE" ? "Active" : "Inactive"}
+                {formatStatus(user.status)}
               </span>
             </div>
           </div>
@@ -100,7 +110,7 @@ export default function UsersTable({ filtered, search, roleFilter, statusFilter,
                 <td className="px-5 py-3 text-sm text-brand-text/50">{user.email}</td>
                 <td className="px-5 py-3">
                   <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-brand-primary/15 text-brand-primary">
-                    {user.role === "STUDENT" ? "Student" : user.role === "TEACHER" ? "Teacher" : "Admin"}
+                    {formatRole(user.role)}
                   </span>
                 </td>
                 <td className="px-5 py-3">
@@ -108,7 +118,7 @@ export default function UsersTable({ filtered, search, roleFilter, statusFilter,
                     user.status === "ACTIVE"
                       ? "bg-emerald-500/15 text-emerald-400"
                       : "bg-red-500/15 text-red-400"}`}>
-                    {user.status === "ACTIVE" ? "Active" : "Inactive"}
+                    {formatStatus(user.status)}
                   </span>
                 </td>
                 <td className="px-5 py-3">

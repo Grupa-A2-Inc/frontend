@@ -1,18 +1,15 @@
 "use client";
 
-import { User } from "@/store/slices/usersSlice";
-
-type RoleFilter = "ALL" | "STUDENT" | "TEACHER";
-type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
+import { User, UserRoleFilter, UserStatusFilter } from "@/store/slices/usersSlice";
 
 type Props = {
   users: User[];
   search: string;
   onSearchChange: (value: string) => void;
-  roleFilter: RoleFilter;
-  onRoleFilterChange: (value: RoleFilter) => void;
-  statusFilter: StatusFilter;
-  onStatusFilterChange: (value: StatusFilter) => void;
+  roleFilter: UserRoleFilter;
+  onRoleFilterChange: (value: UserRoleFilter) => void;
+  statusFilter: UserStatusFilter;
+  onStatusFilterChange: (value: UserStatusFilter) => void;
 };
 
 export default function UsersToolbar({
@@ -26,25 +23,33 @@ export default function UsersToolbar({
 }: Props) {
   const studentCount = users.filter((u) => u.role === "STUDENT").length;
   const teacherCount = users.filter((u) => u.role === "TEACHER").length;
+  const adminCount = users.filter((u) => u.role === "ADMIN").length;
+  const organizationAdminCount = users.filter((u) => u.role === "ORGANIZATION_ADMIN").length;
+  const parentCount = users.filter((u) => u.role === "PARENT").length;
 
   //Role tabs
-  const roleTabs: { label: string; value: RoleFilter; count: number }[] = [
-    { label: "All",      value: "ALL",     count: users.length  },
-    { label: "Students", value: "STUDENT", count: studentCount  },
-    { label: "Teachers", value: "TEACHER", count: teacherCount  },
+  const roleTabs: { label: string; value: UserRoleFilter; count: number }[] = [
+    { label: "All",      value: "ALL",     count: users.length },
+    { label: "Students", value: "STUDENT", count: studentCount },
+    { label: "Teachers", value: "TEACHER", count: teacherCount },
+    { label: "Admins",   value: "ADMIN",   count: adminCount },
+    { label: "Org Admins", value: "ORGANIZATION_ADMIN", count: organizationAdminCount },
+    { label: "Parents",  value: "PARENT",  count: parentCount },
   ];
 
   //Status tabs
-  const statusTabs: { label: string; value: StatusFilter }[] = [
+  const statusTabs: { label: string; value: UserStatusFilter }[] = [
     { label: "All",      value: "ALL"      },
     { label: "Active",   value: "ACTIVE"   },
     { label: "Inactive", value: "INACTIVE" },
+    { label: "Blocked",  value: "BLOCKED"  },
+    { label: "Pending",  value: "PENDING"  },
   ];
 
   return (
     <div className="flex flex-col gap-4 mb-6">
       {/*ROLE TABS*/}
-      <div className="flex items-center gap-1 bg-brand-card border border-brand-primary/20 rounded-xl p-1 w-fit">
+      <div className="flex w-fit max-w-full flex-wrap items-center gap-1 rounded-xl border border-brand-primary/20 bg-brand-card p-1">
         {roleTabs.map((tab) => (
           <button
             key={tab.value}
@@ -87,7 +92,7 @@ export default function UsersToolbar({
         </div>
 
         {/* Status filter */}
-        <div className="flex items-center gap-1 bg-brand-card border border-brand-primary/20 rounded-xl p-1">
+        <div className="flex flex-wrap items-center gap-1 rounded-xl border border-brand-primary/20 bg-brand-card p-1">
           {statusTabs.map((tab) => (
             <button
               key={tab.value}

@@ -10,6 +10,7 @@ export const ENDPOINTS = {
     register: "/api/v1/auth/register",
     logout: "/api/v1/auth/logout",
     refresh: "/api/v1/auth/refresh",
+    csrf: "/api/v1/auth/csrf",
     setPassword: "/api/v1/auth/set-password",
     passwordResetRequest: "/api/v1/auth/password-reset/request",
     passwordResetConfirm: "/api/v1/auth/password-reset/confirm",

@@ -1,7 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { API_BASE } from "@/lib/config";
 import { ENDPOINTS } from "@/lib/api-endpoints";
-import { fetchWithAuth, getXsrfHeaders } from "@/lib/fetchWithAuth";
+import { fetchWithAuth, getXsrfHeadersAsync, refreshCsrfToken } from "@/lib/fetchWithAuth";
 
 
 export type UserRole = "ADMIN" | "ORGANIZATION_ADMIN" | "TEACHER" | "STUDENT";
@@ -100,6 +100,7 @@ export const login = createAsyncThunk(
 
       // Daca login-ul reuseste, extragem datele
       const data = await response.json();
+      await refreshCsrfToken().catch(() => null);
 
       // Returnam datele catre reducer
       return data;
@@ -136,6 +137,7 @@ export const register = createAsyncThunk(
 
       // Daca register-ul reuseste, extragem datele 
       const data = await response.json();
+      await refreshCsrfToken().catch(() => null);
 
       // Returnam datele catre reducer
       return data;
@@ -223,7 +225,7 @@ export const logout = createAsyncThunk(
     await fetchWithAuth(`${API_BASE}${ENDPOINTS.auth.logout}`, token, {
       method: "POST",
       credentials: "include",
-      headers: getXsrfHeaders(),
+      headers: await getXsrfHeadersAsync({ forceRefresh: true }),
       skipAuthRefresh: true,
     }).catch(() => {});
   }
