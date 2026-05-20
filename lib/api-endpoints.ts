@@ -112,6 +112,11 @@ export const ENDPOINTS = {
     analyticsAlerts: (testId: string) =>
       `/api/v1/tests/${testId}/analytics/alerts`,
   },
+  questions: {
+    byTest: (testId: string) => `/api/tests/${testId}/questions`,
+    byId: (testId: string, questionId: number | string) =>
+      `/api/tests/${testId}/questions/${questionId}`,
+  },
 
   // 11 & 12. Attempts
   attempts: {

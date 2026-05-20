@@ -107,7 +107,7 @@ export default function AdaptivePickerPage() {
                   </option>
                   {topics.map((t) => (
                     <option key={t.topic_id} value={t.topic_id}>
-                      Grade {t.grade} — {t.name}
+                      Clasa a {t.grade}-a — {t.name}
                     </option>
                   ))}
                 </select>
