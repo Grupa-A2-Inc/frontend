@@ -228,7 +228,7 @@ function TestEditorLink({
       </p>
       {selectedLeaf && !selectedLeaf.id.startsWith("temp_") && courseId && (
         <Link
-          href={`/dashboard/teacher/courses/${courseId}/tests`}
+          href={`/dashboard/teacher/courses/${courseId}/lessons/${selectedLeaf.id}/test-builder`}
           className="inline-flex items-center gap-2 px-4 py-2 bg-brand-primary/10 text-brand-primary text-sm font-medium rounded-xl hover:bg-brand-primary/20 transition-colors"
         >
           <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>quiz</span>
