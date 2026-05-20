@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, use } from "react";
+import { useEffect, use, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, Loader2, AlertCircle } from "lucide-react";
+import { AlertCircle, ChevronLeft, FlaskConical, Loader2, PlayCircle } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchActiveLessonData, fetchCourseDetails } from "@/store/slices/coursesSlice";
 import type { Chapter, LessonResource } from "@/lib/courses/types";
+import { apiGetTestForLesson } from "@/lib/tests/api";
+import type { TestEntity } from "@/lib/tests/types";
 
 import LessonSidebar from "@/components/course-content/LessonSidebar";
 import MarkdownViewer from "@/components/course-content/MarkdownViewer";
@@ -30,6 +32,8 @@ export default function LessonPage({
 }) {
   const { courseId, lessonId } = use(params);
   const dispatch = useAppDispatch();
+  const [lessonTest, setLessonTest] = useState<TestEntity | null>(null);
+  const [testError, setTestError] = useState<string | null>(null);
 
   const {
     currentCourse,
@@ -50,6 +54,24 @@ export default function LessonPage({
       dispatch(fetchCourseDetails({ token, courseId }));
     }
   }, [dispatch, lessonId, courseId, token, currentCourse]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    apiGetTestForLesson(lessonId)
+      .then((test) => {
+        if (isMounted) setLessonTest(test);
+      })
+      .catch((err) => {
+        if (isMounted) {
+          setTestError(err instanceof Error ? err.message : "Failed to load lesson test.");
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [lessonId]);
 
   if (isLoadingLesson) {
     return (
@@ -147,10 +169,45 @@ export default function LessonPage({
             </div>
           )}
 
+          {/* Secțiunea de Teste adusă din main */}
+          {testError && (
+            <div className="mb-10 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm text-yellow-100">
+              {testError}
+            </div>
+          )}
+
+          {lessonTest?.status === "PUBLISHED" && (
+            <div className="mb-10 rounded-xl border border-brand-border bg-brand-bg p-5">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-start gap-3">
+                  <span className="rounded-lg bg-brand-primary/10 p-2 text-brand-primary">
+                    <FlaskConical size={20} />
+                  </span>
+                  <div>
+                    <h3 className="font-bold text-brand-text">{lessonTest.title}</h3>
+                    <p className="mt-1 text-sm text-brand-muted">
+                      {lessonTest.timeLimitSec > 0
+                        ? `${Math.round(lessonTest.timeLimitSec / 60)} min`
+                        : "No time limit"}
+                    </p>
+                  </div>
+                </div>
+
+                <Link
+                  href={`/dashboard/student/tests/${lessonTest.id}/take`}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-primary px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-primary/90"
+                >
+                  <PlayCircle size={18} />
+                  Take test
+                </Link>
+              </div>
+            </div>
+          )}
+
+          {/* Secțiunea ta de Rating integrată perfect la sfârșitul paginii */}
           <div className="mt-8 pt-8 border-t border-brand-border">
              <LessonRating lessonId={lessonId} />
           </div>
-          
         </div>
 
         <LessonNavigation
