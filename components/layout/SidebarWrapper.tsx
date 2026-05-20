@@ -43,8 +43,7 @@ const navConfig: Record<NavRole, NavItemConfig[]> = {
   ],
   teacher: [
     { icon: "book",       label: "My Courses", href: "/dashboard/teacher" },
-    { icon: "assignment", label: "Tests",      href: "/dashboard/teacher/tests" },
-    { icon: "bar_chart",  label: "Students",   href: "/dashboard/teacher/students" },
+    { icon: "notifications", label: "Alerts",  href: "/dashboard/teacher/tests" },
   ],
   student: [
     { icon: "book",        label: "Courses",     href: "/dashboard/student" },
