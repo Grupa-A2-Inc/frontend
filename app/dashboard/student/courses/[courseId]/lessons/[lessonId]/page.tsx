@@ -11,6 +11,17 @@ import LessonSidebar from "@/components/course-content/LessonSidebar";
 import MarkdownViewer from "@/components/course-content/MarkdownViewer";
 import PdfDownloadButton from "@/components/course-content/PdfDownloadButton";
 import LessonNavigation from "@/components/course-content/LessonNavigation";
+import dynamic from "next/dynamic";
+
+const LessonRating = dynamic(
+  () => import("@/components/course-content/LessonRating"),
+  { 
+    ssr: false,
+    loading: () => (
+      <div className="h-[88px] rounded-xl border border-brand-border bg-brand-bg animate-pulse"></div>
+    )
+  }
+);
 
 export default function LessonPage({
   params,
@@ -135,6 +146,11 @@ export default function LessonPage({
               </div>
             </div>
           )}
+
+          <div className="mt-8 pt-8 border-t border-brand-border">
+             <LessonRating lessonId={lessonId} />
+          </div>
+          
         </div>
 
         <LessonNavigation
