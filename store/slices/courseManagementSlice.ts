@@ -127,7 +127,16 @@ export const loadStudentsByClass = createAsyncThunk(
         }),
       );
 
-      return groups;
+      //Solved bug
+      //eliminarea studentilor neasignati la acel curs din "students by class"
+      const assignedGroups = groups.filter(group => {
+        return group.students.some(student => 
+          progressByStudent.has(student.id) || averageByStudent.has(student.id)
+        );
+      });
+
+      return assignedGroups.filter(group => group.students.length > 0);
+
     } catch (error) {
       return rejectWithValue(
         getErrorMessage(error, "Failed to load students."),
@@ -135,6 +144,7 @@ export const loadStudentsByClass = createAsyncThunk(
     }
   },
 );
+//
 
 export const assignCourse = createAsyncThunk(
   "courseManagement/assignCourse",

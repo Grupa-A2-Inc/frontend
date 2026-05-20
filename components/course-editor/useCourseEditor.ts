@@ -546,6 +546,8 @@ function mapCourseToChapters(data: EditorCourseResponse): EditorChapter[] {
   }));
 }
 
+//fix bug
+//nodurile capitolelor
 async function createCourseTree(courseId: string, chapters: EditorChapter[]) {
   for (const chapter of [...chapters].sort((a, b) => a.orderIndex - b.orderIndex)) {
     const chapterResult = await createChapter(courseId, {
@@ -553,10 +555,17 @@ async function createCourseTree(courseId: string, chapters: EditorChapter[]) {
     });
 
     for (const leaf of [...chapter.children].sort((a, b) => a.orderIndex - b.orderIndex)) {
-      await createLesson(chapterResult.id, {
+      const lessonResult = await createLesson(chapterResult.id, {
         title: leaf.title.trim(),
         ...(leaf.type === "TEXT" && leaf.content ? { contentMarkdown: leaf.content } : {}),
       });
+
+      if ((leaf.type === "FILE" || leaf.type === "VIDEO") && leaf.fileUrl && leaf.fileUrl.trim() !== "") {
+        await createResource(lessonResult.id, {
+          title: leaf.title.trim(),
+          url: leaf.fileUrl.trim(),
+        });
+      }
     }
   }
 }

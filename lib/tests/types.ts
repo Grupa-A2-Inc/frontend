@@ -1,79 +1,111 @@
-export interface TestOption {
+export type QuestionType = "SINGLE_CHOICE" | "MULTI_CHOICE" | "TRUE_FALSE";
+
+export type TestStatus = "DRAFT" | "PUBLISHED";
+
+export interface TestEntity {
   id: string;
-  label: string;
+  lessonId: string;
+  title: string;
+  description: string;
+  timeLimitSec: number;
+  status: TestStatus;
+  aiEnabled: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface TestEditPayload {
+  title: string;
+  description?: string;
+  timeLimitSec?: number;
+  aiEnabled?: boolean;
+}
+
+export interface TestOption {
+  id?: number;
+  clientId: string;
+  text: string;
+  displayOrder: number;
   isCorrect: boolean;
 }
 
-export interface DraftQuestion {
-  id: string;
-  prompt: string;
-  options: { id: string; label: string; isCorrect: boolean }[];
+export interface TestQuestion {
+  id?: number;
+  clientId: string;
+  questionType: QuestionType;
+  content: string;
+  difficulty?: number;
+  options: TestOption[];
 }
 
 export interface GenerateTestPayload {
   count: number;
 }
 
-// --------------------------------------------------
-// Tipuri pentru sesiunea de test (student)
-// --------------------------------------------------
-
-export interface TakeTestSession {
-    attemptId: string;
-    attemptNumber: number;
-    startedAt: string;
-    timeLimitSec: number;
-
-    
-    testId: string;
-    title: string;
-
-    questions: {
-        questionId: number;
-        questionType: string;
-        prompt: string;
-        options: {
-            id: number;
-            label: string;
-            order: number;
-        }[];
-    }[];
+export interface InjectionResult {
+  testId: string;
+  testCreated: boolean;
+  injectedCount: number;
+  newTotalQuestions: number;
+  lessonId: string;
 }
 
-// --------------------------------------------------
-// Tip payload pentru submit test
-// --------------------------------------------------
+export interface TakeTestQuestion {
+  questionId: number;
+  questionType: QuestionType;
+  prompt: string;
+  difficulty?: number;
+  options: {
+    id: number;
+    label: string;
+    order: number;
+  }[];
+}
+
+export interface TakeTestSession {
+  attemptId: string;
+  attemptNumber: number;
+  startedAt: string;
+  timeLimitSec: number;
+  testId: string;
+  title: string;
+  questions: TakeTestQuestion[];
+}
 
 export interface SubmitTestPayload {
   answers: {
     questionId: string;
-    selectedOptionId: string;
+    selectedOptionIds: string[];
   }[];
 }
 
-// --------------------------------------------------
-// Tip rezultat test (student)
-// --------------------------------------------------
+export interface ResultQuestion {
+  id: string;
+  questionId: number;
+  questionType: QuestionType;
+  prompt: string;
+  selectedOptionIds: number[];
+  correctOptionIds: number[];
+  options: {
+    id: number;
+    label: string;
+    isSelected: boolean;
+    isCorrect: boolean;
+  }[];
+  isCorrect: boolean;
+}
 
 export interface TestResult {
   attemptId: string;
-  testId: string;
+  testId?: string;
   score: number;
+  scorePercent: number;
   passed: boolean;
   totalQuestions: number;
   correctAnswers: number;
-  questions: {
-    id: string;
-    prompt: string;
-    selectedOptionLabel: string;
-    correctOptionLabel: string;
-    isCorrect: boolean;
-  }[];
+  completedAt?: string;
+  questions: ResultQuestion[];
 }
-
-// --------------------------------------------------
-// Tip analytics test (profesor)
-// --------------------------------------------------
 
 export interface TestAnalytics {
   testId: string;
@@ -87,30 +119,6 @@ export interface TestAnalytics {
   worstScore: number;
   passedCount: number;
   failedCount: number;
-}
-
-export interface AttemptReportDTO {
-  score: number;
-  totalQuestions: number;
-  correctCount: number;
-  questions: {
-    id: string;
-    prompt: string;
-    options: {
-      text: string;
-      isCorrect: boolean;
-      isSelected: boolean;
-    }[];
-  }[];
-}
-
-export interface StudentProgress {
-  courseId: string;
-  courseTitle: string;
-  completedLessons: number;
-  totalLessons: number;
-  progressPercentage: number;
-  lastActivityDate: string;
 }
 
 export interface LessonProgress {

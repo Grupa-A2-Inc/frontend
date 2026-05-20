@@ -1,128 +1,42 @@
-import { 
-  DraftQuestion, 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { ENDPOINTS } from "@/lib/api-endpoints";
+import { API_BASE } from "@/lib/config";
+import {
   GenerateTestPayload,
+  InjectionResult,
+  QuestionType,
+  StudentProgress,
   SubmitTestPayload,
-  TestResult,
   TakeTestSession,
-  TestAnalytics
+  TestAnalytics,
+  TestEditPayload,
+  TestEntity,
+  TestOption,
+  TestQuestion,
+  TestResult,
 } from "./types";
+import {
+  fetchWithAuth,
+  getStoredAccessToken,
+  refreshAccessToken,
+} from "@/lib/fetchWithAuth";
 
-import { StudentProgress } from "./types";
-import { fetchWithAuth, refreshAccessToken, getStoredAccessToken } from "@/lib/fetchWithAuth";
+class ApiError extends Error {
+  status: number;
 
-// Baza API
-const API_BASE = "https://api.adaptiveelearning.online";
-
-type AiOptionDto = {
-  text?: string;
-  isCorrect?: boolean;
-};
-
-type AiQuestionDto = {
-  content?: string;
-  options?: AiOptionDto[];
-};
-
-type AiGenerateResponse = {
-  questions?: AiQuestionDto[];
-};
-
-type AiGenerateRequestResponse = {
-  requestId: string;
-  status: "PENDING" | "DONE" | "SUCCESS" | "FAILED";
-};
-
-type AiRequestStatusResponse = {
-  requestId: string;
-  status: "PENDING" | "DONE" | "SUCCESS" | "FAILED";
-  questions?: AiQuestionDto[];
-};
-
-type AiInjectResponse = {
-  testId?: string;
-  testCreated?: boolean;
-  injectedCount?: number;
-  newTotalQuestions?: number;
-  lessonId?: string;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
 }
 
-type TestQuestionOptionDto = {
-  id: number;
-  text: string;
-  displayOrder: number;
-};
+function isApiErrorWithStatus(err: unknown, status: number): err is ApiError {
+  return err instanceof ApiError && err.status === status;
+}
 
-type TestQuestionDto = {
-  id: number;
-  content: string;
-  questionType: string;
-  options: TestQuestionOptionDto[];
-  correctAnswers: TestQuestionOptionDto[];
-};
+type ApiOptions = RequestInit & { allowNotFound?: boolean };
 
-type CreatedTestDto = {
-  id: string;
-};
-
-type StartTestOptionDto = {
-  optionId: number;
-  text: string;
-  displayOrder: number;
-};
-
-type StartTestQuestionDto = {
-  questionId: number;
-  questionType: string;
-  content: string;
-  options?: StartTestOptionDto[];
-};
-
-type StartTestDto = {
-  attemptId: string;
-  attemptNumber: number;
-  startedAt: string;
-  timeLimitSec: number;
-  test: {
-    id: string;
-    title: string;
-  };
-  questions?: StartTestQuestionDto[];
-};
-
-type SubmitResultDto = {
-  attemptId: string;
-  testId: string;
-  score: number;
-  passed: boolean;
-  totalQuestions: number;
-  correctAnswers: number;
-  questions: TestResult["questions"];
-};
-
-type ResultOptionDto = {
-  text?: string;
-  isCorrect?: boolean;
-  isSelected?: boolean;
-};
-
-type ResultQuestionDto = {
-  id?: string | number;
-  content?: string;
-  options?: ResultOptionDto[];
-  isCorrect?: boolean;
-};
-
-type AttemptResultDto = {
-  attemptId: string;
-  testId: string;
-  scorePercentage?: number;
-  score?: number;
-  passed?: boolean;
-  questions?: ResultQuestionDto[];
-};
-
-// Functie generica pentru request-uri catre backend
-async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
+async function apiFetch<T>(path: string, options?: ApiOptions): Promise<T> {
   const headers = new Headers(options?.headers);
   if (!headers.has("Content-Type")) {
     headers.set("Content-Type", "application/json");
@@ -133,56 +47,250 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     headers,
   });
 
-  // Gestionam erorile standard
-  if (!response.ok) {
-    if (response.status === 401)
-      throw new Error("Unauthorized. Please sign in again.");
-    if (response.status === 403) 
-      throw new Error("You do not have permission.");
-    if (response.status === 404) 
-      throw new Error("Resource not found.");
-    throw new Error(`Request failed with status ${response.status}`);
+  if (response.status === 404 && options?.allowNotFound) {
+    return null as T;
   }
 
-  // Daca backend-ul raspunde cu 204 (no content), returnam null
-  if (response.status === 204)
-    return null as T;
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    const message =
+      payload?.message ??
+      payload?.error ??
+      (response.status === 401
+        ? "Unauthorized. Please sign in again."
+        : response.status === 403
+          ? "You do not have permission."
+          : response.status === 404
+            ? "Resource not found."
+            : `Request failed with status ${response.status}`);
+    throw new ApiError(response.status, message);
+  }
 
-  // Altfel, returnam JSON-ul
+  if (response.status === 204) {
+    return null as T;
+  }
+
   return response.json();
 }
 
-//
-// --------------------------------------------------
-// 1. GENERARE TEST (AI) - PROFESOR
-// --------------------------------------------------
-//
+function asNumber(value: unknown, fallback = 0): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
 
-// Helper de polling
+function getOptionId(data: any): number | undefined {
+  return data?.optionId ?? data?.id;
+}
+
+function getQuestionId(data: any): number | undefined {
+  return data?.questionId ?? data?.id;
+}
+
+function normalizeOption(data: any, index: number, correctIds: Set<number>): TestOption {
+  const id = getOptionId(data);
+  const isCorrect = data?.isCorrect ?? (id !== undefined && correctIds.has(id));
+
+  return {
+    id,
+    clientId: id !== undefined ? `option-${id}` : `option-new-${crypto.randomUUID()}`,
+    text: data?.text ?? "",
+    displayOrder: asNumber(data?.displayOrder, index + 1),
+    isCorrect: Boolean(isCorrect),
+  };
+}
+
+function normalizeQuestion(data: any, index = 0): TestQuestion {
+  const id = getQuestionId(data);
+  const correctIds = new Set<number>(
+    (data?.correctAnswers ?? [])
+      .map((option: any) => getOptionId(option))
+      .filter((optionId: unknown): optionId is number => typeof optionId === "number")
+  );
+
+  return {
+    id,
+    clientId: id !== undefined ? `question-${id}` : `question-new-${crypto.randomUUID()}-${index}`,
+    questionType: (data?.questionType ?? "SINGLE_CHOICE") as QuestionType,
+    content: data?.content ?? "",
+    difficulty: data?.difficulty,
+    options: (data?.options ?? []).map((option: any, optionIndex: number) =>
+      normalizeOption(option, optionIndex, correctIds)
+    ),
+  };
+}
+
+function questionToRequest(question: TestQuestion) {
+  return {
+    questionType: question.questionType,
+    content: question.content,
+    difficulty: question.difficulty,
+    options: question.options.map((option, index) => ({
+      text: option.text,
+      displayOrder: option.displayOrder || index + 1,
+      isCorrect: option.isCorrect,
+    })),
+  };
+}
+
+function normalizeTest(data: any): TestEntity {
+  return {
+    id: data.id,
+    lessonId: data.lessonId,
+    title: data.title ?? "Lesson test",
+    description: data.description ?? "",
+    timeLimitSec: asNumber(data.timeLimitSec),
+    status: data.status ?? "DRAFT",
+    aiEnabled: Boolean(data.aiEnabled),
+    createdAt: data.createdAt,
+    updatedAt: data.updatedAt,
+  };
+}
+
+type AiGenerateResponse = {
+  requestId: string;
+  status: "PENDING" | "RUNNING" | "DONE" | "SUCCESS" | "FAILED";
+};
+
+type AiRequestStatusResponse = {
+  requestId: string;
+  status: "PENDING" | "RUNNING" | "DONE" | "SUCCESS" | "FAILED";
+  error?: string;
+};
+
+export async function apiGetTestForLesson(lessonId: string): Promise<TestEntity | null> {
+  const data = await apiFetch<unknown | null>(ENDPOINTS.lessons.test(lessonId), {
+    allowNotFound: true,
+  });
+  return data ? normalizeTest(data) : null;
+}
+
+export async function apiGetTestDetails(testId: string): Promise<TestEntity> {
+  const data = await apiFetch<unknown>(ENDPOINTS.tests.byId(testId));
+  return normalizeTest(data);
+}
+
+export async function apiCreateLessonTest(
+  lessonId: string,
+  payload: TestEditPayload
+): Promise<TestEntity> {
+  const data = await apiFetch<unknown>(ENDPOINTS.lessons.test(lessonId), {
+    method: "POST",
+    body: JSON.stringify({
+      title: payload.title,
+      description: payload.description ?? "",
+      timeLimitSec: payload.timeLimitSec ?? 0,
+      aiEnabled: payload.aiEnabled ?? false,
+    }),
+  });
+  return normalizeTest(data);
+}
+
+export async function apiPublishTest(testId: string): Promise<TestEntity> {
+  const data = await apiFetch<unknown>(ENDPOINTS.tests.publish(testId), {
+    method: "PATCH",
+  });
+  return normalizeTest(data);
+}
+
+export async function apiGetQuestionsForTest(testId: string): Promise<TestQuestion[]> {
+  const data = await apiFetch<unknown[]>(ENDPOINTS.tests.questions(testId));
+  return (data ?? []).map((question, index) => normalizeQuestion(question, index));
+}
+
+export async function apiGetEditableQuestionsForTest(testId: string): Promise<TestQuestion[]> {
+  const query = "?sortBy=id&sortDir=asc";
+  const data = await apiFetch<unknown[]>(`${ENDPOINTS.questions.byTest(testId)}${query}`).catch(
+    (err: unknown) => {
+      if (isApiErrorWithStatus(err, 401)) {
+        return apiFetch<unknown[]>(ENDPOINTS.tests.questions(testId));
+      }
+      throw err;
+    }
+  );
+  return (data ?? []).map((question, index) => normalizeQuestion(question, index));
+}
+
+export async function apiCreateQuestion(
+  testId: string,
+  question: TestQuestion
+): Promise<TestQuestion> {
+  const options: RequestInit = {
+    method: "POST",
+    body: JSON.stringify(questionToRequest(question)),
+  };
+  const data = await apiFetch<unknown>(ENDPOINTS.questions.byTest(testId), options).catch(
+    (err: unknown) => {
+      if (isApiErrorWithStatus(err, 401)) {
+        return apiFetch<unknown>(ENDPOINTS.tests.questions(testId), options);
+      }
+      throw err;
+    }
+  );
+  return normalizeQuestion(data);
+}
+
+export async function apiUpdateQuestion(
+  testId: string,
+  question: TestQuestion
+): Promise<TestQuestion> {
+  if (question.id === undefined) {
+    return apiCreateQuestion(testId, question);
+  }
+
+  const questionId = question.id;
+  const options: RequestInit = {
+    method: "PUT",
+    body: JSON.stringify(questionToRequest(question)),
+  };
+  const data = await apiFetch<unknown>(ENDPOINTS.questions.byId(testId, questionId), options).catch(
+    (err: unknown) => {
+      if (isApiErrorWithStatus(err, 401)) {
+        return apiFetch<unknown>(ENDPOINTS.tests.questionById(testId, questionId), options);
+      }
+      throw err;
+    }
+  );
+  return normalizeQuestion(data);
+}
+
+export async function apiDeleteQuestion(testId: string, questionId: number): Promise<void> {
+  const options: RequestInit = {
+    method: "DELETE",
+  };
+  await apiFetch(ENDPOINTS.questions.byId(testId, questionId), options).catch((err: unknown) => {
+    if (isApiErrorWithStatus(err, 401)) {
+      return apiFetch(ENDPOINTS.tests.questionById(testId, questionId), options);
+    }
+    throw err;
+  });
+}
+
 async function pollAiRequestStatus(
   requestId: string,
-  intervalMs = 5000,
-  maxAttempts = 60
+  intervalMs = 4000,
+  maxAttempts = 75
 ): Promise<AiRequestStatusResponse> {
-  for (let i = 0; i< maxAttempts; i++) {
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
     const data = await apiFetch<AiRequestStatusResponse>(
-      `/api/v1/ai/requests/${requestId}/status`
+      ENDPOINTS.ai.requestStatus(requestId)
     );
+
     if (data.status === "DONE" || data.status === "SUCCESS" || data.status === "FAILED") {
       return data;
     }
-    await new Promise((resolve) => setTimeout (resolve, intervalMs));
+
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
-  throw new Error("AI generation timed out. Please try again");
+
+  throw new Error("AI generation timed out. Please try again.");
 }
 
-export async function apiGenerateTest(
+export async function apiGenerateAndInjectQuestions(
   lessonId: string,
-  payload: GenerateTestPayload
-): Promise<DraftQuestion[]> {
-  // PASUL 1: porneste generarea
-  const initData = await apiFetch<AiGenerateRequestResponse>(
-    `/api/v1/lessons/${lessonId}/ai/generate-test`,
+  payload: GenerateTestPayload,
+  testIdOpt?: string
+): Promise<{ injection: InjectionResult; test: TestEntity; questions: TestQuestion[] }> {
+  const initData = await apiFetch<AiGenerateResponse>(
+    ENDPOINTS.lessons.aiGenerateTest(lessonId),
     { method: "POST", body: JSON.stringify(payload) }
   );
 
@@ -190,222 +298,116 @@ export async function apiGenerateTest(
     throw new Error("AI generation failed. Please try again.");
   }
 
-  // PASUL 2: polling pana la DONE
-  const result = await pollAiRequestStatus(initData.requestId);
-
-  if (result.status === "FAILED") {
-    throw new Error("AI generation failed. Please try again.");
+  const status = await pollAiRequestStatus(initData.requestId);
+  if (status.status === "FAILED") {
+    throw new Error(status.error ?? "AI generation failed. Please try again.");
   }
 
-  // Refresh token inainte de inject (polling-ul poate dura si token-ul expira)
   await refreshAccessToken(getStoredAccessToken());
 
-  // PASUL 3: inject
-  const injectResult = await apiFetch<AiInjectResponse>(
-    `/api/v1/ai/request/${initData.requestId}/inject`,
-    { method: "POST", body: JSON.stringify({}) }
-  );
-
-  if (!injectResult?.testId) {
-    throw new Error("Inject failed: no testId returned.");
-  }
-
-  // PASUL 4: ia intrebarile din test
-  const questions = await apiFetch<TestQuestionDto[]>(
-    `/api/v1/tests/${injectResult.testId}/questions`
-  );
-
-  return (questions ?? []).map((q, index) => ({
-    id: `ai-${Date.now()}-${index}`,
-    prompt: q.content ?? "",
-    options: (q.options ?? []).map((opt) => ({
-      id: `opt-${Date.now()}-${opt.id}`,
-      label: opt.text ?? "",
-      isCorrect: (q.correctAnswers ?? []).some((ca) => ca.id === opt.id),
-    })),
-  }));
-}
-
-//
-// --------------------------------------------------
-// 2. SALVARE TEST FINAL - PROFESOR
-// --------------------------------------------------
-//
-
-export async function apiSaveFinalTest(
-  lessonId: string,
-  questions: DraftQuestion[],
-  title: string,
-  timeLimitSec?: number
-): Promise<{ testId: string }> {
-
-  // 1. Creează testul fără întrebări
-  const body = {
-    title,
-    description: "",
-    timeLimitSec: timeLimitSec ?? 0,
-    aiEnabled: false
-  };
-
-  const test = await apiFetch<CreatedTestDto>(
-    `/api/v1/lessons/${lessonId}/test`,
+  const injectionData = await apiFetch<InjectionResult>(
+    ENDPOINTS.ai.injectQuestions(initData.requestId),
     {
       method: "POST",
-      body: JSON.stringify(body),
+      body: JSON.stringify(testIdOpt ? { testIdOpt } : {}),
     }
   );
 
-  const testId = test.id;
+  const test = await apiGetTestDetails(injectionData.testId);
+  const questions = await apiGetEditableQuestionsForTest(injectionData.testId);
 
-  // 2. Adaugă întrebările una câte una
-  for (const q of questions) {
-    await apiFetch(
-      `/api/v1/tests/${testId}/questions`,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          content: q.prompt,
-          questionType: "SINGLE_CHOICE",
-          options: q.options.map((opt, index) => ({
-            text: opt.label,
-            displayOrder: index + 1
-          }))
-        })
-      }
-    );
-  }
-
-  return { testId };
+  return { injection: injectionData, test, questions };
 }
-
-//
-// --------------------------------------------------
-// 3. PUBLICARE TEST - PROFESOR
-// --------------------------------------------------
-//
-
-export async function apiPublishTest(testId: string): Promise<void> {
-  await apiFetch(`/api/v1/tests/${testId}/publish`, {
-    method: "PATCH",
-  });
-}
-
-//
-// --------------------------------------------------
-// 4. START TEST - ELEV
-// --------------------------------------------------
-//
 
 export async function apiStartTestSession(testId: string): Promise<TakeTestSession> {
-    const data = await apiFetch<StartTestDto>(`/api/v1/tests/${testId}/start`, {
-        method: "POST",
-    });
+  const data: any = await apiFetch(ENDPOINTS.tests.start(testId), {
+    method: "POST",
+  });
 
-    return {
-        attemptId: data.attemptId,
-        attemptNumber: data.attemptNumber,
-        startedAt: data.startedAt,
-        timeLimitSec: data.timeLimitSec,
-
-        // test info
-        testId: data.test.id,
-        title: data.test.title,
-
-        // questions
-        questions: (data.questions ?? []).map((q) => ({
-            questionId: q.questionId,
-            questionType: q.questionType,
-            prompt: q.content,
-            options: (q.options ?? []).map((opt) => ({
-                id: opt.optionId,
-                label: opt.text,
-                order: opt.displayOrder,
-            })),
-        })),
-    };
+  return {
+    attemptId: data.attemptId,
+    attemptNumber: data.attemptNumber,
+    startedAt: data.startedAt,
+    timeLimitSec: asNumber(data.timeLimitSec),
+    testId: data.test?.id ?? testId,
+    title: data.test?.title ?? "Lesson test",
+    questions: (data.questions ?? []).map((question: any) => ({
+      questionId: question.questionId,
+      questionType: question.questionType ?? "SINGLE_CHOICE",
+      prompt: question.content ?? "",
+      difficulty: question.difficulty,
+      options: (question.options ?? []).map((option: any) => ({
+        id: option.optionId ?? option.id,
+        label: option.text ?? "",
+        order: asNumber(option.displayOrder),
+      })),
+    })),
+  };
 }
 
-//
-// --------------------------------------------------
-// 5. SUBMIT TEST - ELEV
-// --------------------------------------------------
-//
+export async function apiSubmitTest(
+  attemptId: string,
+  payload: SubmitTestPayload
+): Promise<TestResult> {
+  const data: any = await apiFetch(ENDPOINTS.attempts.submit(attemptId), {
+    method: "POST",
+    body: JSON.stringify({
+      answers: payload.answers.map((answer) => ({
+        questionId: Number(answer.questionId),
+        selectedOptionIds: answer.selectedOptionIds.map(Number),
+        timeSpent: 0,
+      })),
+    }),
+  });
 
-export async function apiSubmitTest(attemptId: string, payload: SubmitTestPayload): Promise<TestResult> {
-    const formattedPayload = {
-        answers: payload.answers.map((a) => ({
-            questionId: Number(a.questionId),
-            selectedOptionIds: [Number(a.selectedOptionId)],
-            timeSpent: 0
-        }))
-    };
-
-    const data = await apiFetch<SubmitResultDto>(
-        `/api/v1/attempts/${attemptId}/submit`,
-        {
-            method: "POST",
-            body: JSON.stringify(formattedPayload),
-        }
-    );
-
-    return {
-        attemptId: data.attemptId,
-        testId: data.testId,
-        score: data.score,
-        passed: data.passed,
-        totalQuestions: data.totalQuestions,
-        correctAnswers: data.correctAnswers,
-        questions: data.questions,
-    };
+  return normalizeResult(data);
 }
-
-//
-// --------------------------------------------------
-// 6. GET TEST RESULT - ELEV
-// (Pentru pagina de rezultate)
-// --------------------------------------------------
-//
 
 export async function apiGetTestResult(attemptId: string): Promise<TestResult> {
-  const data = await apiFetch<AttemptResultDto>(`/api/v1/attempts/${attemptId}/result`);
-  const questions = data.questions ?? [];
+  const data: any = await apiFetch(ENDPOINTS.attempts.result(attemptId));
+  return normalizeResult(data);
+}
+
+function normalizeResult(data: any): TestResult {
+  const rawQuestions = data.questions ?? data.question ?? [];
+  const questions = rawQuestions.map((question: any, index: number) => {
+    const questionId = question.questionId ?? question.id ?? index;
+    const selectedOptionIds = (question.selectedOptionIds ?? []).map(Number);
+    const correctOptionIds = (question.correctOptionIds ?? []).map(Number);
+
+    return {
+      id: String(questionId),
+      questionId,
+      questionType: (question.questionType ?? "SINGLE_CHOICE") as QuestionType,
+      prompt: question.content ?? question.prompt ?? "",
+      selectedOptionIds,
+      correctOptionIds,
+      options: [],
+      isCorrect: Boolean(question.correct ?? question.isCorrect),
+    };
+  });
+
+  const correctAnswers = questions.filter((question: any) => question.isCorrect).length;
 
   return {
     attemptId: data.attemptId,
     testId: data.testId,
-    score: data.scorePercentage ?? data.score ?? 0,
-    passed: data.passed ?? false,
+    score: asNumber(data.score),
+    scorePercent: asNumber(data.scorePercent ?? data.scorePercentage ?? data.score),
+    passed: Boolean(data.passed),
     totalQuestions: questions.length,
-    correctAnswers: questions.filter((q) => q.isCorrect).length,
-    questions: questions.map((q) => ({
-      id: String(q.id ?? ""),
-      prompt: q.content ?? "",
-      selectedOptionLabel: (q.options ?? []).find((o) => o.isSelected)?.text ?? "",
-      correctOptionLabel: (q.options ?? []).find((o) => o.isCorrect)?.text ?? "",
-      isCorrect: q.isCorrect ?? false
-    }))
+    correctAnswers,
+    completedAt: data.completedAt,
+    questions,
   };
 }
 
-//
-// --------------------------------------------------
-// 7. GET STUDENT PROGRESS - ELEV
-// (Pentru pagina My Progress)
-// --------------------------------------------------
-//
-
 export async function apiGetStudentProgress(courseId: string): Promise<StudentProgress> {
-  return apiFetch<StudentProgress>(`/api/v1/courses/${courseId}/my-progress`);
+  return apiFetch<StudentProgress>(ENDPOINTS.courses.myProgress(courseId));
 }
 
-//
-// --------------------------------------------------
-// 8. ANALYTICS TEST - PROFESOR
-// --------------------------------------------------
-//
-
 export async function apiGetTestAnalytics(testId: string): Promise<TestAnalytics> {
-  return apiFetch<TestAnalytics>(`/api/v1/tests/${testId}/analytics/class-average`);
+  return apiFetch<TestAnalytics>(ENDPOINTS.tests.analyticsClassAverage(testId));
 }
 
 export async function apiGetTestsForCourse(courseId: string): Promise<unknown[]> {
@@ -413,5 +415,5 @@ export async function apiGetTestsForCourse(courseId: string): Promise<unknown[]>
 }
 
 export async function apiGetMyAttempts(testId: string): Promise<unknown[]> {
-  return apiFetch<unknown[]>(`/api/v1/tests/${testId}/my-attempts`);
+  return apiFetch<unknown[]>(ENDPOINTS.tests.myAttempts(testId));
 }

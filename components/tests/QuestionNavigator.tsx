@@ -1,7 +1,7 @@
 "use client";
-import { DraftQuestion } from "@/lib/tests/types";
+import { TestQuestion } from "@/lib/tests/types";
 
-export default function QuestionNavigator({ questions }: { questions: DraftQuestion[] }) {
+export default function QuestionNavigator({ questions }: { questions: TestQuestion[] }) {
   if (questions.length === 0) return null;
 
   return (
@@ -10,9 +10,9 @@ export default function QuestionNavigator({ questions }: { questions: DraftQuest
       <div className="grid grid-cols-4 gap-2">
         {questions.map((q, index) => (
           <button 
-            key={q.id}
+            key={q.clientId}
             onClick={() => {
-              const element = document.getElementById(`q-${q.id}`);
+              const element = document.getElementById(`q-${q.clientId}`);
               if (element) {
                 element.scrollIntoView({ behavior: 'smooth', block: 'center' });
               }
