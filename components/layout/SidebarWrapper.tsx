@@ -48,8 +48,6 @@ const navConfig: Record<NavRole, NavItemConfig[]> = {
   ],
   student: [
     { icon: "book",        label: "Courses",     href: "/dashboard/student" },
-    { icon: "trending_up", label: "My Progress", href: "/dashboard/student/progress" },
-    { icon: "assignment",  label: "My Tests",    href: "/dashboard/student/tests" },
     { icon: "psychology",  label: "Adaptive",    href: "/dashboard/student/adaptive" },
   ],
 };
@@ -192,7 +190,12 @@ function MobileNavItem({ item, pathname, onClick }: { item: NavItemConfig; pathn
 // ---------- SidebarWrapper ----------
 
 export default function SidebarWrapper({ children }: SidebarWrapperProps) {
-  const [collapsed, setCollapsed]         = useState(true);
+  const [collapsed, setCollapsed]         = useState(() => {
+    if (typeof window === "undefined") return true;
+
+    const saved = localStorage.getItem("sidebarCollapsed");
+    return saved !== null ? JSON.parse(saved) : true;
+  });
   const [logoutHovered, setLogoutHovered] = useState(false);
   const [isMobile, setIsMobile]           = useState(false);
   const [mobileOpen, setMobileOpen]       = useState(false);
@@ -214,17 +217,6 @@ export default function SidebarWrapper({ children }: SidebarWrapperProps) {
     check();
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
-  }, []);
-
-  // Close mobile menu on route change
-  useEffect(() => {
-    setMobileOpen(false);
-  }, [pathname]);
-
-  // Persist sidebar collapse state
-  useEffect(() => {
-    const saved = localStorage.getItem("sidebarCollapsed");
-    if (saved !== null) setCollapsed(JSON.parse(saved));
   }, []);
 
   const toggleSidebar = () => {
