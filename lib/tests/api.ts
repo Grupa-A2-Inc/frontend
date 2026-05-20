@@ -8,7 +8,7 @@ import {
 } from "./types";
 
 import { StudentProgress } from "./types";
-import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { fetchWithAuth, refreshAccessToken, getStoredAccessToken } from "@/lib/fetchWithAuth";
 
 // Baza API
 const API_BASE = "https://api.adaptiveelearning.online";
@@ -29,13 +29,35 @@ type AiGenerateResponse = {
 
 type AiGenerateRequestResponse = {
   requestId: string;
-  status: "PENDING" | "SUCCESS" | "FAILED";
+  status: "PENDING" | "DONE" | "SUCCESS" | "FAILED";
 };
 
 type AiRequestStatusResponse = {
   requestId: string;
-  status: "PENDING" | "SUCCESS" | "FAILED";
+  status: "PENDING" | "DONE" | "SUCCESS" | "FAILED";
   questions?: AiQuestionDto[];
+};
+
+type AiInjectResponse = {
+  testId?: string;
+  testCreated?: boolean;
+  injectedCount?: number;
+  newTotalQuestions?: number;
+  lessonId?: string;
+}
+
+type TestQuestionOptionDto = {
+  id: number;
+  text: string;
+  displayOrder: number;
+};
+
+type TestQuestionDto = {
+  id: number;
+  content: string;
+  questionType: string;
+  options: TestQuestionOptionDto[];
+  correctAnswers: TestQuestionOptionDto[];
 };
 
 type CreatedTestDto = {
@@ -146,7 +168,7 @@ async function pollAiRequestStatus(
     const data = await apiFetch<AiRequestStatusResponse>(
       `/api/v1/ai/requests/${requestId}/status`
     );
-    if (data.status === "SUCCESS" || data.status === "FAILED") {
+    if (data.status === "DONE" || data.status === "SUCCESS" || data.status === "FAILED") {
       return data;
     }
     await new Promise((resolve) => setTimeout (resolve, intervalMs));
@@ -161,37 +183,45 @@ export async function apiGenerateTest(
   // PASUL 1: porneste generarea
   const initData = await apiFetch<AiGenerateRequestResponse>(
     `/api/v1/lessons/${lessonId}/ai/generate-test`,
-    {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }
+    { method: "POST", body: JSON.stringify(payload) }
   );
 
   if (initData.status === "FAILED") {
-    throw new Error("AI generation failed. Please try again.=");
+    throw new Error("AI generation failed. Please try again.");
   }
 
-  // PASUl 2: polling pana la SUCCESS/FAILED
+  // PASUL 2: polling pana la DONE
   const result = await pollAiRequestStatus(initData.requestId);
 
   if (result.status === "FAILED") {
-    throw new Error("AI generation failed. Please try again");
+    throw new Error("AI generation failed. Please try again.");
   }
 
-  // PASUL 3: inject intrebari
-  await apiFetch(`/api/v1/ai/request/${initData.requestId}/inject`, {
-    method: "POST",
-    body: JSON.stringify({}),
-  });
+  // Refresh token inainte de inject (polling-ul poate dura si token-ul expira)
+  await refreshAccessToken(getStoredAccessToken());
 
-  // Transformare in DraftQuestion[]
-  return (result.questions ?? []).map((q, index) => ({
+  // PASUL 3: inject
+  const injectResult = await apiFetch<AiInjectResponse>(
+    `/api/v1/ai/request/${initData.requestId}/inject`,
+    { method: "POST", body: JSON.stringify({}) }
+  );
+
+  if (!injectResult?.testId) {
+    throw new Error("Inject failed: no testId returned.");
+  }
+
+  // PASUL 4: ia intrebarile din test
+  const questions = await apiFetch<TestQuestionDto[]>(
+    `/api/v1/tests/${injectResult.testId}/questions`
+  );
+
+  return (questions ?? []).map((q, index) => ({
     id: `ai-${Date.now()}-${index}`,
     prompt: q.content ?? "",
-    options: (q.options ?? []).map((opt, i) => ({
-      id: `opt-${Date.now()}-${i}`,
+    options: (q.options ?? []).map((opt) => ({
+      id: `opt-${Date.now()}-${opt.id}`,
       label: opt.text ?? "",
-      isCorrect: opt.isCorrect ?? false,
+      isCorrect: (q.correctAnswers ?? []).some((ca) => ca.id === opt.id),
     })),
   }));
 }
