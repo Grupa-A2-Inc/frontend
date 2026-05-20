@@ -41,16 +41,18 @@ export default function AssignmentControls({ courseId }: Props) {
   }
 
   //solved bug
-  //timer pentru ascunderea mesajului dupa asignarea unui curs la o clasa
+  //timer pentru ascunderea mesaj dupa asignarea unui curs la o clasa
    useEffect(() => {
     let timeoutId: NodeJS.Timeout;
 
+    // Dacă avem un mesaj de succes sau de eroare, pornim un cronometru de 4 secunde
     if (assignSuccess || assignError) {
       timeoutId = setTimeout(() => {
         dispatch(clearAssignState());
-      }, 4000); 
+      }, 4000); // 4000 milisecunde = 4 secunde
     }
 
+    // Curățăm timer-ul dacă utilizatorul pleacă de pe pagină înainte de expirarea timpului
     return () => {
       if (timeoutId) {
         clearTimeout(timeoutId);

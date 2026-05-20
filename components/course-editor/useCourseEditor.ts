@@ -522,8 +522,14 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
 function inferLessonType(lesson: EditorLessonResponse): Exclude<EditorNodeType, "CHAPTER"> {
   if (lesson.testId) return "TEST";
   const firstUrl = lesson.lessonResources?.[0]?.url ?? "";
-  if (firstUrl) return /\.(mp4|webm|ogg|mov|avi)(\?|$)/i.test(firstUrl) ? "VIDEO" : "FILE";
-  return "TEXT";
+  if (firstUrl) if (firstUrl) {
+    // Verificăm dacă are extensie de video SAU dacă e un link de YouTube/Vimeo
+    const isVideo = /\.(mp4|webm|ogg|mov|avi)(\?|$)/i.test(firstUrl) || 
+                    /(youtube\.com|youtu\.be|vimeo\.com)/i.test(firstUrl);
+                    
+    return isVideo ? "VIDEO" : "FILE";
+  }
+    return "TEXT";
 }
 
 function mapCourseToChapters(data: EditorCourseResponse): EditorChapter[] {
@@ -545,6 +551,8 @@ function mapCourseToChapters(data: EditorCourseResponse): EditorChapter[] {
   }));
 }
 
+//fix bug
+//nodurile capitolelor
 async function createCourseTree(courseId: string, chapters: EditorChapter[]) {
   for (const chapter of [...chapters].sort((a, b) => a.orderIndex - b.orderIndex)) {
     const chapterResult = await createChapter(courseId, {
@@ -552,10 +560,17 @@ async function createCourseTree(courseId: string, chapters: EditorChapter[]) {
     });
 
     for (const leaf of [...chapter.children].sort((a, b) => a.orderIndex - b.orderIndex)) {
-      await createLesson(chapterResult.id, {
+      const lessonResult = await createLesson(chapterResult.id, {
         title: leaf.title.trim(),
         ...(leaf.type === "TEXT" && leaf.content ? { contentMarkdown: leaf.content } : {}),
       });
+
+      if ((leaf.type === "FILE" || leaf.type === "VIDEO") && leaf.fileUrl && leaf.fileUrl.trim() !== "") {
+        await createResource(lessonResult.id, {
+          title: leaf.title.trim(),
+          url: leaf.fileUrl.trim(),
+        });
+      }
     }
   }
 }

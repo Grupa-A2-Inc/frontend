@@ -7,13 +7,34 @@ import {
     ChevronRight,
     FileText,
     FlaskConical,
+    Loader2, Video, Paperclip,
     Eye,
     Pencil,
-    Loader2,
 } from "lucide-react";
 
 import { fetchCourseFullView, fetchTestsForLessons } from "@/lib/courses/api";
-import { Chapter, CourseTest } from "@/lib/courses/types";
+import { Chapter, CourseTest, Lesson } from "@/lib/courses/types";
+
+//fixed bug
+//functie pt identificarea iconitei corecte pt nodurile capitolului 
+function getLessonIcon(lesson: Lesson) {
+    if (lesson.testId) {
+        return <FlaskConical className="h-4 w-4 text-brand-primary" />;
+    }
+
+    const firstUrl = lesson.lessonResources?.[0]?.url ?? "";
+    
+    if (firstUrl) {
+        const isVideo = /\.(mp4|webm|ogg|mov|avi)(\?|$)/i.test(firstUrl) || 
+                        /(youtube\.com|youtu\.be|vimeo\.com)/i.test(firstUrl);
+        
+        if (isVideo) return <Video className="h-4 w-4 text-brand-primary" />;
+        return <Paperclip className="h-4 w-4 text-brand-primary" />;
+    }
+    
+    return <FileText className="h-4 w-4 text-brand-primary" />;
+}
+//
 
 export default function ContentTree({ courseId }: { courseId: string }) {
     /*
@@ -155,7 +176,7 @@ export default function ContentTree({ courseId }: { courseId: string }) {
                                             {/* LECTIE */}
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center gap-2">
-                                                    <FileText className="h-4 w-4 text-brand-primary" />
+                                                    {getLessonIcon(lesson)}
                                                     <span className="font-medium text-brand-text">
                                                         {lesson.title}
                                                     </span>
