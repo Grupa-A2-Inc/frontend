@@ -6,7 +6,7 @@ import { fetchWithAuth, getXsrfHeadersAsync, refreshCsrfToken } from "@/lib/fetc
 
 export type UserRole = "ADMIN" | "ORGANIZATION_ADMIN" | "TEACHER" | "STUDENT";
 
-export type UserStatus = "ACTIVE" | "INACTIVE";
+export type UserStatus = "ACTIVE" | "INACTIVE" | "BLOCKED" | "PENDING";
 
 export interface User {
   id: string;
@@ -246,6 +246,25 @@ const authSlice = createSlice({
       state.accessToken = action.payload;
     },
 
+    syncAuthenticatedUser(
+      state,
+      action: PayloadAction<{ user: User; organization?: Organization | null }>
+    ) {
+      state.user = action.payload.user;
+      state.organization =
+        action.payload.organization ?? {
+          id: action.payload.user.organizationId,
+          name: action.payload.user.organizationName,
+          type: action.payload.user.organizationType,
+          country: action.payload.user.country,
+          city: action.payload.user.city,
+          phoneNumber: action.payload.user.organizationPhoneNumber,
+          address: action.payload.user.organizationAddress,
+        };
+
+      localStorage.setItem("user", JSON.stringify(action.payload.user));
+    },
+
     // AUTO - LOGIN
     loadUserFromStorage(state) {
       const token = localStorage.getItem("accessToken");
@@ -381,7 +400,7 @@ const authSlice = createSlice({
   },
 });
 
-export const { clearError, setAccessToken, loadUserFromStorage } =
+export const { clearError, setAccessToken, syncAuthenticatedUser, loadUserFromStorage } =
   authSlice.actions;
 
 export default authSlice.reducer;
