@@ -15,6 +15,8 @@ type Props = {
   onGenerate: (count: number) => void;
   metadataReadOnly?: boolean;
   readOnly?: boolean;
+  generateDisabled?: boolean;
+  generateWarning?: string | null;
 };
 
 export default function TestSettingsPanel({
@@ -28,10 +30,12 @@ export default function TestSettingsPanel({
   onGenerate,
   metadataReadOnly,
   readOnly = false,
+  generateDisabled = false,
+  generateWarning = null,
 }: Props) {
   const { isGenerating } = useAppSelector((state) => state.testDraft);
   const [qCount, setQCount] = useState(5);
-  const canAdjustAiCount = !readOnly && !isGenerating;
+  const canAdjustAiCount = !readOnly && !isGenerating && !generateDisabled;
   const canEditMetadata = !readOnly && !metadataReadOnly;
 
   function updateQuestionCount(nextValue: number) {
@@ -161,12 +165,15 @@ export default function TestSettingsPanel({
           <button
             type="button"
             onClick={() => onGenerate(qCount)}
-            disabled={readOnly || isGenerating}
+            disabled={readOnly || isGenerating || generateDisabled}
             className="flex min-h-[42px] items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:opacity-50 sm:mt-5"
           >
             {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Bot size={18} />}
             {isGenerating ? "Generating" : "Generate AI"}
           </button>
+          {generateWarning && (
+            <p className="text-xs text-amber-300 sm:col-span-2">{generateWarning}</p>
+          )}
         </div>
       </div>
     </div>
