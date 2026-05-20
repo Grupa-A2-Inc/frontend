@@ -45,6 +45,7 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
 
   // Extragere sigură a datelor pentru a evita erorile TypeScript (Linia 47)
   const chapters = (currentCourse as any).chapters || [];
+  console.log("currentCourse complet:", JSON.stringify(currentCourse, null, 2));
   const firstChapter = chapters[0];
   const firstLesson = firstChapter?.lessons?.[0];
   const firstLessonId = firstLesson?.id; 
@@ -80,12 +81,7 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
             <span className="block text-xs text-slate-500 dark:text-brand-muted mb-1">Lessons</span> 
             <span className="block text-lg font-bold text-slate-900 dark:text-white">{totalLessons}</span> 
           </div>
-          <div className="bg-brand-bg border border-brand-border rounded-lg p-4">
-            <span className="block text-xs text-slate-500 dark:text-brand-muted mb-1">Teacher</span> 
-            <span className="block text-lg font-bold text-slate-900 dark:text-white truncate" title={(currentCourse as any).createdBy || "N/A"}>
-              {(currentCourse as any).createdBy || "N/A"}
-            </span> 
-          </div>
+          
           <div className="bg-brand-bg border border-brand-border rounded-lg p-4">
             <span className="block text-xs text-slate-500 dark:text-brand-muted mb-1">Category</span> 
             <span className="block text-lg font-bold text-slate-900 dark:text-white truncate" title={(currentCourse as any).category}>
