@@ -169,7 +169,6 @@ export default function LessonPage({
             </div>
           )}
 
-          {/* Secțiunea de Teste adusă din main */}
           {testError && (
             <div className="mb-10 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm text-yellow-100">
               {testError}
@@ -204,7 +203,7 @@ export default function LessonPage({
             </div>
           )}
 
-          {/* Secțiunea ta de Rating integrată perfect la sfârșitul paginii */}
+          {/* Secțiunea de Rating integrată perfect sub teste */}
           <div className="mt-8 pt-8 border-t border-brand-border">
              <LessonRating lessonId={lessonId} />
           </div>

@@ -7,6 +7,8 @@ import {
     ChevronRight,
     FileText,
     FlaskConical,
+    Eye,
+    Pencil,
     Loader2,
 } from "lucide-react";
 
@@ -51,10 +53,9 @@ export default function ContentTree({ courseId }: { courseId: string }) {
                 const { chapters } = await fetchCourseFullView(courseId);
                 setChapters(chapters);
 
-                // 2. Extragem lectiile care au testId
+                // 2. Verificam testul asociat fiecarei lectii; backend-ul are un test per lectie
                 const lessonIds = chapters 
                     .flatMap((c) => c.lessons)
-                    .filter((l) => l.testId)
                     .map((l) => l.id);
 
                 // 3. Aducem testele asociate lectiilor
@@ -168,19 +169,23 @@ export default function ContentTree({ courseId }: { courseId: string }) {
                                                 </Link>
                                             </div>
 
-                                            {/* TEST */}    
+                                            {/* TEST */}
                                             <div className="mt-2 ml-6">
                                                 {test ? (
                                                     <Link 
-                                                        href={`/dashboard/teacher/courses/${courseId}/tests/${test.id}`}
+                                                        href={`/dashboard/teacher/courses/${courseId}/lessons/${lesson.id}/test-builder`}
                                                         className="flex items-center gap-2 text-sm text-brand-muted hover:text-brand-text transition"
                                                     >
-                                                        <FlaskConical className="h-4 w-4 text-brand-primary" />
-                                                        Test: {test.title}
+                                                        {test.status === "PUBLISHED" ? (
+                                                            <Eye className="h-4 w-4 text-green-500" />
+                                                        ) : (
+                                                            <Pencil className="h-4 w-4 text-brand-primary" />
+                                                        )}
+                                                        {test.status === "PUBLISHED" ? "View published test" : "Edit draft"}: {test.title}
                                                     </Link>
                                                 ) : (
                                                     <Link
-                                                        href={`/dashboard/teacher/courses/${courseId}/test-builder`}
+                                                        href={`/dashboard/teacher/courses/${courseId}/lessons/${lesson.id}/test-builder`}
                                                         className="flex items-center gap-2 text-sm text-brand-primary hover:underline"
                                                     >
                                                         <FlaskConical className="h-4 w-4" />

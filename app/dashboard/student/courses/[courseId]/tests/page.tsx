@@ -1,36 +1,49 @@
 "use client";
 
-import { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from "@/store";
-import { fetchTestsForCourseThunk } from "@/store/slices/takeTestSlice";
+import { use, useEffect } from "react";
 import Link from "next/link";
 
-export default function CourseTestsPage({ params }: any) {
-  const { courseId } = params;
-  const dispatch = useDispatch<AppDispatch>();
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchTestsForCourseThunk } from "@/store/slices/takeTestSlice";
 
-  const { testsForCourse, loading, error } = useSelector(
-    (state: RootState) => state.takeTest
-  );
+type Props = {
+  params: Promise<{ courseId: string }>;
+};
+
+type CourseTestListItem = {
+  id?: string;
+  testId?: string;
+  title?: string;
+  status?: string;
+  isPublished?: boolean;
+  createdAt?: string;
+};
+
+function asCourseTestListItem(value: unknown): CourseTestListItem {
+  return value && typeof value === "object" ? (value as CourseTestListItem) : {};
+}
+
+export default function CourseTestsPage({ params }: Props) {
+  const { courseId } = use(params);
+  const dispatch = useAppDispatch();
+  const { testsForCourse, loading, error } = useAppSelector((state) => state.takeTest);
 
   useEffect(() => {
     dispatch(fetchTestsForCourseThunk(courseId));
   }, [dispatch, courseId]);
 
-  // Loading
   if (loading && testsForCourse.length === 0) {
-    return <p className="text-center mt-10 text-gray-300">Loading tests...</p>;
+    return <p className="mt-10 text-center text-gray-300">Loading tests...</p>;
   }
 
-  // Error
   if (error) {
     return (
-      <div className="text-center mt-10 text-red-600">
+      <div className="mt-10 text-center text-red-600">
         <p>Error: {error}</p>
         <button
+          type="button"
           onClick={() => dispatch(fetchTestsForCourseThunk(courseId))}
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
+          className="mt-4 rounded bg-blue-500 px-4 py-2 text-white"
         >
           Retry
         </button>
@@ -38,49 +51,50 @@ export default function CourseTestsPage({ params }: any) {
     );
   }
 
-  // Empty state
-  if (!testsForCourse || testsForCourse.length === 0) {
-    return (
-      <p className="text-center mt-10 text-gray-300">
-        No tests available for this course.
-      </p>
-    );
+  if (testsForCourse.length === 0) {
+    return <p className="mt-10 text-center text-gray-300">No tests available for this course.</p>;
   }
 
-  // UI principal
   return (
-    <div className="max-w-3xl mx-auto mt-10 text-white">
-      <h1 className="text-3xl font-bold text-center mb-8">Available Tests</h1>
+    <div className="mx-auto mt-10 max-w-3xl text-white">
+      <h1 className="mb-8 text-center text-3xl font-bold">Available Tests</h1>
 
       <div className="space-y-4">
-        {testsForCourse.map((test: any) => (
-          <div
-            key={test.testId}
-            className="border rounded p-5 bg-gray-900 shadow"
-          >
-            <h2 className="text-xl font-semibold mb-2">{test.title}</h2>
+        {testsForCourse.map((rawTest, index) => {
+          const test = asCourseTestListItem(rawTest);
+          const testId = test.testId ?? test.id ?? String(index);
+          const published = test.isPublished || test.status === "PUBLISHED";
 
-            <p className="text-gray-300">
-              Status:{" "}
-              {test.isPublished ? (
-                <span className="text-green-400">Published</span>
-              ) : (
-                <span className="text-yellow-400">Draft</span>
+          return (
+            <div key={testId} className="rounded border bg-gray-900 p-5 shadow">
+              <h2 className="mb-2 text-xl font-semibold">{test.title ?? "Lesson test"}</h2>
+
+              <p className="text-gray-300">
+                Status:{" "}
+                {published ? (
+                  <span className="text-green-400">Published</span>
+                ) : (
+                  <span className="text-yellow-400">Draft</span>
+                )}
+              </p>
+
+              {test.createdAt && (
+                <p className="mt-1 text-sm text-gray-400">
+                  Created: {new Date(test.createdAt).toLocaleDateString()}
+                </p>
               )}
-            </p>
 
-            <p className="text-gray-400 text-sm mt-1">
-              Created: {new Date(test.createdAt).toLocaleDateString()}
-            </p>
-
-            <Link
-              href={`/dashboard/student/tests/${test.testId}/start`}
-              className="inline-block mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-            >
-              Start Test
-            </Link>
-          </div>
-        ))}
+              {published && (
+                <Link
+                  href={`/dashboard/student/tests/${testId}/take`}
+                  className="mt-4 inline-block rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
+                >
+                  Start Test
+                </Link>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
