@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import {
   User,
+  UserRole,
   fetchUsers,
   createUser,
   toggleUserStatus,
@@ -13,14 +14,25 @@ import {
   importUsersCsvSucceeded,
   importUsersCsvFailed,
 } from "@/store/slices/usersSlice";
+import { fetchClassrooms } from "@/store/slices/classesSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import UsersHeader from "./UsersHeader";
 import UsersToolbar from "./UsersToolbar";
 import UsersTable from "./UsersTable";
 import UserFormModal from "./UserFormModal";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { ENDPOINTS } from "@/lib/api-endpoints";
+import { API_BASE } from "@/lib/config";
 
 type RoleFilter = "ALL" | "STUDENT" | "TEACHER";
 type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
+type SavePayload = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  roleName?: UserRole;
+  classIds?: string[];
+};
 
 function matchesStatusFilter(userStatus: User["status"], statusFilter: StatusFilter): boolean {
   if (statusFilter === "ALL") return true;
@@ -39,10 +51,12 @@ export default function UsersPage() {
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("ALL");
   const [showModal, setShowModal]       = useState(false);
   const [editingUser, setEditingUser]   = useState<User | null>(null);
+  const [saveError, setSaveError]       = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
     dispatch(fetchUsers(token));
+    dispatch(fetchClassrooms(token));
   }, [token, dispatch]);
 
   const filtered = users.filter((u) => {
@@ -55,11 +69,27 @@ export default function UsersPage() {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  function openAddModal()         { setEditingUser(null); setShowModal(true);  }
-  function openEditModal(u: User) { setEditingUser(u);    setShowModal(true);  }
-  function closeModal()           { setShowModal(false);  setEditingUser(null);}
+  function openAddModal()         { setEditingUser(null); setSaveError(null); setShowModal(true);  }
+  function openEditModal(u: User) { setEditingUser(u);    setSaveError(null); setShowModal(true);  }
+  function closeModal()           { setShowModal(false);  setEditingUser(null); setSaveError(null);}
 
-  async function handleSave(data: { firstName: string; lastName: string; email: string; roleName?: string }) {
+  async function assignUserToClasses(userId: string, classIds: string[]) {
+    await Promise.all(classIds.map(async (classId) => {
+      const response = await fetchWithAuth(`${API_BASE}${ENDPOINTS.classrooms.members(classId)}`, token, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ memberIds: [userId] }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || "Failed to assign user to selected classes");
+      }
+    }));
+  }
+
+  async function handleSave(data: SavePayload) {
+    setSaveError(null);
     if (editingUser) {
       const result = await dispatch(updateUser({
         token,
@@ -73,17 +103,37 @@ export default function UsersPage() {
       }));
       if (updateUser.fulfilled.match(result)) closeModal();
     } else {
+      const roleName = data.roleName ?? "STUDENT";
       const result = await dispatch(createUser({
         token,
         data: {
           firstName: data.firstName,
           lastName: data.lastName,
           email: data.email,
-          roleName: (data.roleName ?? "STUDENT") as "STUDENT" | "TEACHER" | "ORGANIZATION_ADMIN",
+          roleName,
           organizationId: authUser?.organizationId,
         },
       }));
       if (createUser.fulfilled.match(result)) {
+        const selectedClassIds = data.classIds ?? [];
+        const createdUser = result.payload as User | undefined;
+        if (roleName === "TEACHER" && selectedClassIds.length > 0) {
+          if (!createdUser?.id) {
+            setSaveError("User was created, but the response did not include an id for class assignment.");
+            dispatch(fetchUsers(token));
+            return;
+          }
+
+          try {
+            await assignUserToClasses(createdUser.id, selectedClassIds);
+          } catch (error) {
+            const message = error instanceof Error ? error.message : "Failed to assign teacher to selected classes";
+            setSaveError(`Teacher was created, but class assignment failed: ${message}`);
+            dispatch(fetchUsers(token));
+            return;
+          }
+        }
+
         dispatch(fetchUsers(token));
         closeModal();
       }
@@ -188,7 +238,7 @@ export default function UsersPage() {
       {showModal && (
         <UserFormModal
           user={editingUser}
-          serverError={createError}
+          serverError={saveError || createError}
           onClose={closeModal}
           onSave={handleSave}
         />

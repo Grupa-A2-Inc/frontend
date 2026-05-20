@@ -8,7 +8,8 @@ type SavePayload = {
   firstName: string;
   lastName: string;
   email: string;
-  roleName?: string;
+  roleName?: UserRole;
+  classIds?: string[];
 };
 
 type Props = {
@@ -55,7 +56,13 @@ export default function UserFormModal({ user, serverError, onClose, onSave }: Pr
     isSubmittingRef.current = true;
     setIsSubmitting(true);
     try {
-      await onSave({ firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), roleName });
+      await onSave({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        email: email.trim(),
+        roleName,
+        classIds: roleName === "TEACHER" ? selectedClasses : [],
+      });
     } finally {
       isSubmittingRef.current = false;
       if (isMounted.current) {
