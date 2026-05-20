@@ -27,10 +27,13 @@ export const fetchStudentCourseStats = createAsyncThunk(
 
 export const fetchTeacherCatalog = createAsyncThunk(
   "analytics/fetchTeacherCatalog",
-  async ({ courseId, page = 0 }: { courseId: string; page?: number }, { getState, rejectWithValue }) => {
+  async (
+    { courseId, page = 0, size = 10 }: { courseId: string; page?: number; size?: number },
+    { getState, rejectWithValue },
+  ) => {
     try {
       const token = (getState() as RootState).auth.accessToken;
-      const url = `${API_BASE}${ENDPOINTS.courses.analyticsStudentAverages(courseId)}?page=${page}&size=10`;
+      const url = `${API_BASE}${ENDPOINTS.courses.analyticsStudentAverages(courseId)}?page=${page}&size=${size}`;
       
       const response = await fetchWithAuth(url, token);
       if (!response.ok) throw new Error("Eroare la preluarea catalogului");

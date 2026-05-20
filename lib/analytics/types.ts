@@ -31,14 +31,23 @@ export interface StudentCourseStats {
 
 export interface StudentAverage {
   studentId: string;
-  studentName: string;
-  averageGrade: number;
-  testsPassed: number;
-  totalTests: number;
+  averageScore: number;
+  minScore: number;
+  maxScore: number;
+  testCount: number;
+  passedTests: number;
+  failedTests: number;
+  lastAttemptAt?: string;
 }
 
 export interface TeacherCatalogResponse {
   content: StudentAverage[];
   totalPages: number;
   totalElements: number;
+  number?: number;
+  numberOfElements?: number;
+  size?: number;
+  first?: boolean;
+  last?: boolean;
+  empty?: boolean;
 }

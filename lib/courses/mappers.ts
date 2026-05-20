@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // ==================================================
 // MAPPERS FOR COURSE MANAGEMENT PAGES
 // Transforma raspunsurile brute de la backend in tipurile
@@ -127,6 +128,7 @@ export function mapStudentAverage(data: any): StudentAverage {
         averageScore: data.averageScore ?? 0,
         minScore: data.minScore ?? 0,
         maxScore: data.maxScore ?? 0,
+        testCount: data.testCount ?? 0,
         passedTests: data.passedTests ?? 0,
         failedTests: data.failedTests ?? 0,
         lastAttemptAt: data.lastAttemptAt ?? undefined,

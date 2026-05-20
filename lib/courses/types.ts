@@ -99,6 +99,7 @@ export type StudentAverage = {
     averageScore: number;
     minScore: number;
     maxScore: number;
+    testCount: number;
     passedTests: number;
     failedTests: number;
     lastAttemptAt?: string;

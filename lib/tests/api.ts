@@ -36,6 +36,18 @@ function isApiErrorWithStatus(err: unknown, status: number): err is ApiError {
 
 type ApiOptions = RequestInit & { allowNotFound?: boolean };
 
+type ClassAverageDto = {
+  testId?: string;
+  testTitle?: string;
+  totalAttempts?: number;
+  passedCount?: number;
+  failedCount?: number;
+  averageScore?: number;
+  minScore?: number;
+  maxScore?: number;
+  failureRate?: number;
+};
+
 async function apiFetch<T>(path: string, options?: ApiOptions): Promise<T> {
   const headers = new Headers(options?.headers);
   if (!headers.has("Content-Type")) {
@@ -75,6 +87,32 @@ async function apiFetch<T>(path: string, options?: ApiOptions): Promise<T> {
 
 function asNumber(value: unknown, fallback = 0): number {
   return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function normalizeTestAnalytics(data: ClassAverageDto): TestAnalytics {
+  const attemptsCount = asNumber(data.totalAttempts);
+  const passedCount = asNumber(data.passedCount);
+  const failedCount = asNumber(data.failedCount);
+  const passRate = attemptsCount > 0 ? (passedCount / attemptsCount) * 100 : 0;
+
+  return {
+    testId: data.testId ?? "",
+    title: data.testTitle,
+    attemptsCount,
+    averageScore: asNumber(data.averageScore),
+    passRate,
+    failureRate:
+      typeof data.failureRate === "number"
+        ? data.failureRate
+        : attemptsCount > 0
+          ? (failedCount / attemptsCount) * 100
+          : 0,
+    classAverage: asNumber(data.averageScore),
+    bestScore: asNumber(data.maxScore),
+    worstScore: asNumber(data.minScore),
+    passedCount,
+    failedCount,
+  };
 }
 
 function getOptionId(data: any): number | undefined {
@@ -407,7 +445,8 @@ export async function apiGetStudentProgress(courseId: string): Promise<StudentPr
 }
 
 export async function apiGetTestAnalytics(testId: string): Promise<TestAnalytics> {
-  return apiFetch<TestAnalytics>(ENDPOINTS.tests.analyticsClassAverage(testId));
+  const data = await apiFetch<ClassAverageDto>(ENDPOINTS.tests.analyticsClassAverage(testId));
+  return normalizeTestAnalytics(data);
 }
 
 export async function apiGetTestsForCourse(courseId: string): Promise<unknown[]> {
