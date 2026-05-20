@@ -2,7 +2,7 @@
 
 import { use, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, BookOpen, GraduationCap, BarChart3 } from "lucide-react"; 
+import { ArrowLeft, BookOpen, GraduationCap, BarChart3 } from "lucide-react";
 
 import AssignmentControls from "@/components/course-management/AssignmentControls";
 import ContentTree from "@/components/course-management/ContentTree";
@@ -78,13 +78,6 @@ export default function CourseManagementPage({ params }: Props) {
              Manage students
             </Link>
 
-
-            <Link
-              href={`/dashboard/teacher/courses/${courseId}/test-builder`}
-              className="rounded-xl bg-brand-primary px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-primary/90"
-            >
-              Create test
-            </Link>
           </div>
         </div>
 
