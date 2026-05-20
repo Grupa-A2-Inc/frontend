@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, use } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { 
   BarChart3, 
@@ -10,20 +10,22 @@ import {
   Award, 
   Activity, 
   AlertCircle,
-  BookOpen
+  BookOpen,
+  CheckCircle2,
+  TrendingDown
 } from "lucide-react";
 import { fetchStudentCourseStats } from "@/store/slices/analyticsSlice";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import type { AttemptDetails, DifficultyLesson } from "@/lib/analytics/types";
 
 export default function StudentStatsPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId } = use(params);
-  const dispatch = useDispatch();
-  
-  // Accessing the global state
-  const { studentStats, loading } = useSelector((state: any) => state.analytics);
+  const dispatch = useAppDispatch();
+  const { studentStats, loading } = useAppSelector((state) => state.analytics);
 
   useEffect(() => {
     if (courseId) {
-      dispatch(fetchStudentCourseStats(courseId) as any);
+      dispatch(fetchStudentCourseStats(courseId));
     }
   }, [courseId, dispatch]);
 
@@ -53,7 +55,7 @@ export default function StudentStatsPage({ params }: { params: Promise<{ courseI
         <div>
           <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white flex items-center gap-3">
             <BarChart3 className="text-[#6366f1]" size={32} />
-            Course Analytics
+            {studentStats.courseTitle || "Course Analytics"}
           </h1>
           <p className="text-slate-500 mt-1">An overview of your learning performance.</p>
         </div>
@@ -71,21 +73,42 @@ export default function StudentStatsPage({ params }: { params: Promise<{ courseI
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard 
           icon={<Target className="text-blue-600" />} 
-          label="Average Grade" 
-          value={studentStats.averageGrade?.toFixed(2) || "0.00"}
-          suffix="/ 10"
+          label="Average Score" 
+          value={formatScore(studentStats.averageScore)}
+          suffix="%"
         />
         <StatCard 
           icon={<Award className="text-amber-600" />} 
           label="Best Score" 
-          value={studentStats.bestGrade || "0"}
-          suffix="pts"
+          value={formatScore(studentStats.bestScore)}
+          suffix="%"
         />
         <StatCard 
           icon={<Activity className="text-emerald-600" />} 
-          label="Total Attempts" 
-          value={studentStats.totalAttempts || "0"}
-          suffix="times"
+          label="Tests Done" 
+          value={studentStats.totalTestDone ?? 0}
+          suffix={`/ ${studentStats.totalTestCount ?? 0}`}
+        />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard
+          icon={<CheckCircle2 className="text-emerald-600" />}
+          label="Tests Passed"
+          value={studentStats.totalTestPassed ?? 0}
+          suffix="passed"
+        />
+        <StatCard
+          icon={<TrendingDown className="text-red-500" />}
+          label="Lowest Score"
+          value={formatScore(studentStats.lowestScore)}
+          suffix="%"
+        />
+        <StatCard
+          icon={<Activity className="text-indigo-600" />}
+          label="Recent Attempts"
+          value={studentStats.lastAttempts?.length ?? 0}
+          suffix="shown"
         />
       </div>
 
@@ -103,7 +126,7 @@ export default function StudentStatsPage({ params }: { params: Promise<{ courseI
         
         <div className="space-y-4">
           {studentStats.difficultyLessons && studentStats.difficultyLessons.length > 0 ? (
-            studentStats.difficultyLessons.map((lesson: any) => (
+            studentStats.difficultyLessons.map((lesson: DifficultyLesson) => (
               <div key={lesson.lessonId} className="flex items-center justify-between p-5 bg-slate-50 dark:bg-brand-bg rounded-xl border border-transparent hover:border-slate-200 dark:hover:border-brand-border transition-all">
                 <div className="flex items-center gap-4">
                   <div className="p-2.5 bg-white dark:bg-brand-card border rounded-lg text-slate-400">
@@ -111,11 +134,10 @@ export default function StudentStatsPage({ params }: { params: Promise<{ courseI
                   </div>
                   <span className="text-base font-semibold text-slate-800 dark:text-white">{lesson.lessonTitle}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-xs text-slate-400 font-medium">Avg. Score:</span>
-                    <span className="text-sm font-extrabold px-3 py-1.5 bg-red-100 dark:bg-red-950 text-red-600 rounded-lg">
-                      {lesson.averageScore}%
-                    </span>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <ScorePill label="My best" value={lesson.myBestScore} tone="red" />
+                  <ScorePill label="Class avg" value={lesson.classAverage} tone="slate" />
+                  <ScorePill label="Gap" value={lesson.gap} tone="amber" />
                 </div>
               </div>
             ))
@@ -126,12 +148,87 @@ export default function StudentStatsPage({ params }: { params: Promise<{ courseI
           )}
         </div>
       </div>
+
+      <div className="bg-white dark:bg-brand-card border border-slate-200 dark:border-brand-border rounded-2xl p-8 shadow-sm">
+        <div className="mb-8">
+          <h2 className="font-bold text-xl text-slate-900 dark:text-white">Recent Attempts</h2>
+          <p className="text-slate-500 text-sm mt-1">Your latest completed test results in this course.</p>
+        </div>
+
+        <div className="space-y-3">
+          {studentStats.lastAttempts && studentStats.lastAttempts.length > 0 ? (
+            studentStats.lastAttempts.map((attempt: AttemptDetails) => (
+              <div
+                key={attempt.attemptId}
+                className="flex flex-col gap-3 rounded-xl border border-slate-100 bg-slate-50 p-4 dark:border-brand-border dark:bg-brand-bg sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="font-semibold text-slate-900 dark:text-white">{attempt.testTitle}</p>
+                  <p className="text-xs text-slate-500">
+                    {attempt.completedAt ? new Date(attempt.completedAt).toLocaleString() : "Completed attempt"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`rounded px-2 py-1 text-xs font-semibold ${
+                    attempt.passed ? "bg-green-500/10 text-green-600" : "bg-red-400/10 text-red-500"
+                  }`}>
+                    {attempt.passed ? "Passed" : "Not passed"}
+                  </span>
+                  <span className="rounded-lg bg-white px-3 py-1.5 text-sm font-extrabold text-slate-900 dark:bg-brand-card dark:text-white">
+                    {formatScore(attempt.scorePercent)}%
+                  </span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-10 text-center text-slate-400 italic bg-slate-50 dark:bg-brand-bg rounded-xl border border-dashed">
+              No completed attempts yet.
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
+function formatScore(value: number | null | undefined) {
+  return Number.isFinite(value) ? Number(value).toFixed(1) : "0.0";
+}
+
+function ScorePill({
+  label,
+  tone,
+  value,
+}: {
+  label: string;
+  tone: "amber" | "red" | "slate";
+  value: number;
+}) {
+  const toneClass = {
+    amber: "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
+    red: "bg-red-100 text-red-600 dark:bg-red-950 dark:text-red-300",
+    slate: "bg-slate-200 text-slate-700 dark:bg-brand-card dark:text-brand-muted",
+  }[tone];
+
+  return (
+    <span className={`text-xs font-extrabold px-3 py-1.5 rounded-lg ${toneClass}`}>
+      {label}: {formatScore(value)}%
+    </span>
+  );
+}
+
 // Internal StatCard Component
-function StatCard({ icon, label, value, suffix }: any) {
+function StatCard({
+  icon,
+  label,
+  suffix,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  suffix: string;
+  value: number | string;
+}) {
   return (
     <div className="bg-white dark:bg-brand-card border border-slate-200 dark:border-brand-border p-7 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300">
       <div className="flex items-center gap-3 mb-5">
