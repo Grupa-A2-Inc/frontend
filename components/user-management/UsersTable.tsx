@@ -10,6 +10,7 @@ type Props = {
   onEdit: (user: User) => void;
   onToggleStatus: (userId: string) => void;
   onDelete: (userId: string) => void;
+  currentUserId?: string;
 };
 
 function formatRole(role: User["role"]): string {
@@ -25,7 +26,16 @@ function formatStatus(status: User["status"]): string {
   return status.charAt(0) + status.slice(1).toLowerCase();
 }
 
-export default function UsersTable({ filtered, search, roleFilter, statusFilter, onEdit, onToggleStatus, onDelete }: Props) {
+export default function UsersTable({
+  filtered,
+  search,
+  roleFilter,
+  statusFilter,
+  onEdit,
+  onToggleStatus,
+  onDelete,
+  currentUserId,
+}: Props) {
 
   if (filtered.length === 0) {
     return (
@@ -46,7 +56,10 @@ export default function UsersTable({ filtered, search, roleFilter, statusFilter,
     <>
       {/* Mobile card layout */}
       <div className="flex flex-col gap-3 md:hidden">
-        {filtered.map((user) => (
+        {filtered.map((user) => {
+          const blocksSelfDeactivate = user.id === currentUserId && user.status === "ACTIVE";
+
+          return (
           <div key={user.id} className="bg-brand-card border border-brand-primary/15 rounded-2xl p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
@@ -62,7 +75,12 @@ export default function UsersTable({ filtered, search, roleFilter, statusFilter,
                 <button onClick={() => onEdit(user)} className="w-8 h-8 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-brand-primary hover:bg-brand-primary/10 transition-colors">
                   <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>edit</span>
                 </button>
-                <button onClick={() => onToggleStatus(user.id)} className="w-8 h-8 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors">
+                <button
+                  onClick={() => onToggleStatus(user.id)}
+                  disabled={blocksSelfDeactivate}
+                  title={blocksSelfDeactivate ? "You cannot deactivate your own admin account." : undefined}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-brand-text/30"
+                >
                   <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>{user.status === "ACTIVE" ? "pause" : "play_arrow"}</span>
                 </button>
                 <button onClick={() => onDelete(user.id)} className="w-8 h-8 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-red-400 hover:bg-red-400/10 transition-colors">
@@ -79,7 +97,8 @@ export default function UsersTable({ filtered, search, roleFilter, statusFilter,
               </span>
             </div>
           </div>
-        ))}
+        );
+        })}
       </div>
 
       {/* Desktop table layout */}
@@ -95,7 +114,10 @@ export default function UsersTable({ filtered, search, roleFilter, statusFilter,
             </tr>
           </thead>
           <tbody>
-            {filtered.map((user) => (
+            {filtered.map((user) => {
+              const blocksSelfDeactivate = user.id === currentUserId && user.status === "ACTIVE";
+
+              return (
               <tr key={user.id} className="border-b border-brand-primary/8 hover:bg-brand-primary/5 transition-colors">
                 <td className="px-5 py-3">
                   <div className="flex items-center gap-3">
@@ -130,7 +152,9 @@ export default function UsersTable({ filtered, search, roleFilter, statusFilter,
                     </button>
                     <button
                       onClick={() => onToggleStatus(user.id)}
-                      className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors">
+                      disabled={blocksSelfDeactivate}
+                      title={blocksSelfDeactivate ? "You cannot deactivate your own admin account." : undefined}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-brand-text/30">
                       <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>
                         {user.status === "ACTIVE" ? "pause" : "play_arrow"}
                       </span>
@@ -143,7 +167,8 @@ export default function UsersTable({ filtered, search, roleFilter, statusFilter,
                   </div>
                 </td>
               </tr>
-            ))}
+            );
+            })}
           </tbody>
         </table>
       </div>

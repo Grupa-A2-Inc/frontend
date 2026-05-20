@@ -63,6 +63,7 @@ export default function UsersPage() {
   const [showModal, setShowModal]       = useState(false);
   const [editingUser, setEditingUser]   = useState<User | null>(null);
   const [saveError, setSaveError]       = useState<string | null>(null);
+  const [statusActionError, setStatusActionError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -193,9 +194,17 @@ export default function UsersPage() {
   }
 
   async function handleToggleStatus(userId: string) {
+    setStatusActionError(null);
+
     const user = users.find((u) => u.id === userId);
     if (!user) return;
+
     const newStatus = user.status === "ACTIVE" ? "INACTIVE" : "ACTIVE";
+    if (user.id === authUser?.id && newStatus === "INACTIVE") {
+      setStatusActionError("You cannot deactivate your own admin account.");
+      return;
+    }
+
     const result = await dispatch(toggleUserStatus({ token, userId, status: newStatus }));
     if (toggleUserStatus.fulfilled.match(result)) {
       dispatch(fetchUsers(userFetchParams));
@@ -276,6 +285,12 @@ export default function UsersPage() {
         </p>
       )}
 
+      {statusActionError && (
+        <p className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
+          {statusActionError}
+        </p>
+      )}
+
       <UsersToolbar
         users={users}
         search={search}
@@ -295,6 +310,7 @@ export default function UsersPage() {
           onEdit={openEditModal}
           onToggleStatus={handleToggleStatus}
           onDelete={handleDelete}
+          currentUserId={authUser?.id}
         />
       </div>
 
