@@ -30,6 +30,10 @@ class ApiError extends Error {
   }
 }
 
+function isApiErrorWithStatus(err: unknown, status: number): err is ApiError {
+  return err instanceof ApiError && err.status === status;
+}
+
 type ApiOptions = RequestInit & { allowNotFound?: boolean };
 
 async function apiFetch<T>(path: string, options?: ApiOptions): Promise<T> {
@@ -180,22 +184,6 @@ export async function apiCreateLessonTest(
   return normalizeTest(data);
 }
 
-export async function apiUpdateTest(
-  testId: string,
-  payload: TestEditPayload
-): Promise<TestEntity> {
-  const data = await apiFetch<unknown>(ENDPOINTS.tests.byId(testId), {
-    method: "PATCH",
-    body: JSON.stringify({
-      title: payload.title,
-      description: payload.description ?? "",
-      timeLimitSec: payload.timeLimitSec ?? 0,
-      aiEnabled: payload.aiEnabled ?? false,
-    }),
-  });
-  return normalizeTest(data);
-}
-
 export async function apiPublishTest(testId: string): Promise<TestEntity> {
   const data = await apiFetch<unknown>(ENDPOINTS.tests.publish(testId), {
     method: "PATCH",
@@ -208,14 +196,35 @@ export async function apiGetQuestionsForTest(testId: string): Promise<TestQuesti
   return (data ?? []).map((question, index) => normalizeQuestion(question, index));
 }
 
+export async function apiGetEditableQuestionsForTest(testId: string): Promise<TestQuestion[]> {
+  const query = "?sortBy=id&sortDir=asc";
+  const data = await apiFetch<unknown[]>(`${ENDPOINTS.questions.byTest(testId)}${query}`).catch(
+    (err: unknown) => {
+      if (isApiErrorWithStatus(err, 401)) {
+        return apiFetch<unknown[]>(ENDPOINTS.tests.questions(testId));
+      }
+      throw err;
+    }
+  );
+  return (data ?? []).map((question, index) => normalizeQuestion(question, index));
+}
+
 export async function apiCreateQuestion(
   testId: string,
   question: TestQuestion
 ): Promise<TestQuestion> {
-  const data = await apiFetch<unknown>(ENDPOINTS.questions.byTest(testId), {
+  const options: RequestInit = {
     method: "POST",
     body: JSON.stringify(questionToRequest(question)),
-  });
+  };
+  const data = await apiFetch<unknown>(ENDPOINTS.questions.byTest(testId), options).catch(
+    (err: unknown) => {
+      if (isApiErrorWithStatus(err, 401)) {
+        return apiFetch<unknown>(ENDPOINTS.tests.questions(testId), options);
+      }
+      throw err;
+    }
+  );
   return normalizeQuestion(data);
 }
 
@@ -227,16 +236,31 @@ export async function apiUpdateQuestion(
     return apiCreateQuestion(testId, question);
   }
 
-  const data = await apiFetch<unknown>(ENDPOINTS.questions.byId(testId, question.id), {
+  const questionId = question.id;
+  const options: RequestInit = {
     method: "PUT",
     body: JSON.stringify(questionToRequest(question)),
-  });
+  };
+  const data = await apiFetch<unknown>(ENDPOINTS.questions.byId(testId, questionId), options).catch(
+    (err: unknown) => {
+      if (isApiErrorWithStatus(err, 401)) {
+        return apiFetch<unknown>(ENDPOINTS.tests.questionById(testId, questionId), options);
+      }
+      throw err;
+    }
+  );
   return normalizeQuestion(data);
 }
 
 export async function apiDeleteQuestion(testId: string, questionId: number): Promise<void> {
-  await apiFetch(ENDPOINTS.questions.byId(testId, questionId), {
+  const options: RequestInit = {
     method: "DELETE",
+  };
+  await apiFetch(ENDPOINTS.questions.byId(testId, questionId), options).catch((err: unknown) => {
+    if (isApiErrorWithStatus(err, 401)) {
+      return apiFetch(ENDPOINTS.tests.questionById(testId, questionId), options);
+    }
+    throw err;
   });
 }
 
@@ -290,36 +314,9 @@ export async function apiGenerateAndInjectQuestions(
   );
 
   const test = await apiGetTestDetails(injectionData.testId);
-  const questions = await apiGetQuestionsForTest(injectionData.testId);
+  const questions = await apiGetEditableQuestionsForTest(injectionData.testId);
 
   return { injection: injectionData, test, questions };
-}
-
-export async function apiSaveDraftTest(payload: {
-  lessonId: string;
-  testId?: string;
-  test: TestEditPayload;
-  questions: TestQuestion[];
-  deletedQuestionIds: number[];
-}): Promise<{ test: TestEntity; questions: TestQuestion[] }> {
-  const test = payload.testId
-    ? await apiUpdateTest(payload.testId, payload.test)
-    : await apiCreateLessonTest(payload.lessonId, payload.test);
-
-  await Promise.all(
-    payload.deletedQuestionIds.map((questionId) => apiDeleteQuestion(test.id, questionId))
-  );
-
-  for (const question of payload.questions) {
-    if (question.id === undefined) {
-      await apiCreateQuestion(test.id, question);
-    } else {
-      await apiUpdateQuestion(test.id, question);
-    }
-  }
-
-  const questions = await apiGetQuestionsForTest(test.id);
-  return { test, questions };
 }
 
 export async function apiStartTestSession(testId: string): Promise<TakeTestSession> {

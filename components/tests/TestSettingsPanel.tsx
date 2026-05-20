@@ -13,6 +13,7 @@ type Props = {
   timeLimitSec: number;
   onTimeLimitChange: (value: number) => void;
   onGenerate: (count: number) => void;
+  metadataReadOnly?: boolean;
   readOnly?: boolean;
 };
 
@@ -25,12 +26,13 @@ export default function TestSettingsPanel({
   timeLimitSec,
   onTimeLimitChange,
   onGenerate,
+  metadataReadOnly,
   readOnly = false,
 }: Props) {
   const { isGenerating } = useAppSelector((state) => state.testDraft);
   const [qCount, setQCount] = useState(5);
   const canAdjustAiCount = !readOnly && !isGenerating;
-  const canAdjustTimeLimit = !readOnly;
+  const canEditMetadata = !readOnly && !metadataReadOnly;
 
   function updateQuestionCount(nextValue: number) {
     const normalized = Number.isFinite(nextValue) ? nextValue : 1;
@@ -63,7 +65,7 @@ export default function TestSettingsPanel({
             </span>
             <input
               value={title}
-              disabled={readOnly}
+              disabled={!canEditMetadata}
               onChange={(event) => onTitleChange(event.target.value)}
               className="w-full rounded-lg border border-brand-border bg-brand-bg px-4 py-2.5 text-sm text-brand-text outline-none transition focus:border-brand-primary disabled:opacity-70"
             />
@@ -75,7 +77,7 @@ export default function TestSettingsPanel({
             </span>
             <input
               value={description}
-              disabled={readOnly}
+              disabled={!canEditMetadata}
               onChange={(event) => onDescriptionChange(event.target.value)}
               placeholder="Optional description"
               className="w-full rounded-lg border border-brand-border bg-brand-bg px-4 py-2.5 text-sm text-brand-text outline-none transition focus:border-brand-primary disabled:opacity-70"
@@ -91,7 +93,7 @@ export default function TestSettingsPanel({
             <button
               type="button"
               onClick={() => updateTimeLimit(timeLimitSec - 60)}
-              disabled={!canAdjustTimeLimit || timeLimitSec <= 0}
+              disabled={!canEditMetadata || timeLimitSec <= 0}
               className="flex items-center justify-center text-brand-muted transition hover:bg-brand-primary/10 hover:text-brand-text disabled:opacity-40"
               aria-label="Decrease time limit"
             >
@@ -103,14 +105,14 @@ export default function TestSettingsPanel({
               pattern="[0-9]*"
               value={timeLimitSec}
               onChange={(event) => updateTimeLimit(Number(event.target.value))}
-              disabled={!canAdjustTimeLimit}
+              disabled={!canEditMetadata}
               className="min-w-0 border-x border-brand-border bg-transparent px-2 text-center text-sm font-semibold text-brand-text outline-none disabled:opacity-70"
               aria-label="Time limit in seconds"
             />
             <button
               type="button"
               onClick={() => updateTimeLimit(timeLimitSec + 60)}
-              disabled={!canAdjustTimeLimit}
+              disabled={!canEditMetadata}
               className="flex items-center justify-center text-brand-muted transition hover:bg-brand-primary/10 hover:text-brand-text disabled:opacity-40"
               aria-label="Increase time limit"
             >

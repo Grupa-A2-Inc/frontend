@@ -2,26 +2,30 @@ import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import {
   GenerateTestPayload,
   QuestionType,
-  TestEditPayload,
   TestEntity,
   TestQuestion,
 } from "@/lib/tests/types";
 import {
+  apiCreateLessonTest,
+  apiCreateQuestion,
+  apiDeleteQuestion,
   apiGenerateAndInjectQuestions,
-  apiGetQuestionsForTest,
+  apiGetEditableQuestionsForTest,
   apiGetTestForLesson,
   apiPublishTest,
-  apiSaveDraftTest,
+  apiUpdateQuestion,
 } from "@/lib/tests/api";
 
 interface TestDraftState {
+  lessonId: string | null;
   test: TestEntity | null;
   questions: TestQuestion[];
-  deletedQuestionIds: number[];
   isLoading: boolean;
   isGenerating: boolean;
-  isSaving: boolean;
+  isPreparingTest: boolean;
   isPublishing: boolean;
+  savingQuestionIds: string[];
+  deletingQuestionIds: string[];
   error: string | null;
   lastInjectionMessage: string | null;
 }
@@ -31,19 +35,16 @@ interface GenerateQuestionsThunkPayload {
   payload: GenerateTestPayload;
 }
 
-interface SaveDraftThunkPayload {
-  lessonId: string;
-  test: TestEditPayload;
-}
-
 const initialState: TestDraftState = {
+  lessonId: null,
   test: null,
   questions: [],
-  deletedQuestionIds: [],
   isLoading: false,
   isGenerating: false,
-  isSaving: false,
+  isPreparingTest: false,
   isPublishing: false,
+  savingQuestionIds: [],
+  deletingQuestionIds: [],
   error: null,
   lastInjectionMessage: null,
 };
@@ -78,7 +79,7 @@ export const loadLessonTestDraftThunk = createAsyncThunk(
   async (lessonId: string, { rejectWithValue }) => {
     try {
       const test = await apiGetTestForLesson(lessonId);
-      const questions = test ? await apiGetQuestionsForTest(test.id) : [];
+      const questions = test ? await apiGetEditableQuestionsForTest(test.id) : [];
       return { test, questions };
     } catch (err: unknown) {
       return rejectWithValue(getErrorMessage(err, "Failed to load test."));
@@ -106,32 +107,114 @@ export const generateQuestionsThunk = createAsyncThunk(
   }
 );
 
-export const saveDraftThunk = createAsyncThunk(
-  "testDraft/saveDraft",
-  async (payload: SaveDraftThunkPayload, { getState, rejectWithValue }) => {
+export const ensureLessonTestThunk = createAsyncThunk(
+  "testDraft/ensureLessonTest",
+  async (lessonId: string, { getState, rejectWithValue }) => {
     try {
       const state = getState() as { testDraft: TestDraftState };
-      const data = await apiSaveDraftTest({
-        lessonId: payload.lessonId,
-        testId: state.testDraft.test?.id,
-        test: payload.test,
-        questions: state.testDraft.questions,
-        deletedQuestionIds: state.testDraft.deletedQuestionIds,
+      if (state.testDraft.test) {
+        return state.testDraft.test;
+      }
+
+      const existingTest = await apiGetTestForLesson(lessonId);
+      if (existingTest) {
+        return existingTest;
+      }
+
+      return apiCreateLessonTest(lessonId, {
+        title: "Lesson test",
+        description: "",
+        timeLimitSec: 0,
+        aiEnabled: false,
       });
-      return data;
     } catch (err: unknown) {
-      return rejectWithValue(getErrorMessage(err, "Failed to save draft."));
+      return rejectWithValue(getErrorMessage(err, "Failed to prepare lesson test."));
+    }
+  }
+);
+
+export const saveQuestionThunk = createAsyncThunk(
+  "testDraft/saveQuestion",
+  async (
+    payload: { questionClientId: string; lessonId: string },
+    { getState, rejectWithValue }
+  ) => {
+    try {
+      const state = getState() as { testDraft: TestDraftState };
+      const lessonId = payload.lessonId || state.testDraft.lessonId;
+      let test = state.testDraft.test;
+      const question = state.testDraft.questions.find(
+        (item) => item.clientId === payload.questionClientId
+      );
+
+      if (!question) {
+        throw new Error("Question not found.");
+      }
+      if (!test) {
+        if (!lessonId) {
+          throw new Error("Lesson not found.");
+        }
+        test = await apiCreateLessonTest(lessonId, {
+          title: "Lesson test",
+          description: "",
+          timeLimitSec: 0,
+          aiEnabled: false,
+        });
+      }
+
+      const savedQuestion =
+        question.id === undefined
+          ? await apiCreateQuestion(test.id, question)
+          : await apiUpdateQuestion(test.id, question);
+
+      return { questionClientId: payload.questionClientId, question: savedQuestion, test };
+    } catch (err: unknown) {
+      return rejectWithValue(getErrorMessage(err, "Failed to save question."));
+    }
+  }
+);
+
+export const deleteQuestionThunk = createAsyncThunk(
+  "testDraft/deleteQuestion",
+  async (questionClientId: string, { getState, rejectWithValue }) => {
+    try {
+      const state = getState() as { testDraft: TestDraftState };
+      const testId = state.testDraft.test?.id;
+      const question = state.testDraft.questions.find(
+        (item) => item.clientId === questionClientId
+      );
+
+      if (!question) {
+        throw new Error("Question not found.");
+      }
+
+      if (question.id !== undefined) {
+        if (!testId) {
+          throw new Error("This lesson does not have a test yet.");
+        }
+        await apiDeleteQuestion(testId, question.id);
+      }
+
+      return { questionClientId };
+    } catch (err: unknown) {
+      return rejectWithValue(getErrorMessage(err, "Failed to delete question."));
     }
   }
 );
 
 export const publishDraftThunk = createAsyncThunk(
   "testDraft/publishDraft",
-  async (payload: SaveDraftThunkPayload, { dispatch, rejectWithValue }) => {
+  async (_: void, { getState, rejectWithValue }) => {
     try {
-      const saved = await dispatch(saveDraftThunk(payload)).unwrap();
-      const published = await apiPublishTest(saved.test.id);
-      const questions = await apiGetQuestionsForTest(published.id);
+      const state = getState() as { testDraft: TestDraftState };
+      const testId = state.testDraft.test?.id;
+
+      if (!testId) {
+        throw new Error("This lesson does not have a test yet.");
+      }
+
+      const published = await apiPublishTest(testId);
+      const questions = await apiGetEditableQuestionsForTest(published.id);
       return { test: published, questions };
     } catch (err: unknown) {
       return rejectWithValue(getErrorMessage(err, "Failed to publish test."));
@@ -214,13 +297,6 @@ const testDraftSlice = createSlice({
         question.options[0].isCorrect = true;
       }
     },
-    deleteQuestion(state, action: PayloadAction<string>) {
-      const question = state.questions.find((item) => item.clientId === action.payload);
-      if (question?.id !== undefined) {
-        state.deletedQuestionIds.push(question.id);
-      }
-      state.questions = state.questions.filter((item) => item.clientId !== action.payload);
-    },
     addManualQuestion(state) {
       state.questions.push(makeEmptyQuestion());
     },
@@ -233,9 +309,11 @@ const testDraftSlice = createSlice({
       })
       .addCase(loadLessonTestDraftThunk.fulfilled, (state, action) => {
         state.isLoading = false;
+        state.lessonId = action.meta.arg;
         state.test = action.payload.test;
         state.questions = action.payload.questions;
-        state.deletedQuestionIds = [];
+        state.savingQuestionIds = [];
+        state.deletingQuestionIds = [];
       })
       .addCase(loadLessonTestDraftThunk.rejected, (state, action) => {
         state.isLoading = false;
@@ -248,27 +326,71 @@ const testDraftSlice = createSlice({
       })
       .addCase(generateQuestionsThunk.fulfilled, (state, action) => {
         state.isGenerating = false;
+        state.lessonId = action.payload.test.lessonId;
         state.test = action.payload.test;
         state.questions = action.payload.questions;
-        state.deletedQuestionIds = [];
+        state.savingQuestionIds = [];
+        state.deletingQuestionIds = [];
         state.lastInjectionMessage = action.payload.message;
       })
       .addCase(generateQuestionsThunk.rejected, (state, action) => {
         state.isGenerating = false;
         state.error = action.payload as string;
       })
-      .addCase(saveDraftThunk.pending, (state) => {
-        state.isSaving = true;
+      .addCase(ensureLessonTestThunk.pending, (state, action) => {
+        state.isPreparingTest = true;
+        state.lessonId = action.meta.arg;
         state.error = null;
       })
-      .addCase(saveDraftThunk.fulfilled, (state, action) => {
-        state.isSaving = false;
-        state.test = action.payload.test;
-        state.questions = action.payload.questions;
-        state.deletedQuestionIds = [];
+      .addCase(ensureLessonTestThunk.fulfilled, (state, action) => {
+        state.isPreparingTest = false;
+        state.lessonId = action.meta.arg;
+        state.test = action.payload;
       })
-      .addCase(saveDraftThunk.rejected, (state, action) => {
-        state.isSaving = false;
+      .addCase(ensureLessonTestThunk.rejected, (state, action) => {
+        state.isPreparingTest = false;
+        state.error = action.payload as string;
+      })
+      .addCase(saveQuestionThunk.pending, (state, action) => {
+        state.savingQuestionIds.push(action.meta.arg.questionClientId);
+        state.lessonId = action.meta.arg.lessonId;
+        state.error = null;
+      })
+      .addCase(saveQuestionThunk.fulfilled, (state, action) => {
+        state.savingQuestionIds = state.savingQuestionIds.filter(
+          (clientId) => clientId !== action.payload.questionClientId
+        );
+        state.test = action.payload.test;
+        state.lessonId = action.payload.test.lessonId;
+        const index = state.questions.findIndex(
+          (item) => item.clientId === action.payload.questionClientId
+        );
+        if (index >= 0) {
+          state.questions[index] = action.payload.question;
+        }
+      })
+      .addCase(saveQuestionThunk.rejected, (state, action) => {
+        state.savingQuestionIds = state.savingQuestionIds.filter(
+          (clientId) => clientId !== action.meta.arg.questionClientId
+        );
+        state.error = action.payload as string;
+      })
+      .addCase(deleteQuestionThunk.pending, (state, action) => {
+        state.deletingQuestionIds.push(action.meta.arg);
+        state.error = null;
+      })
+      .addCase(deleteQuestionThunk.fulfilled, (state, action) => {
+        state.deletingQuestionIds = state.deletingQuestionIds.filter(
+          (clientId) => clientId !== action.payload.questionClientId
+        );
+        state.questions = state.questions.filter(
+          (item) => item.clientId !== action.payload.questionClientId
+        );
+      })
+      .addCase(deleteQuestionThunk.rejected, (state, action) => {
+        state.deletingQuestionIds = state.deletingQuestionIds.filter(
+          (clientId) => clientId !== action.meta.arg
+        );
         state.error = action.payload as string;
       })
       .addCase(publishDraftThunk.pending, (state) => {
@@ -279,7 +401,8 @@ const testDraftSlice = createSlice({
         state.isPublishing = false;
         state.test = action.payload.test;
         state.questions = action.payload.questions;
-        state.deletedQuestionIds = [];
+        state.savingQuestionIds = [];
+        state.deletingQuestionIds = [];
       })
       .addCase(publishDraftThunk.rejected, (state, action) => {
         state.isPublishing = false;
@@ -292,7 +415,6 @@ export const {
   addManualQuestion,
   addOption,
   deleteOption,
-  deleteQuestion,
   resetDraft,
   toggleCorrectOption,
   updateOptionText,

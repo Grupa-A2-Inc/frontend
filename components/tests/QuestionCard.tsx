@@ -1,8 +1,19 @@
 "use client";
 
-import { Check, CheckCircle2, Circle, ListChecks, Plus, Square, Trash2, X } from "lucide-react";
+import {
+  Check,
+  CheckCircle2,
+  Circle,
+  ListChecks,
+  Loader2,
+  Plus,
+  Save,
+  Square,
+  Trash2,
+  X,
+} from "lucide-react";
 import { TestQuestion } from "@/lib/tests/types";
-import { useAppDispatch } from "@/store/hooks";
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { 
   addOption,
   deleteOption,
@@ -10,17 +21,30 @@ import {
   updateQuestionType,
   updateOptionText, 
   toggleCorrectOption, 
-  deleteQuestion 
+  deleteQuestionThunk,
+  saveQuestionThunk,
 } from "@/store/slices/testDraftSlice";
 
 interface QuestionCardProps {
+  lessonId: string;
   question: TestQuestion;
   index: number;
   readOnly?: boolean;
 }
 
-export default function QuestionCard({ question, index, readOnly = false }: QuestionCardProps) {
+export default function QuestionCard({
+  lessonId: routeLessonId,
+  question,
+  index,
+  readOnly = false,
+}: QuestionCardProps) {
   const dispatch = useAppDispatch();
+  const { deletingQuestionIds, savingQuestionIds } = useAppSelector(
+    (state) => state.testDraft
+  );
+  const isSaving = savingQuestionIds.includes(question.clientId);
+  const isDeleting = deletingQuestionIds.includes(question.clientId);
+  const canSave = !readOnly && !isSaving && !isDeleting;
 
   return (
     <div id={`q-${question.clientId}`} className="bg-brand-card border border-brand-border rounded-xl p-6 shadow-sm hover:border-brand-primary/30 transition-colors">
@@ -37,13 +61,35 @@ export default function QuestionCard({ question, index, readOnly = false }: Ques
 
         <div className="flex items-center gap-2">
           {!readOnly && (
-            <button 
-              onClick={() => dispatch(deleteQuestion(question.clientId))}
-              className="text-red-400 hover:bg-red-400/10 px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition"
-            >
-              <Trash2 size={16} />
-              <span className="hidden sm:inline">Delete</span>
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() =>
+                  dispatch(
+                    saveQuestionThunk({
+                      questionClientId: question.clientId,
+                      lessonId: routeLessonId,
+                    })
+                  )
+                }
+                disabled={!canSave}
+                className="flex items-center gap-1.5 rounded-md bg-brand-primary px-3 py-1.5 text-sm font-medium text-white transition hover:bg-brand-primary/90 disabled:opacity-50"
+                title="Save this question"
+              >
+                {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                <span className="hidden sm:inline">Save</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => dispatch(deleteQuestionThunk(question.clientId))}
+                disabled={isSaving || isDeleting}
+                className="text-red-400 hover:bg-red-400/10 px-3 py-1.5 rounded-md text-sm flex items-center gap-1.5 transition disabled:opacity-50"
+              >
+                {isDeleting ? <Loader2 className="animate-spin" size={16} /> : <Trash2 size={16} />}
+                <span className="hidden sm:inline">Delete</span>
+              </button>
+            </>
           )}
         </div>
       </div>

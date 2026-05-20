@@ -9,7 +9,6 @@ import {
   Eye,
   Loader2,
   Plus,
-  Save,
   Send,
 } from "lucide-react";
 
@@ -21,11 +20,11 @@ import { Chapter } from "@/lib/courses/types";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   addManualQuestion,
+  ensureLessonTestThunk,
   generateQuestionsThunk,
   loadLessonTestDraftThunk,
   publishDraftThunk,
   resetDraft,
-  saveDraftThunk,
 } from "@/store/slices/testDraftSlice";
 
 type Props = {
@@ -40,7 +39,7 @@ export default function LessonTestBuilderPage({ params }: Props) {
     questions,
     isLoading,
     isGenerating,
-    isSaving,
+    isPreparingTest,
     isPublishing,
     error,
     lastInjectionMessage,
@@ -83,7 +82,7 @@ export default function LessonTestBuilderPage({ params }: Props) {
   }, [courseId, lessonId]);
 
   const readOnly = test?.status === "PUBLISHED";
-  const busy = isLoading || isGenerating || isSaving || isPublishing;
+  const busy = isLoading || isGenerating || isPreparingTest || isPublishing;
   const testTitle = testTitleDraft ?? test?.title ?? "Lesson test";
   const description = descriptionDraft ?? test?.description ?? "";
   const timeLimitSec = timeLimitSecDraft ?? test?.timeLimitSec ?? 0;
@@ -92,26 +91,24 @@ export default function LessonTestBuilderPage({ params }: Props) {
     return test.status === "PUBLISHED" ? "Published" : "Draft";
   }, [test]);
 
-  const testPayload = {
-    title: testTitle.trim() || "Lesson test",
-    description,
-    timeLimitSec,
-    aiEnabled: true,
-  };
-
   function handleGenerate(count: number) {
     if (readOnly) return;
     dispatch(generateQuestionsThunk({ lessonId, payload: { count } }));
   }
 
-  function handleSave() {
+  async function handleAddQuestion() {
     if (readOnly) return;
-    dispatch(saveDraftThunk({ lessonId, test: testPayload }));
+    try {
+      await dispatch(ensureLessonTestThunk(lessonId)).unwrap();
+      dispatch(addManualQuestion());
+    } catch {
+      // Error is already stored in the draft slice and rendered above the editor.
+    }
   }
 
   function handlePublish() {
     if (readOnly) return;
-    dispatch(publishDraftThunk({ lessonId, test: testPayload }));
+    dispatch(publishDraftThunk());
   }
 
   return (
@@ -147,28 +144,18 @@ export default function LessonTestBuilderPage({ params }: Props) {
             <>
               <button
                 type="button"
-                onClick={() => dispatch(addManualQuestion())}
+                onClick={handleAddQuestion}
                 disabled={busy}
                 className="flex w-full items-center justify-center gap-2 rounded-lg border border-brand-border bg-brand-surface px-4 py-2.5 font-medium text-brand-text transition hover:bg-brand-mid disabled:opacity-50 sm:w-auto"
               >
-                <Plus size={18} />
-                Add question
-              </button>
-
-              <button
-                type="button"
-                onClick={handleSave}
-                disabled={busy || !testTitle.trim()}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-brand-border bg-brand-card px-4 py-2.5 font-medium text-brand-text transition hover:bg-brand-bg disabled:opacity-50 sm:w-auto"
-              >
-                {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                Save draft
+                {isPreparingTest ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />}
+                {isPreparingTest ? "Preparing" : "Add question"}
               </button>
 
               <button
                 type="button"
                 onClick={handlePublish}
-                disabled={busy || questions.length === 0 || !testTitle.trim()}
+                disabled={busy || !test || questions.length === 0 || !testTitle.trim()}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-primary px-5 py-2.5 font-medium text-white transition hover:bg-brand-primary/90 disabled:opacity-50 sm:w-auto"
               >
                 {isPublishing ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
@@ -224,6 +211,7 @@ export default function LessonTestBuilderPage({ params }: Props) {
               timeLimitSec={timeLimitSec}
               onTimeLimitChange={setTimeLimitSecDraft}
               onGenerate={handleGenerate}
+              metadataReadOnly
               readOnly={readOnly}
             />
 
@@ -231,6 +219,7 @@ export default function LessonTestBuilderPage({ params }: Props) {
               {questions.map((question, index) => (
                 <QuestionCard
                   key={question.clientId}
+                  lessonId={lessonId}
                   question={question}
                   index={index}
                   readOnly={readOnly}
