@@ -23,7 +23,7 @@ function formatRole(role: User["role"]): string {
 }
 
 function formatStatus(status: User["status"]): string {
-  return status.charAt(0) + status.slice(1).toLowerCase();
+  return status === "ACTIVE" ? "Active" : "Inactive";
 }
 
 export default function UsersTable({

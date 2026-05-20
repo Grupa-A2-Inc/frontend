@@ -8,7 +8,7 @@ import { ENDPOINTS } from "@/lib/api-endpoints";
 export type UserRole = "ADMIN" | "STUDENT" | "TEACHER" | "ORGANIZATION_ADMIN" | "PARENT";
 export type UserStatus = "ACTIVE" | "INACTIVE" | "BLOCKED" | "PENDING";
 export type UserRoleFilter = "ALL" | UserRole;
-export type UserStatusFilter = "ALL" | UserStatus;
+export type UserStatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
 
 export interface User {
   id: string;

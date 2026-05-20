@@ -23,18 +23,14 @@ export default function UsersToolbar({
 }: Props) {
   const studentCount = users.filter((u) => u.role === "STUDENT").length;
   const teacherCount = users.filter((u) => u.role === "TEACHER").length;
-  const adminCount = users.filter((u) => u.role === "ADMIN").length;
-  const organizationAdminCount = users.filter((u) => u.role === "ORGANIZATION_ADMIN").length;
-  const parentCount = users.filter((u) => u.role === "PARENT").length;
+  const adminCount = users.filter((u) => u.role === "ORGANIZATION_ADMIN").length;
 
   //Role tabs
   const roleTabs: { label: string; value: UserRoleFilter; count: number }[] = [
     { label: "All",      value: "ALL",     count: users.length },
     { label: "Students", value: "STUDENT", count: studentCount },
     { label: "Teachers", value: "TEACHER", count: teacherCount },
-    { label: "Admins",   value: "ADMIN",   count: adminCount },
-    { label: "Org Admins", value: "ORGANIZATION_ADMIN", count: organizationAdminCount },
-    { label: "Parents",  value: "PARENT",  count: parentCount },
+    { label: "Admins",   value: "ORGANIZATION_ADMIN", count: adminCount },
   ];
 
   //Status tabs
@@ -42,8 +38,6 @@ export default function UsersToolbar({
     { label: "All",      value: "ALL"      },
     { label: "Active",   value: "ACTIVE"   },
     { label: "Inactive", value: "INACTIVE" },
-    { label: "Blocked",  value: "BLOCKED"  },
-    { label: "Pending",  value: "PENDING"  },
   ];
 
   return (
