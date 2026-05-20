@@ -18,13 +18,6 @@ async function editorFetch<T>(path: string, options: RequestInit = {}): Promise<
     headers: { ...defaultHeaders, ...(callerHeaders ?? {}) },
   });
   if (!res.ok) {
-    if (res.status === 401) {
-      throw new Error("Your session expired. Please sign in again.");
-    }
-    if (res.status === 403) {
-      throw new Error("You do not have permission to edit this course.");
-    }
-
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || `Error ${res.status}`);
   }

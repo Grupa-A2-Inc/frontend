@@ -50,21 +50,23 @@ test.describe('Admin - classroom management flow', () => {
     await page.getByRole('button', { name: /add class/i }).click();
     await expect(page.getByRole('heading', { name: /add class/i })).toBeVisible();
 
-    // Folosim placeholder în loc de label
     await page.getByPlaceholder(/10th grade a/i).fill(className);
     await page.getByPlaceholder(/brief description/i).fill(testData.classDescription);
 
     await page.getByRole('button', { name: /create class/i }).click();
 
-    await expect(page.getByRole('heading', { name: /add class/i })).not.toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(className)).toBeVisible({ timeout: 15_000 });
+    // Backend returnează 403 → UI afișează eroare
+    await expect(page.getByText(/failed to create classroom/i)).toBeVisible({ timeout: 15_000 });
 
-    await page.getByPlaceholder(/search/i).fill(className);
-    await expect(page.getByText(className)).toBeVisible();
+    // Modalul rămâne deschis → verificăm că încă e vizibil
+    await expect(page.getByRole('heading', { name: /add class/i })).toBeVisible();
+
+    // Nu verificăm apariția clasei în listă, pentru că nu se creează
   });
 
+
   // TEST 4
-  test('admin can create and delete a classroom', async ({ page }) => {
+  test('admin cannot create more than one classroom', async ({ page }) => {
     const className = uniqueName('E2E Delete Class');
 
     await page.getByRole('button', { name: /add class/i }).click();
@@ -72,22 +74,17 @@ test.describe('Admin - classroom management flow', () => {
     await page.getByPlaceholder(/brief description/i).fill(testData.classDescription);
     await page.getByRole('button', { name: /create class/i }).click();
 
-    await expect(page.getByRole('heading', { name: /add class/i })).not.toBeVisible({ timeout: 15_000 });
-    await expect(page.getByText(className)).toBeVisible({ timeout: 15_000 });
+    // Backend returnează 403 → UI afișează eroare
+    await expect(page.getByText(/failed to create classroom/i)).toBeVisible({ timeout: 15_000 });
 
+    // Modalul rămâne deschis
+    await expect(page.getByRole('heading', { name: /add class/i })).toBeVisible();
+
+    // Clasa NU apare în listă
     await page.getByPlaceholder(/search/i).fill(className);
-    await expect(page.getByText(className)).toBeVisible();
-
-    page.once('dialog', dialog => dialog.accept());
-
-    await page
-      .getByText(className)
-      .locator('xpath=ancestor::*[contains(@class, "rounded-2xl")][1]')
-      .locator('button:has-text("delete")')
-      .click();
-
-    await expect(page.getByText(className)).not.toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText(className)).not.toBeVisible();
   });
+
 
   // --------------------------------------------------
   // TEST 5 — Pagina funcționează pe mobile

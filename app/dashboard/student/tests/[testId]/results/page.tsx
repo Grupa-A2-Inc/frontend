@@ -1,41 +1,56 @@
 "use client";
 
-import { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from "@/store";
-import { fetchTestResultThunk, resetTestState } from "@/store/slices/takeTestSlice";
-import { use } from "react";
+import { use, useEffect } from "react";
+import Link from "next/link";
+import { AlertCircle, CheckCircle2, ChevronLeft, Loader2, XCircle } from "lucide-react";
 
-// --------------------------------------------------
-// Pagina de rezultate pentru student după trimiterea testului
-// --------------------------------------------------
+import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchTestResultThunk } from "@/store/slices/takeTestSlice";
 
-export default function Page({ params }: { params: Promise<{ attemptId: string }> }) {
-  const { attemptId } = use(params);
-  const dispatch = useDispatch<AppDispatch>();
-  const { result, loading, error } = useSelector((state: RootState) => state.takeTest);
+type Props = {
+  searchParams?: Promise<{ attemptId?: string }>;
+};
+
+export default function TestResultsPage({ searchParams }: Props) {
+  const resolvedSearchParams = searchParams ? use(searchParams) : {};
+  const attemptId = resolvedSearchParams.attemptId;
+  const dispatch = useAppDispatch();
+  const { result, loading, error } = useAppSelector((state) => state.takeTest);
 
   useEffect(() => {
-    dispatch(fetchTestResultThunk(attemptId));
-  }, [dispatch, attemptId]);
+    if (attemptId) {
+      dispatch(fetchTestResultThunk(attemptId));
+    }
+  }, [attemptId, dispatch]);
 
-  // --------------------------------------------------
-  // Stare de încărcare
-  // --------------------------------------------------
-  if (loading && !result) {
-    return <p className="text-center mt-10">Loading results...</p>;
+  if (!attemptId) {
+    return (
+      <div className="mx-auto mt-10 max-w-xl rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-6 text-yellow-100">
+        Missing attempt id for this result.
+      </div>
+    );
   }
 
-  // --------------------------------------------------
-  // Stare de eroare
-  // --------------------------------------------------
+  if (loading && !result) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center gap-3 text-brand-muted">
+        <Loader2 className="animate-spin text-brand-primary" />
+        Loading results...
+      </div>
+    );
+  }
+
   if (error) {
     return (
-      <div className="text-center mt-10 text-red-600">
-        <p>Error: {error}</p>
+      <div className="mx-auto mt-10 max-w-xl rounded-xl border border-red-400/30 bg-red-400/10 p-6 text-red-300">
+        <div className="mb-4 flex items-center gap-2 font-semibold">
+          <AlertCircle size={20} />
+          {error}
+        </div>
         <button
+          type="button"
           onClick={() => dispatch(fetchTestResultThunk(attemptId))}
-          className="mt-4 px-4 py-2 bg-blue-500 text-white rounded"
+          className="rounded-lg bg-brand-primary px-4 py-2 text-sm font-semibold text-white"
         >
           Retry
         </button>
@@ -43,69 +58,111 @@ export default function Page({ params }: { params: Promise<{ attemptId: string }
     );
   }
 
-  // --------------------------------------------------
-  // Dacă nu există rezultat
-  // --------------------------------------------------
   if (!result) {
-    return <p className="text-center mt-10">No result found for this test.</p>;
+    return <p className="mt-10 text-center text-brand-muted">No result found for this test.</p>;
   }
 
-  // --------------------------------------------------
-  // UI principal
-  // --------------------------------------------------
-
   return (
-    <div className="max-w-2xl mx-auto mt-10 text-center">
-      <h2 className="text-2xl font-bold mb-4">Test Results</h2>
+    <div className="mx-auto max-w-5xl p-6 pb-20">
+      <Link
+        href="/dashboard/student"
+        className="mb-6 flex w-fit items-center gap-2 text-brand-muted transition-colors hover:text-brand-text"
+      >
+        <ChevronLeft size={20} />
+        Back to dashboard
+      </Link>
 
-      {/* Secțiunea cu scorul */}
-      <div className="border rounded p-6 shadow mb-6">
-        <p className="text-lg mb-2">Score: {result.score}</p>
-        <p className="text-lg mb-2">
-          Correct Answers: {result.correctAnswers} / {result.totalQuestions}
-        </p>
-        <p className="text-lg mb-4">
-          Percentage: {((result.correctAnswers / result.totalQuestions) * 100).toFixed(2)}%
-        </p>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-brand-text">Test Results</h1>
+        <p className="mt-1 text-sm text-brand-muted">Review your answers and score.</p>
       </div>
 
-      {/* Secțiunea cu revizuirea întrebărilor */}
-      {result.questions && (
-        <div className="text-left border rounded p-6 shadow">
-          <h3 className="text-xl font-semibold mb-4">Question Review</h3>
-          <ul className="space-y-4">
-            {result.questions.map((q: any, index: number) => (
-              <li key={q.id} className="border-b pb-4">
-                <p className="font-medium mb-2">
-                  {index + 1}. {q.prompt}
-                </p>
-
-                <p
-                  className={`mb-1 ${
-                    q.isCorrect ? "text-green-600" : "text-red-600"
-                  }`}
-                >
-                  Your answer: {q.selectedOptionLabel}
-                </p>
-
-                {!q.isCorrect && (
-                  <p className="text-gray-600">
-                    Correct answer: {q.correctOptionLabel}
-                  </p>
-                )}
-              </li>
-            ))}
-          </ul>
+      <div className="mb-8 grid gap-4 sm:grid-cols-3">
+        <div className="rounded-xl border border-brand-border bg-brand-card p-5">
+          <span className="block text-xs uppercase tracking-wider text-brand-muted">Score</span>
+          <span className="mt-1 block text-3xl font-bold text-brand-text">
+            {Math.round(result.scorePercent)}%
+          </span>
         </div>
-      )}
+        <div className="rounded-xl border border-brand-border bg-brand-card p-5">
+          <span className="block text-xs uppercase tracking-wider text-brand-muted">Correct</span>
+          <span className="mt-1 block text-3xl font-bold text-brand-text">
+            {result.correctAnswers} / {result.totalQuestions}
+          </span>
+        </div>
+        <div className="rounded-xl border border-brand-border bg-brand-card p-5">
+          <span className="block text-xs uppercase tracking-wider text-brand-muted">Status</span>
+          <span className={`mt-2 inline-flex rounded px-2 py-1 text-sm font-semibold ${
+            result.passed ? "bg-green-500/10 text-green-500" : "bg-red-400/10 text-red-400"
+          }`}>
+            {result.passed ? "Passed" : "Not passed"}
+          </span>
+        </div>
+      </div>
 
-      {/* Buton pentru revenire */}
-      <button
-        onClick={() => dispatch(resetTestState())}
-        className="mt-6 px-4 py-2 bg-blue-600 text-white rounded"
-      >
-        Back to course
-      </button>
+      <div className="space-y-6">
+        {result.questions.map((question, index) => (
+          <div
+            key={question.id}
+            className={`rounded-xl border bg-brand-card p-6 shadow-sm ${
+              question.isCorrect ? "border-green-500/50" : "border-red-400/50"
+            }`}
+          >
+            <div className="mb-5 flex items-start gap-4">
+              <div className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-xl bg-brand-primary/10">
+                {question.isCorrect ? (
+                  <CheckCircle2 size={26} className="text-green-500" />
+                ) : (
+                  <XCircle size={26} className="text-red-400" />
+                )}
+              </div>
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-brand-muted">
+                  Question {index + 1}
+                </span>
+                <p className="mt-1 font-medium leading-snug text-brand-text">{question.prompt}</p>
+              </div>
+            </div>
+
+            <div className="space-y-2.5">
+              {question.options.length > 0 ? (
+                question.options.map((option) => {
+                  let className =
+                    "flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm font-medium ";
+
+                  if (option.isCorrect && option.isSelected) {
+                    className += "border-green-500 bg-green-500/15 text-green-700 dark:text-green-100";
+                  } else if (option.isCorrect) {
+                    className += "border-green-500/40 border-dashed bg-green-500/5 text-green-700 dark:text-green-300";
+                  } else if (option.isSelected) {
+                    className += "border-red-400 bg-red-400/15 text-red-700 dark:text-red-200";
+                  } else {
+                    className += "border-brand-border bg-brand-bg text-brand-muted";
+                  }
+
+                  return (
+                    <div key={option.id} className={className}>
+                      <span className="flex h-5 w-5 flex-shrink-0 items-center justify-center">
+                        {option.isCorrect && <CheckCircle2 size={18} className="text-green-500" />}
+                        {!option.isCorrect && option.isSelected && (
+                          <XCircle size={18} className="text-red-400" />
+                        )}
+                      </span>
+                      {option.label}
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="rounded-lg border border-brand-border bg-brand-bg p-4 text-sm text-brand-muted">
+                  Selected option ids: {question.selectedOptionIds.join(", ") || "none"}
+                  <br />
+                  Correct option ids: {question.correctOptionIds.join(", ") || "none"}
+                </div>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,13 +1,7 @@
 import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
 import { API_BASE } from "@/lib/config";
 import { ENDPOINTS } from "@/lib/api-endpoints";
-import {
-  clearStoredRefreshToken,
-  fetchWithAuth,
-  getXsrfHeadersAsync,
-  refreshCsrfToken,
-  storeRefreshToken,
-} from "@/lib/fetchWithAuth";
+import { fetchWithAuth, getXsrfHeadersAsync, refreshCsrfToken } from "@/lib/fetchWithAuth";
 
 
 export type UserRole = "ADMIN" | "ORGANIZATION_ADMIN" | "TEACHER" | "STUDENT";
@@ -71,14 +65,6 @@ const initialState: AuthState = {
   loading: false,
   error: null,
 };
-
-function getRefreshTokenFromAuthPayload(payload: unknown): string | null {
-  if (!payload || typeof payload !== "object") return null;
-
-  const record = payload as Record<string, unknown>;
-  const refreshToken = record.refreshToken ?? record.refresh_token;
-  return typeof refreshToken === "string" && refreshToken ? refreshToken : null;
-}
 
 
 
@@ -232,7 +218,6 @@ export const logout = createAsyncThunk(
     localStorage.removeItem("mockAuth");
     localStorage.removeItem("accessToken");
     localStorage.removeItem("user");
-    clearStoredRefreshToken();
     document.cookie = "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     document.cookie = "role=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
 
@@ -325,10 +310,6 @@ const authSlice = createSlice({
 
       localStorage.setItem("accessToken", action.payload.accessToken);
       localStorage.setItem("user", JSON.stringify(action.payload.user));
-      const refreshToken = getRefreshTokenFromAuthPayload(action.payload);
-      if (refreshToken) {
-        storeRefreshToken(refreshToken);
-      }
 
 
       // Marcam utilizatorul ca autentificat
@@ -373,10 +354,6 @@ const authSlice = createSlice({
 
       localStorage.setItem("accessToken", action.payload.accessToken);
       localStorage.setItem("user", JSON.stringify(action.payload.user));
-      const refreshToken = getRefreshTokenFromAuthPayload(action.payload);
-      if (refreshToken) {
-        storeRefreshToken(refreshToken);
-      }
 
       state.isAuthenticated = true;
     });

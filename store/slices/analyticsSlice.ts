@@ -1,21 +1,25 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { ENDPOINTS } from "@/lib/api-endpoints";
+import { API_BASE } from "@/lib/config";
 import { StudentCourseStats, TeacherCatalogResponse } from "@/lib/analytics/types";
+import type { RootState } from "@/store";
 
-const BASE_URL = "https://api.adaptiveelearning.online/api/v1";
-
+function getErrorMessage(err: unknown, fallback: string) {
+  return err instanceof Error ? err.message : fallback;
+}
 
 export const fetchStudentCourseStats = createAsyncThunk(
   "analytics/fetchStudentCourseStats",
   async (courseId: string, { getState, rejectWithValue }) => {
     try {
-      const token = (getState() as any).auth.accessToken;
-      const response = await fetchWithAuth(`${BASE_URL}/students/me/courses/${courseId}/stats`, token);
+      const token = (getState() as RootState).auth.accessToken;
+      const response = await fetchWithAuth(`${API_BASE}${ENDPOINTS.students.myCourseStats(courseId)}`, token);
       
       if (!response.ok) throw new Error("Eroare la preluarea datelor studentului");
       return await response.json() as StudentCourseStats;
-    } catch (err: any) {
-      return rejectWithValue(err.message);
+    } catch (err: unknown) {
+      return rejectWithValue(getErrorMessage(err, "Eroare la preluarea datelor studentului"));
     }
   }
 );
@@ -25,15 +29,15 @@ export const fetchTeacherCatalog = createAsyncThunk(
   "analytics/fetchTeacherCatalog",
   async ({ courseId, page = 0 }: { courseId: string; page?: number }, { getState, rejectWithValue }) => {
     try {
-      const token = (getState() as any).auth.accessToken;
-      const url = `${BASE_URL}/courses/${courseId}/analytics/student-averages?page=${page}&size=10`;
+      const token = (getState() as RootState).auth.accessToken;
+      const url = `${API_BASE}${ENDPOINTS.courses.analyticsStudentAverages(courseId)}?page=${page}&size=10`;
       
       const response = await fetchWithAuth(url, token);
       if (!response.ok) throw new Error("Eroare la preluarea catalogului");
       
       return await response.json() as TeacherCatalogResponse;
-    } catch (err: any) {
-      return rejectWithValue(err.message);
+    } catch (err: unknown) {
+      return rejectWithValue(getErrorMessage(err, "Eroare la preluarea catalogului"));
     }
   }
 );

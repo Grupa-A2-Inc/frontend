@@ -103,6 +103,8 @@ export const ENDPOINTS = {
     publish: (testId: string) => `/api/v1/tests/${testId}/publish`,
     start: (testId: string) => `/api/v1/tests/${testId}/start`,
     questions: (testId: string) => `/api/v1/tests/${testId}/questions`,
+    questionById: (testId: string, questionId: number | string) =>
+      `/api/v1/tests/${testId}/questions/${questionId}`,
     myBest: (testId: string) => `/api/v1/tests/${testId}/my-best`,
     myAttempts: (testId: string) => `/api/v1/tests/${testId}/my-attempts`,
     analyticsClassAverage: (testId: string) =>
@@ -111,6 +113,11 @@ export const ENDPOINTS = {
       `/api/v1/tests/${testId}/analytics/failure-rate`,
     analyticsAlerts: (testId: string) =>
       `/api/v1/tests/${testId}/analytics/alerts`,
+  },
+  questions: {
+    byTest: (testId: string) => `/api/tests/${testId}/questions`,
+    byId: (testId: string, questionId: number | string) =>
+      `/api/tests/${testId}/questions/${questionId}`,
   },
 
   // 11 & 12. Attempts

@@ -1,141 +1,180 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Bot, Loader2 } from "lucide-react";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { generateTestThunk } from "@/store/slices/testDraftSlice";
-import { fetchCourseFullView } from "@/lib/courses/api";
-import { Chapter } from "@/lib/courses/types";
-import { lessonHasVideoResource } from "@/lib/courses/resourceType";
+import { useState } from "react";
+import { Bot, Loader2, Minus, Plus } from "lucide-react";
+import { useAppSelector } from "@/store/hooks";
 
 type Props = {
-  courseId: string;
-  selectedLessonId:  string;
-  onLessonChange: (lessonId: string) => void;
+  lessonTitle?: string;
   title: string;
   onTitleChange: (title: string) => void;
-  timeLimitSec: number | undefined;
-  onTimeLimitChange: (value: number | undefined) => void;
+  description: string;
+  onDescriptionChange: (description: string) => void;
+  timeLimitSec: number;
+  onTimeLimitChange: (value: number) => void;
+  onGenerate: (count: number) => void;
+  metadataReadOnly?: boolean;
+  readOnly?: boolean;
+  generateDisabled?: boolean;
+  generateWarning?: string | null;
 };
 
 export default function TestSettingsPanel({
-  courseId,
-  selectedLessonId,
-  onLessonChange,
+  lessonTitle,
+  title,
+  onTitleChange,
+  description,
+  onDescriptionChange,
+  timeLimitSec,
+  onTimeLimitChange,
+  onGenerate,
+  metadataReadOnly,
+  readOnly = false,
+  generateDisabled = false,
+  generateWarning = null,
 }: Props) {
-  const dispatch = useAppDispatch();
   const { isGenerating } = useAppSelector((state) => state.testDraft);
-  
-  const [chapters, setChapters] = useState<Chapter[]>([]);
-  const [loadingChapters, setLoadingChapters] = useState(true);
-  const [sourceWarning, setSourceWarning] = useState<string | null>(null);
-  
-  const [qCount, setQCount] = useState(5); 
+  const [qCount, setQCount] = useState(5);
+  const canAdjustAiCount = !readOnly && !isGenerating && !generateDisabled;
+  const canEditMetadata = !readOnly && !metadataReadOnly;
 
-  // Incarcam capitolele reale ale cursului
-  useEffect(() => {
-    async function loadChapters() {
-      try {
-        const { chapters } = await fetchCourseFullView(courseId);
-        setChapters(chapters);
-      } catch (err) {
-        console.error("Failed to load chapters for test settings", err);
-      } finally {
-        setLoadingChapters(false);
-      }
-    }
-    loadChapters();
-  }, [courseId]);
+  function updateQuestionCount(nextValue: number) {
+    const normalized = Number.isFinite(nextValue) ? nextValue : 1;
+    setQCount(Math.min(50, Math.max(1, normalized)));
+  }
 
-  const videoLessons = chapters.flatMap((chapter) =>
-    chapter.lessons.filter(lessonHasVideoResource)
-  );
-  const selectableChapters = chapters
-    .map((chapter) => ({
-      ...chapter,
-      lessons: chapter.lessons.filter((lesson) => !lessonHasVideoResource(lesson)),
-    }))
-    .filter((chapter) => chapter.lessons.length > 0);
-  const selectedLesson = chapters
-    .flatMap((chapter) => chapter.lessons)
-    .find((lesson) => lesson.id === selectedLessonId);
-  const selectedLessonIsVideo = selectedLesson ? lessonHasVideoResource(selectedLesson) : false;
-
-  const handleGenerate = () => {
-    if (!selectedLessonId) {
-      setSourceWarning("Choose a text lesson or a non-video resource for generation.");
-      return;
-    }
-
-    if (selectedLessonIsVideo) {
-      setSourceWarning("Tests cannot be generated from video content.");
-      return;
-    }
-
-    setSourceWarning(null);
-    dispatch(
-      generateTestThunk({
-        lessonId: selectedLessonId,
-        payload: {
-          count: qCount,
-        },
-      })
-    );
+  function updateTimeLimit(nextValue: number) {
+    const normalized = Number.isFinite(nextValue) ? nextValue : 0;
+    onTimeLimitChange(Math.max(0, normalized));
   }
 
   return (
     <div className="bg-brand-card border border-brand-border p-6 rounded-xl shadow-sm">
-      <div className="flex flex-col sm:flex-row gap-4 items-end">
-        
-        <div className="flex-1 w-full">
-          <label className="text-xs font-medium text-brand-muted mb-1 block uppercase tracking-wider">SOURCE CONTENT</label>
-          <select
-              value={selectedLessonIsVideo ? "" : selectedLessonId}
-              onChange={(e) => {
-                onLessonChange(e.target.value);
-                setSourceWarning(null);
-              }}
-              disabled={loadingChapters || isGenerating}
-              className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-brand-text focus:border-brand-primary outline-none transition disabled:opacity-60"
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_170px_300px] xl:items-end">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label>
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-brand-muted">
+              Lesson
+            </span>
+            <input
+              value={lessonTitle ?? "Selected lesson"}
+              readOnly
+              className="w-full rounded-lg border border-brand-border bg-brand-bg px-4 py-2.5 text-sm text-brand-muted outline-none"
+            />
+          </label>
+
+          <label>
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-brand-muted">
+              Test title
+            </span>
+            <input
+              value={title}
+              disabled={!canEditMetadata}
+              onChange={(event) => onTitleChange(event.target.value)}
+              className="w-full rounded-lg border border-brand-border bg-brand-bg px-4 py-2.5 text-sm text-brand-text outline-none transition focus:border-brand-primary disabled:opacity-70"
+            />
+          </label>
+
+          <label className="sm:col-span-2">
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-brand-muted">
+              Description
+            </span>
+            <input
+              value={description}
+              disabled={!canEditMetadata}
+              onChange={(event) => onDescriptionChange(event.target.value)}
+              placeholder="Optional description"
+              className="w-full rounded-lg border border-brand-border bg-brand-bg px-4 py-2.5 text-sm text-brand-text outline-none transition focus:border-brand-primary disabled:opacity-70"
+            />
+          </label>
+        </div>
+
+        <div>
+          <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-brand-muted">
+            Time limit
+          </span>
+          <div className="grid h-[42px] grid-cols-[38px_minmax(0,1fr)_38px] overflow-hidden rounded-lg border border-brand-border bg-brand-bg">
+            <button
+              type="button"
+              onClick={() => updateTimeLimit(timeLimitSec - 60)}
+              disabled={!canEditMetadata || timeLimitSec <= 0}
+              className="flex items-center justify-center text-brand-muted transition hover:bg-brand-primary/10 hover:text-brand-text disabled:opacity-40"
+              aria-label="Decrease time limit"
+            >
+              <Minus size={15} />
+            </button>
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              value={timeLimitSec}
+              onChange={(event) => updateTimeLimit(Number(event.target.value))}
+              disabled={!canEditMetadata}
+              className="min-w-0 border-x border-brand-border bg-transparent px-2 text-center text-sm font-semibold text-brand-text outline-none disabled:opacity-70"
+              aria-label="Time limit in seconds"
+            />
+            <button
+              type="button"
+              onClick={() => updateTimeLimit(timeLimitSec + 60)}
+              disabled={!canEditMetadata}
+              className="flex items-center justify-center text-brand-muted transition hover:bg-brand-primary/10 hover:text-brand-text disabled:opacity-40"
+              aria-label="Increase time limit"
+            >
+              <Plus size={15} />
+            </button>
+          </div>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-[132px_minmax(150px,1fr)]">
+          <div>
+            <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-brand-muted">
+              AI count
+            </span>
+            <div className="grid h-[42px] grid-cols-[36px_minmax(0,1fr)_36px] overflow-hidden rounded-lg border border-brand-border bg-brand-bg">
+              <button
+                type="button"
+                onClick={() => updateQuestionCount(qCount - 1)}
+                disabled={!canAdjustAiCount || qCount <= 1}
+                className="flex items-center justify-center text-brand-muted transition hover:bg-brand-primary/10 hover:text-brand-text disabled:opacity-40"
+                aria-label="Decrease AI question count"
+              >
+                <Minus size={15} />
+              </button>
+              <input
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                value={qCount}
+                onChange={(event) => updateQuestionCount(Number(event.target.value))}
+                disabled={!canAdjustAiCount}
+                className="min-w-0 border-x border-brand-border bg-transparent px-2 text-center text-sm font-semibold text-brand-text outline-none disabled:opacity-70"
+                aria-label="AI question count"
+              />
+              <button
+                type="button"
+                onClick={() => updateQuestionCount(qCount + 1)}
+                disabled={!canAdjustAiCount || qCount >= 50}
+                className="flex items-center justify-center text-brand-muted transition hover:bg-brand-primary/10 hover:text-brand-text disabled:opacity-40"
+                aria-label="Increase AI question count"
+              >
+                <Plus size={15} />
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onGenerate(qCount)}
+            disabled={readOnly || isGenerating || generateDisabled}
+            className="flex min-h-[42px] items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:opacity-50 sm:mt-5"
           >
-            <option value="">{loadingChapters ? "Loading..." : "Select a lesson..."}</option>
-            {selectableChapters.map((chap) => (
-              <optgroup key={chap.id} label={chap.title}>
-                {chap.lessons.map((lesson) => (
-                  <option key={lesson.id} value={lesson.id}>
-                    {lesson.title}
-                  </option>
-                ))}
-              </optgroup>
-            ))}
-          </select>
-          {(sourceWarning || selectedLessonIsVideo || videoLessons.length > 0) && (
-            <p className="mt-2 text-xs text-amber-300">
-              {sourceWarning ?? "Tests cannot be generated from video content. Video nodes were removed from the AI source list."}
-            </p>
+            {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Bot size={18} />}
+            {isGenerating ? "Generating" : "Generate AI"}
+          </button>
+          {generateWarning && (
+            <p className="text-xs text-amber-300 sm:col-span-2">{generateWarning}</p>
           )}
         </div>
-
-        <div className="w-full sm:w-32">
-          <label className="text-xs font-medium text-brand-muted mb-1 block uppercase tracking-wider">QUESTIONS</label>
-          <input 
-            type="number" 
-            value={qCount}
-            onChange={(e) => setQCount(Number(e.target.value))}
-            min={1} max={50} 
-            disabled={isGenerating}
-            className="w-full bg-brand-bg border border-brand-border rounded-lg px-4 py-2.5 text-brand-text focus:border-brand-primary outline-none transition disabled:opacity-60" 
-          />
-        </div>
-
-        <button 
-          onClick={handleGenerate}
-          disabled={isGenerating || loadingChapters || selectedLessonIsVideo} 
-          className="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white px-8 py-2.5 rounded-lg flex items-center justify-center gap-2 font-medium disabled:opacity-50 transition"
-        >
-          {isGenerating ? <Loader2 className="animate-spin" size={20} /> : <Bot size={20} />}
-          {isGenerating ? "Generating..." : "Generate AI"}
-        </button>
       </div>
     </div>
   );
