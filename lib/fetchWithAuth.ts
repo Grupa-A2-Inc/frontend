@@ -8,7 +8,17 @@ type AuthFetchOptions = RequestInit & {
   skipAuthRefresh?: boolean;
 };
 
+type CsrfToken = {
+  token: string;
+  headerName: string;
+};
+
+const DEFAULT_XSRF_HEADER_NAME = "X-XSRF-TOKEN";
+const XSRF_COOKIE_NAME = "XSRF-TOKEN";
+
 let refreshPromise: Promise<string | null> | null = null;
+let csrfToken: CsrfToken | null = null;
+let csrfPromise: Promise<CsrfToken | null> | null = null;
 
 function getCookie(name: string): string | null {
   if (typeof document === "undefined") return null;
@@ -23,8 +33,83 @@ function getCookie(name: string): string | null {
 }
 
 export function getXsrfHeaders(): HeadersInit {
-  const xsrfToken = getCookie("XSRF-TOKEN");
-  return xsrfToken ? { "X-XSRF-TOKEN": xsrfToken } : {};
+  const token = csrfToken?.token ?? getCookie(XSRF_COOKIE_NAME);
+  const headerName = csrfToken?.headerName ?? DEFAULT_XSRF_HEADER_NAME;
+  return token ? { [headerName]: token } : {};
+}
+
+function normalizeCsrfHeaderName(headerName?: string): string {
+  const trimmedHeaderName = headerName?.trim();
+  return trimmedHeaderName || DEFAULT_XSRF_HEADER_NAME;
+}
+
+function csrfHeadersFromToken(token: CsrfToken | null): Record<string, string> {
+  if (!token?.token) return {};
+  return { [token.headerName]: token.token };
+}
+
+async function requestCsrfToken(): Promise<CsrfToken | null> {
+  try {
+    const response = await fetch(`${API_BASE}${ENDPOINTS.auth.csrf}`, {
+      method: "GET",
+      credentials: "include",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+
+    if (!response.ok) return null;
+
+    const data = (await response.json().catch(() => null)) as {
+      csrfToken?: string;
+      headerName?: string;
+    } | null;
+
+    if (!data?.csrfToken) return null;
+
+    csrfToken = {
+      token: data.csrfToken,
+      headerName: normalizeCsrfHeaderName(data.headerName),
+    };
+
+    return csrfToken;
+  } catch {
+    return null;
+  }
+}
+
+export function clearStoredCsrfToken(): void {
+  csrfToken = null;
+  csrfPromise = null;
+}
+
+export async function refreshCsrfToken(): Promise<CsrfToken | null> {
+  clearStoredCsrfToken();
+  return getCsrfToken();
+}
+
+export async function getCsrfToken(): Promise<CsrfToken | null> {
+  if (typeof window === "undefined") return null;
+  if (csrfToken) return csrfToken;
+
+  if (!csrfPromise) {
+    csrfPromise = requestCsrfToken().finally(() => {
+      csrfPromise = null;
+    });
+  }
+
+  return csrfPromise;
+}
+
+export async function getXsrfHeadersAsync(options: { forceRefresh?: boolean } = {}): Promise<HeadersInit> {
+  if (options.forceRefresh) {
+    const headers = csrfHeadersFromToken(await refreshCsrfToken());
+    return Object.keys(headers).length > 0 ? headers : getXsrfHeaders();
+  }
+
+  const token = await getCsrfToken();
+  if (token) return csrfHeadersFromToken(token);
+
+  return getXsrfHeaders();
 }
 
 function toHeaders(headers?: HeadersInit): Headers {
@@ -51,6 +136,7 @@ export function clearStoredAccessToken(): void {
 
   localStorage.removeItem("accessToken");
   document.cookie = "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+  clearStoredCsrfToken();
 }
 
 function dispatchSessionExpired(): void {
@@ -77,23 +163,17 @@ function handleRefreshHttpError(status: number, tokenThatTriggeredRefresh: strin
   return null;
 }
 
-async function refreshAccessToken(tokenThatTriggeredRefresh: string | null): Promise<string | null> {
+export async function refreshAccessToken(tokenThatTriggeredRefresh: string | null): Promise<string | null> {
   if (typeof window === "undefined") return null;
 
   if (!refreshPromise) {
     refreshPromise = (async () => {
       try {
-        const headers = toHeaders({ Accept: "application/json" });
-        Object.entries(getXsrfHeaders()).forEach(([key, value]) => {
-          headers.set(key, value);
-        });
+        let response = await refreshAccessTokenRequest(false);
 
-        const response = await fetch(`${API_BASE}${ENDPOINTS.auth.refresh}`, {
-          method: "POST",
-          credentials: "include",
-          headers,
-          cache: "no-store",
-        });
+        if (response.status === 403) {
+          response = await refreshAccessTokenRequest(true);
+        }
 
         if (!response.ok) {
           return handleRefreshHttpError(response.status, tokenThatTriggeredRefresh);
@@ -118,6 +198,22 @@ async function refreshAccessToken(tokenThatTriggeredRefresh: string | null): Pro
   }
 
   return refreshPromise;
+}
+
+async function refreshAccessTokenRequest(forceCsrfRefresh: boolean): Promise<Response> {
+  const headers = toHeaders({ Accept: "application/json" });
+  Object.entries(await getXsrfHeadersAsync({ forceRefresh: forceCsrfRefresh })).forEach(
+    ([key, value]) => {
+      headers.set(key, value);
+    }
+  );
+
+  return fetch(`${API_BASE}${ENDPOINTS.auth.refresh}`, {
+    method: "POST",
+    credentials: "include",
+    headers,
+    cache: "no-store",
+  });
 }
 
 function resolveAccessToken(token?: string | null): string | null {

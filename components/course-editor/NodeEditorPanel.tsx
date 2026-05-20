@@ -29,6 +29,8 @@ export function NodeEditorPanel({
   onFormChange,
   onSaveNode,
 }: NodeEditorPanelProps) {
+  const isTitleBlank = nodeForm.title.trim().length === 0;
+
   return (
     <div className="flex-1 overflow-y-auto p-8 bg-brand-bg">
       {!selected ? (
@@ -39,7 +41,12 @@ export function NodeEditorPanel({
       ) : (
         <div className="max-w-2xl mx-auto">
           <TypeBadge selectedType={selectedType} />
-          <TitleField selectedType={selectedType} nodeForm={nodeForm} onFormChange={onFormChange} />
+          <TitleField
+            selectedType={selectedType}
+            nodeForm={nodeForm}
+            isTitleBlank={isTitleBlank}
+            onFormChange={onFormChange}
+          />
           {selectedType === "CHAPTER" && <ChapterFields nodeForm={nodeForm} onFormChange={onFormChange} />}
           {selectedType === "TEXT" && <TextFields nodeForm={nodeForm} onFormChange={onFormChange} />}
           {(selectedType === "FILE" || selectedType === "VIDEO") && (
@@ -54,6 +61,7 @@ export function NodeEditorPanel({
             savingNode={savingNode}
             saveNodeOk={saveNodeOk}
             saveNodeError={saveNodeError}
+            isTitleBlank={isTitleBlank}
             onSaveNode={onSaveNode}
           />
         </div>
@@ -83,8 +91,11 @@ interface NodeFormChildProps {
 function TitleField({
   selectedType,
   nodeForm,
+  isTitleBlank,
   onFormChange,
-}: NodeFormChildProps & { selectedType: EditorNodeType | null }) {
+}: NodeFormChildProps & { selectedType: EditorNodeType | null; isTitleBlank: boolean }) {
+  const titleErrorId = "node-title-error";
+
   return (
     <div className="mb-5">
       <label className="block text-xs font-medium text-brand-text/60 mb-1.5">
@@ -95,8 +106,20 @@ function TitleField({
         value={nodeForm.title}
         onChange={e => onFormChange(form => ({ ...form, title: e.target.value }))}
         placeholder={selectedType === "CHAPTER" ? "Chapter title" : "Node title"}
-        className="w-full bg-brand-card border border-brand-primary/20 rounded-xl px-4 py-2.5 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors"
+        required
+        aria-invalid={isTitleBlank}
+        aria-describedby={isTitleBlank ? titleErrorId : undefined}
+        className={`w-full bg-brand-card border rounded-xl px-4 py-2.5 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none transition-colors ${
+          isTitleBlank
+            ? "border-red-400/70 focus:border-red-400"
+            : "border-brand-primary/20 focus:border-brand-primary/60"
+        }`}
       />
+      {isTitleBlank && (
+        <p id={titleErrorId} className="mt-1.5 text-xs text-red-400">
+          Title is required.
+        </p>
+      )}
     </div>
   );
 }
@@ -218,18 +241,20 @@ function SaveNodeButton({
   savingNode,
   saveNodeOk,
   saveNodeError,
+  isTitleBlank,
   onSaveNode,
 }: {
   savingNode: boolean;
   saveNodeOk: boolean;
   saveNodeError: string | null;
+  isTitleBlank: boolean;
   onSaveNode: () => void;
 }) {
   return (
     <div className="flex items-center gap-3">
       <button
         onClick={onSaveNode}
-        disabled={savingNode}
+        disabled={savingNode || isTitleBlank}
         className="flex items-center gap-2 px-4 py-2 bg-brand-primary hover:bg-brand-primary/90 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50"
       >
         <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>

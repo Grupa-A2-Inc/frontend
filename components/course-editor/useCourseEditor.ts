@@ -145,6 +145,12 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
   async function handleSaveNode() {
     if (!selected) return;
 
+    if (!nodeForm.title.trim()) {
+      setSaveNodeErr("Title is required.");
+      setSaveNodeOk(false);
+      return;
+    }
+
     setSavingNode(true);
     setSaveNodeErr(null);
 
@@ -165,24 +171,27 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
   }
 
   async function saveChapterNode(selection: Extract<SelectedRef, { kind: "chapter" }>) {
+    const title = nodeForm.title.trim();
+
     if (!selection.id.startsWith("temp_") && mode === "edit") {
-      await updateChapter(selection.id, { title: nodeForm.title });
+      await updateChapter(selection.id, { title });
     }
 
     setChapters(prev => prev.map(chapter =>
       chapter.id === selection.id
-        ? { ...chapter, title: nodeForm.title }
+        ? { ...chapter, title }
         : chapter,
     ));
   }
 
   async function saveLeafNode(selection: Extract<SelectedRef, { kind: "leaf" }>) {
     let newResourceId = selectedLeaf?.resourceId ?? "";
+    const title = nodeForm.title.trim();
 
     if (!selection.id.startsWith("temp_") && mode === "edit") {
       const isText = selectedLeaf?.type === "TEXT";
       await updateLesson(selection.id, {
-        title: nodeForm.title,
+        title,
         content: isText ? nodeForm.content : undefined,
       });
 
@@ -193,12 +202,12 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
 
         if (hasUrl && existingResourceId) {
           await updateResource(selection.id, existingResourceId, {
-            title: nodeForm.title,
+            title,
             url: nodeForm.fileUrl.trim(),
           });
         } else if (hasUrl && !existingResourceId) {
           const result = await createResource(selection.id, {
-            title: nodeForm.title,
+            title,
             url: nodeForm.fileUrl.trim(),
           });
           newResourceId = result.id;
@@ -217,7 +226,7 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
             leaf.id === selection.id
               ? {
                 ...leaf,
-                title: nodeForm.title,
+                title,
                 content: nodeForm.content,
                 fileUrl: nodeForm.fileUrl,
                 resourceId: newResourceId,
@@ -539,12 +548,12 @@ function mapCourseToChapters(data: EditorCourseResponse): EditorChapter[] {
 async function createCourseTree(courseId: string, chapters: EditorChapter[]) {
   for (const chapter of [...chapters].sort((a, b) => a.orderIndex - b.orderIndex)) {
     const chapterResult = await createChapter(courseId, {
-      title: chapter.title,
+      title: chapter.title.trim(),
     });
 
     for (const leaf of [...chapter.children].sort((a, b) => a.orderIndex - b.orderIndex)) {
       await createLesson(chapterResult.id, {
-        title: leaf.title,
+        title: leaf.title.trim(),
         ...(leaf.type === "TEXT" && leaf.content ? { contentMarkdown: leaf.content } : {}),
       });
     }

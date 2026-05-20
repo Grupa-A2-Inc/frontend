@@ -10,8 +10,8 @@ export async function apiSendSupportMessage(
   });
 
   if (!response.ok) {
-    const text = await response.text().catch(() => "");
-    throw new Error(`HTTP ${response.status}: ${text || response.statusText}`);
+    const json = await response.json().catch(() => null);
+    throw new Error(json?.error || "Could not send message. Please try again.");
   }
 
   return response.json() as Promise<CustomerSupportResponse>;

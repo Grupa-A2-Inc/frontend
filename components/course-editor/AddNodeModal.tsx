@@ -25,6 +25,9 @@ export function AddNodeModal({
   onFormChange,
   onAddNode,
 }: AddNodeModalProps) {
+  const isTitleBlank = addForm.title.trim().length === 0;
+  const titleErrorId = "add-node-title-error";
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-black/60 backdrop-blur-sm"><div className="min-h-full flex items-center justify-center p-4">
       <div className="bg-brand-card border border-brand-primary/20 rounded-2xl p-6 w-full max-w-md shadow-2xl">
@@ -71,11 +74,23 @@ export function AddNodeModal({
               onChange={e => onFormChange(form => ({ ...form, title: e.target.value }))}
               placeholder={addTarget.kind === "chapter" ? "Chapter title" : "Node title"}
               autoFocus
+              required
+              aria-invalid={isTitleBlank}
+              aria-describedby={isTitleBlank ? titleErrorId : undefined}
               onKeyDown={e => {
-                if (e.key === "Enter") onAddNode();
+                if (e.key === "Enter" && !isTitleBlank) onAddNode();
               }}
-              className="w-full bg-brand-bg border border-brand-primary/20 rounded-xl px-4 py-2.5 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors"
+              className={`w-full bg-brand-bg border rounded-xl px-4 py-2.5 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none transition-colors ${
+                isTitleBlank
+                  ? "border-red-400/70 focus:border-red-400"
+                  : "border-brand-primary/20 focus:border-brand-primary/60"
+              }`}
             />
+            {isTitleBlank && (
+              <p id={titleErrorId} className="mt-1.5 text-xs text-red-400">
+                Title is required.
+              </p>
+            )}
           </div>
           {addTarget.kind === "chapter" && (
             <div>
@@ -116,7 +131,7 @@ export function AddNodeModal({
           </button>
           <button
             onClick={onAddNode}
-            disabled={addingNode}
+            disabled={addingNode || isTitleBlank}
             className="flex-1 py-2.5 rounded-xl text-sm font-medium bg-brand-primary hover:bg-brand-primary/90 text-white disabled:opacity-50 transition-colors"
           >
             {addingNode ? "Adding..." : `Add ${addTarget.kind === "chapter" ? "Chapter" : nodeLabel(addType)}`}

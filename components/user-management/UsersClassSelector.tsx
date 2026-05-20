@@ -22,8 +22,14 @@ export default function ClassSelector({ selectedClasses, onToggle }: Props) {
     <div className="flex flex-col gap-1.5 bg-brand-mid border border-brand-primary/20 rounded-lg px-3 py-2">
       {classrooms.map((cls) => (
         <label key={cls.id} className="flex items-center gap-2.5 cursor-pointer group">
+          <input
+            type="checkbox"
+            checked={selectedClasses.includes(cls.id)}
+            onChange={() => onToggle(cls.id)}
+            className="sr-only"
+          />
           <div
-            onClick={() => onToggle(cls.id)}
+            aria-hidden="true"
             className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-colors ${
               selectedClasses.includes(cls.id)
                 ? "bg-brand-primary border-brand-primary"

@@ -16,7 +16,7 @@ export const adminUser = {
   organizationAddress: 'Test Street 5',
 };
 
-const baseURL = process.env.E2E_BASE_URL ?? 'http://localhost:3000';
+const baseURL = process.env.E2E_BASE_URL ?? 'https://frontend-teal-five-57.vercel.app';
 
 export async function seedAdminSession(page: Page) {
   await page.context().clearCookies();
