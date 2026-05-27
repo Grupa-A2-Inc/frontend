@@ -1,21 +1,41 @@
 "use client";
 
-import { User } from "@/store/slices/usersSlice";
-
-type RoleFilter = "ALL" | "STUDENT" | "TEACHER";
-type StatusFilter = "ALL" | "ACTIVE" | "INACTIVE";
+import { User, UserRoleFilter, UserStatusFilter } from "@/store/slices/usersSlice";
 
 type Props = {
   filtered: User[];
   search: string;
-  roleFilter: RoleFilter;
-  statusFilter: StatusFilter;
+  roleFilter: UserRoleFilter;
+  statusFilter: UserStatusFilter;
   onEdit: (user: User) => void;
   onToggleStatus: (userId: string) => void;
   onDelete: (userId: string) => void;
+  currentUserId?: string;
 };
 
-export default function UsersTable({ filtered, search, roleFilter, statusFilter, onEdit, onToggleStatus, onDelete }: Props) {
+function formatRole(role: User["role"]): string {
+  if (role === "ORGANIZATION_ADMIN") return "Org Admin";
+  return role
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+function formatStatus(status: User["status"]): string {
+  return status === "ACTIVE" ? "Active" : "Inactive";
+}
+
+export default function UsersTable({
+  filtered,
+  search,
+  roleFilter,
+  statusFilter,
+  onEdit,
+  onToggleStatus,
+  onDelete,
+  currentUserId,
+}: Props) {
 
   if (filtered.length === 0) {
     return (
@@ -33,69 +53,125 @@ export default function UsersTable({ filtered, search, roleFilter, statusFilter,
   }
 
   return (
-    <div className="bg-brand-card border border-brand-primary/15 rounded-2xl overflow-hidden">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-brand-primary/15">
-            <th className="text-left px-5 py-3 text-xs font-medium text-brand-text/40">User</th>
-            <th className="text-left px-5 py-3 text-xs font-medium text-brand-text/40">Email</th>
-            <th className="text-left px-5 py-3 text-xs font-medium text-brand-text/40">Role</th>
-            <th className="text-left px-5 py-3 text-xs font-medium text-brand-text/40">Status</th>
-            <th className="text-left px-5 py-3 text-xs font-medium text-brand-text/40">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filtered.map((user) => (
-            <tr key={user.id} className="border-b border-brand-primary/8 hover:bg-brand-primary/5 transition-colors">
-              <td className="px-5 py-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary text-sm font-semibold flex-shrink-0">
-                    {user.firstName.charAt(0)}
-                  </div>
-                  <span className="text-sm text-brand-text font-medium">
-                    {user.firstName} {user.lastName}
-                  </span>
+    <>
+      {/* Mobile card layout */}
+      <div className="flex flex-col gap-3 md:hidden">
+        {filtered.map((user) => {
+          const blocksSelfDeactivate = user.id === currentUserId && user.status === "ACTIVE";
+
+          return (
+          <div key={user.id} className="bg-brand-card border border-brand-primary/15 rounded-2xl p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-9 h-9 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary text-sm font-semibold flex-shrink-0">
+                  {user.firstName.charAt(0)}
                 </div>
-              </td>
-              <td className="px-5 py-3 text-sm text-brand-text/50">{user.email}</td>
-              <td className="px-5 py-3">
-                <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-brand-primary/15 text-brand-primary">
-                  {user.role === "STUDENT" ? "Student" : user.role === "TEACHER" ? "Teacher" : "Admin"}
-                </span>
-              </td>
-              <td className="px-5 py-3">
-                <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                  user.status === "ACTIVE"
-                    ? "bg-emerald-500/15 text-emerald-400"
-                    : "bg-red-500/15 text-red-400"}`}>
-                  {user.status === "ACTIVE" ? "Active" : "Inactive"}
-                </span>
-              </td>
-              <td className="px-5 py-3">
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => onEdit(user)}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-brand-primary hover:bg-brand-primary/10 transition-colors">
-                    <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>edit</span>
-                  </button>
-                  <button
-                    onClick={() => onToggleStatus(user.id)}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors">
-                    <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>
-                      {user.status === "ACTIVE" ? "pause" : "play_arrow"}
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => onDelete(user.id)}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-red-400 hover:bg-red-400/10 transition-colors">
-                    <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>delete</span>
-                  </button>
+                <div className="min-w-0">
+                  <p className="text-sm text-brand-text font-semibold truncate">{user.firstName} {user.lastName}</p>
+                  <p className="text-xs text-brand-text/50 truncate">{user.email}</p>
                 </div>
-              </td>
+              </div>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <button onClick={() => onEdit(user)} className="w-8 h-8 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-brand-primary hover:bg-brand-primary/10 transition-colors">
+                  <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>edit</span>
+                </button>
+                <button
+                  onClick={() => onToggleStatus(user.id)}
+                  disabled={blocksSelfDeactivate}
+                  title={blocksSelfDeactivate ? "You cannot deactivate your own admin account." : undefined}
+                  className="w-8 h-8 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-brand-text/30"
+                >
+                  <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>{user.status === "ACTIVE" ? "pause" : "play_arrow"}</span>
+                </button>
+                <button onClick={() => onDelete(user.id)} className="w-8 h-8 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-red-400 hover:bg-red-400/10 transition-colors">
+                  <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>delete</span>
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-brand-primary/15 text-brand-primary">
+                {formatRole(user.role)}
+              </span>
+              <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${user.status === "ACTIVE" ? "bg-emerald-500/15 text-emerald-400" : "bg-red-500/15 text-red-400"}`}>
+                {formatStatus(user.status)}
+              </span>
+            </div>
+          </div>
+        );
+        })}
+      </div>
+
+      {/* Desktop table layout */}
+      <div className="hidden md:block bg-brand-card border border-brand-primary/15 rounded-2xl overflow-hidden">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-brand-primary/15">
+              <th className="text-left px-5 py-3 text-xs font-medium text-brand-text/40">User</th>
+              <th className="text-left px-5 py-3 text-xs font-medium text-brand-text/40">Email</th>
+              <th className="text-left px-5 py-3 text-xs font-medium text-brand-text/40">Role</th>
+              <th className="text-left px-5 py-3 text-xs font-medium text-brand-text/40">Status</th>
+              <th className="text-left px-5 py-3 text-xs font-medium text-brand-text/40">Actions</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {filtered.map((user) => {
+              const blocksSelfDeactivate = user.id === currentUserId && user.status === "ACTIVE";
+
+              return (
+              <tr key={user.id} className="border-b border-brand-primary/8 hover:bg-brand-primary/5 transition-colors">
+                <td className="px-5 py-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-brand-primary/20 flex items-center justify-center text-brand-primary text-sm font-semibold flex-shrink-0">
+                      {user.firstName.charAt(0)}
+                    </div>
+                    <span className="text-sm text-brand-text font-medium">
+                      {user.firstName} {user.lastName}
+                    </span>
+                  </div>
+                </td>
+                <td className="px-5 py-3 text-sm text-brand-text/50">{user.email}</td>
+                <td className="px-5 py-3">
+                  <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-brand-primary/15 text-brand-primary">
+                    {formatRole(user.role)}
+                  </span>
+                </td>
+                <td className="px-5 py-3">
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                    user.status === "ACTIVE"
+                      ? "bg-emerald-500/15 text-emerald-400"
+                      : "bg-red-500/15 text-red-400"}`}>
+                    {formatStatus(user.status)}
+                  </span>
+                </td>
+                <td className="px-5 py-3">
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => onEdit(user)}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-brand-primary hover:bg-brand-primary/10 transition-colors">
+                      <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>edit</span>
+                    </button>
+                    <button
+                      onClick={() => onToggleStatus(user.id)}
+                      disabled={blocksSelfDeactivate}
+                      title={blocksSelfDeactivate ? "You cannot deactivate your own admin account." : undefined}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-emerald-400 hover:bg-emerald-400/10 transition-colors disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-brand-text/30">
+                      <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>
+                        {user.status === "ACTIVE" ? "pause" : "play_arrow"}
+                      </span>
+                    </button>
+                    <button
+                      onClick={() => onDelete(user.id)}
+                      className="w-7 h-7 flex items-center justify-center rounded-lg text-brand-text/30 hover:text-red-400 hover:bg-red-400/10 transition-colors">
+                      <span className="material-symbols-rounded" style={{ fontSize: "1rem" }}>delete</span>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }

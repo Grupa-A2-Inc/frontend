@@ -43,10 +43,11 @@ export default function OrganizationSummaryCard({
           <button
             onClick={() => setIsEditing(true)}
             className="
-              rounded-lg 
-              border-[rgb(var(--border))] 
-              text-[rgb(var(--text-primary))]
-              px-3 py-2 text-sm font-medium 
+              rounded-lg
+              border border-brand-primary/35
+              bg-brand-primary/10
+              px-4 py-2 text-sm font-semibold
+              text-brand-text
 
               cursor-pointer
               transition
@@ -54,8 +55,8 @@ export default function OrganizationSummaryCard({
               ease-out
               hover:scale-[1.02]
 
-              hover:bg-[rgb(var(--bg-card-hover))]
-              hover:border-[rgb(var(--border-hover))]  
+              hover:border-brand-primary/60
+              hover:bg-brand-primary/20
             "
           >
             Edit

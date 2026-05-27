@@ -17,8 +17,10 @@ export type Course = {
     id: string;
     title: string;
     description: string;
+    category: string;
     status: CourseStatus;
     visibility: CourseVisibility;
+    createdBy?: string;
     createdAt: string;
 };
 
@@ -97,6 +99,7 @@ export type StudentAverage = {
     averageScore: number;
     minScore: number;
     maxScore: number;
+    testCount: number;
     passedTests: number;
     failedTests: number;
     lastAttemptAt?: string;
@@ -178,3 +181,10 @@ export type CourseManagementState = {
     assignError: string | null;
     assignSuccess: boolean;
 };
+
+export interface OrganizationUser {
+    id: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+}

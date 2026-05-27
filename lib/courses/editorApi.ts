@@ -1,4 +1,6 @@
-const API_BASE = "https://backend-for-render-ws6z.onrender.com";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { API_BASE } from "@/lib/config";
+import { ENDPOINTS } from "@/lib/api-endpoints";
 
 function getToken(): string {
   if (typeof window === "undefined") return "";
@@ -7,13 +9,13 @@ function getToken(): string {
 
 async function editorFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
-  const res = await fetch(`${API_BASE}${path}`, {
+  const callerHeaders = options.headers as Record<string, string> | undefined;
+  const defaultHeaders: Record<string, string> = callerHeaders?.["Content-Type"]
+    ? {}
+    : { "Content-Type": "application/json" };
+  const res = await fetchWithAuth(`${API_BASE}${path}`, token, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...(options.headers ?? {}),
-    },
+    headers: { ...defaultHeaders, ...(callerHeaders ?? {}) },
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
@@ -26,54 +28,165 @@ async function editorFetch<T>(path: string, options: RequestInit = {}): Promise<
 export interface CoursePayload {
   title: string;
   description: string;
-  expirationDate?: string;
+  category: string;
   status?: "DRAFT" | "PUBLISHED";
 }
 
-export interface NodePayload {
-  parentNodeId?: string;
-  nodeType: string;
-  resourceType?: string;
-  title: string;
-  description?: string;
-  content?: string;
-  fileUrl?: string;
+interface CourseSummaryDto {
+  id?: string;
+  category?: string | null;
 }
 
-export interface UpdateNodePayload {
-  title?: string;
-  description?: string;
-  content?: string;
-  fileUrl?: string;
+interface CoursePageDto {
+  content?: CourseSummaryDto[];
+  courses?: CourseSummaryDto[];
+  items?: CourseSummaryDto[];
+  totalPages?: number;
+}
+
+function getCourses(data: CoursePageDto | CourseSummaryDto[]): CourseSummaryDto[] {
+  if (Array.isArray(data)) return data;
+  return data.content ?? data.courses ?? data.items ?? [];
+}
+
+async function fetchCourseSummaryForEditor(courseId: string): Promise<CourseSummaryDto | null> {
+  let page = 0;
+  let totalPages = 1;
+
+  while (page < totalPages) {
+    const data = await editorFetch<CoursePageDto | CourseSummaryDto[]>(
+      `${ENDPOINTS.courses.myCourses}?page=${page}&size=100`,
+    );
+    const courses = getCourses(data);
+    const match = courses.find(course => course.id === courseId);
+
+    if (match) return match;
+    if (Array.isArray(data)) return null;
+
+    totalPages = data.totalPages ?? totalPages;
+    page += 1;
+  }
+
+  return null;
 }
 
 export async function createCourse(payload: CoursePayload): Promise<{ id: string }> {
-  return editorFetch("/api/v1/courses", { method: "POST", body: JSON.stringify(payload) });
+  return editorFetch(ENDPOINTS.courses.create, { method: "POST", body: JSON.stringify(payload) });
 }
 
 export async function updateCourse(courseId: string, payload: CoursePayload): Promise<void> {
-  return editorFetch(`/api/v1/courses/${courseId}`, { method: "PUT", body: JSON.stringify(payload) });
+  return editorFetch(ENDPOINTS.courses.byId(courseId), { method: "PUT", body: JSON.stringify(payload) });
 }
 
-export async function fetchCourseForEditor(courseId: string): Promise<any> {
-  return editorFetch(`/api/v1/courses/${courseId}/full-view`);
+export async function fetchCourseForEditor(courseId: string): Promise<Record<string, unknown> & { category: string }> {
+  const [fullView, summary] = await Promise.all([
+    editorFetch<Record<string, unknown>>(ENDPOINTS.courses.fullView(courseId)),
+    fetchCourseSummaryForEditor(courseId).catch(() => null),
+  ]);
+  const fullViewCategory = typeof fullView.category === "string" ? fullView.category : "";
+
+  return {
+    ...fullView,
+    category: fullViewCategory.trim() ? fullViewCategory : summary?.category ?? "",
+  };
 }
 
-export async function createCourseNode(courseId: string, payload: NodePayload): Promise<{ id: string }> {
-  return editorFetch(`/api/v1/courses/${courseId}/nodes`, { method: "POST", body: JSON.stringify(payload) });
-}
+// ---------- Chapters ----------
 
-export async function updateCourseNode(nodeId: string, payload: UpdateNodePayload): Promise<void> {
-  return editorFetch(`/api/v1/course-nodes/${nodeId}`, { method: "PUT", body: JSON.stringify(payload) });
-}
-
-export async function deleteCourseNode(nodeId: string): Promise<void> {
-  return editorFetch(`/api/v1/course-nodes/${nodeId}`, { method: "DELETE" });
-}
-
-export async function moveCourseNode(nodeId: string, direction: "UP" | "DOWN"): Promise<void> {
-  return editorFetch(`/api/v1/course-nodes/${nodeId}/move`, {
+export async function createChapter(
+  courseId: string,
+  payload: { title: string },
+): Promise<{ id: string }> {
+  return editorFetch(ENDPOINTS.courses.chapters(courseId), {
     method: "POST",
-    body: JSON.stringify({ direction }),
+    headers: { "Content-Type": "text/plain" },
+    body: payload.title,
+  });
+}
+
+export async function updateChapter(
+  chapterId: string,
+  payload: { title?: string; orderIndex?: number },
+): Promise<void> {
+  return editorFetch(ENDPOINTS.chapters.byId(chapterId), {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteChapter(chapterId: string): Promise<void> {
+  return editorFetch(ENDPOINTS.chapters.byId(chapterId), { method: "DELETE" });
+}
+
+// ---------- Lessons ----------
+
+export async function createLesson(
+  chapterId: string,
+  payload: { title: string; contentMarkdown?: string },
+): Promise<{ id: string }> {
+  return editorFetch(ENDPOINTS.chapters.lessons(chapterId), {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateLesson(
+  lessonId: string,
+  payload: { title?: string; content?: string },
+): Promise<void> {
+  const calls: Promise<unknown>[] = [];
+  if (payload.title !== undefined) {
+    calls.push(
+      editorFetch(ENDPOINTS.lessons.metadata(lessonId), {
+        method: "PATCH",
+        body: JSON.stringify({ title: payload.title }),
+      }),
+    );
+  }
+  if (payload.content !== undefined && payload.content !== "") {
+    calls.push(
+      editorFetch(ENDPOINTS.lessons.content(lessonId), {
+        method: "PATCH",
+        headers: { "Content-Type": "text/plain" },
+        body: payload.content,
+      }),
+    );
+  }
+  await Promise.all(calls);
+}
+
+export async function deleteLesson(lessonId: string): Promise<void> {
+  return editorFetch(ENDPOINTS.lessons.byId(lessonId), { method: "DELETE" });
+}
+
+// ---------- Resources ----------
+
+export async function createResource(
+  lessonId: string,
+  payload: { title: string; url: string },
+): Promise<{ id: string }> {
+  return editorFetch(ENDPOINTS.lessons.resources(lessonId), {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateResource(
+  lessonId: string,
+  resourceId: string,
+  payload: { title?: string; url?: string },
+): Promise<void> {
+  return editorFetch(ENDPOINTS.lessons.resourceById(lessonId, resourceId), {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteResource(
+  lessonId: string,
+  resourceId: string,
+): Promise<void> {
+  return editorFetch(ENDPOINTS.lessons.resourceById(lessonId, resourceId), {
+    method: "DELETE",
   });
 }

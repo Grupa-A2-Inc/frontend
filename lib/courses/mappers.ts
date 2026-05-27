@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // ==================================================
 // MAPPERS FOR COURSE MANAGEMENT PAGES
 // Transforma raspunsurile brute de la backend in tipurile
@@ -15,6 +16,7 @@ import {
     StudentProgress,
     StudentAverage,
     ClassroomCourseResponse,
+    OrganizationUser,
 } from "./types";
 
 // ----- MAPPERS PENTRU CURS -----
@@ -27,6 +29,7 @@ export function mapCourseFullView(data: any): {
         id: data.id,
         title: data.title,
         description: data.description ?? "",
+        category: data.category ?? "General",
         status: data.status,
         visibility: data.visibility,
         createdAt: data.createdAt,
@@ -125,6 +128,7 @@ export function mapStudentAverage(data: any): StudentAverage {
         averageScore: data.averageScore ?? 0,
         minScore: data.minScore ?? 0,
         maxScore: data.maxScore ?? 0,
+        testCount: data.testCount ?? 0,
         passedTests: data.passedTests ?? 0,
         failedTests: data.failedTests ?? 0,
         lastAttemptAt: data.lastAttemptAt ?? undefined,
@@ -138,5 +142,14 @@ export function mapClassroomCourseResponse(data: any): ClassroomCourseResponse {
         classroomId: data.classroomId,
         courseId: data.courseId,
         assignedAt: data.assignedAt,
+    };
+}
+
+export function mapOrganizationUser(data: any): OrganizationUser {
+    return {
+        id: data.id ?? data.userId ?? "",
+        email: data.email ?? "",
+        firstName: data.firstName ?? data.first_name ?? undefined,
+        lastName: data.lastName ?? data.last_name ?? undefined,
     };
 }

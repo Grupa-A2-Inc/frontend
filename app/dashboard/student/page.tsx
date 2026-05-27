@@ -1,5 +1,5 @@
-import AdminDashboardPage from "@/components/admin-dashboard/AdminDashboardPage";
+import StudentCoursesPage from "@/components/student-courses/StudentCoursesPage";
 
-export default function AdminDashboard() {
-  return <AdminDashboardPage />;
+export default function StudentDashboard() {
+  return <StudentCoursesPage />;
 }

@@ -1,19 +1,23 @@
 interface CourseMetaFormProps {
   title: string;
   description: string;
-  expirationDate: string;
+  category: string;
+  status: "DRAFT" | "PUBLISHED";
   onTitleChange: (value: string) => void;
   onDescriptionChange: (value: string) => void;
-  onExpirationChange: (value: string) => void;
+  onCategoryChange: (value: string) => void;
+  onStatusChange: (value: "DRAFT" | "PUBLISHED") => void;
 }
 
 export function CourseMetaForm({
   title,
   description,
-  expirationDate,
+  category,
+  status,
   onTitleChange,
   onDescriptionChange,
-  onExpirationChange,
+  onCategoryChange,
+  onStatusChange,
 }: CourseMetaFormProps) {
   return (
     <section className="p-5 border-b border-brand-primary/10">
@@ -43,15 +47,42 @@ export function CourseMetaForm({
         </div>
         <div>
           <label className="block text-xs font-medium text-brand-text/60 mb-1.5">
-            Expiration Date
-            <span className="text-brand-muted/50 font-normal ml-1">(auto-archives on this date)</span>
+            Category <span className="text-red-400">*</span>
           </label>
           <input
-            type="date"
-            value={expirationDate}
-            onChange={e => onExpirationChange(e.target.value)}
-            className="w-full bg-brand-card border border-brand-primary/20 rounded-xl px-3 py-2 text-sm text-brand-text focus:outline-none focus:border-brand-primary/60 transition-colors"
+            type="text"
+            value={category}
+            onChange={e => onCategoryChange(e.target.value)}
+            placeholder="e.g. Mathematics, Science, History"
+            className="w-full bg-brand-card border border-brand-primary/20 rounded-xl px-3 py-2 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors"
           />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-brand-text/60 mb-1.5">Status</label>
+          <div className="flex items-center gap-1 bg-brand-mid border border-brand-primary/20 rounded-xl p-1">
+            <button
+              type="button"
+              onClick={() => onStatusChange("DRAFT")}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                status === "DRAFT"
+                  ? "bg-yellow-500/20 text-yellow-400"
+                  : "text-brand-text/50 hover:text-brand-text"
+              }`}
+            >
+              Draft
+            </button>
+            <button
+              type="button"
+              onClick={() => onStatusChange("PUBLISHED")}
+              className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                status === "PUBLISHED"
+                  ? "bg-emerald-500/20 text-emerald-400"
+                  : "text-brand-text/50 hover:text-brand-text"
+              }`}
+            >
+              Published
+            </button>
+          </div>
         </div>
       </div>
     </section>

@@ -11,7 +11,7 @@ interface FAQItem {
 }
 
 const FAQS: FAQItem[] = [
-  { q: "Who can use TestifyAI?", a: "TestifyAI is built for administrators, teachers and students. Each has dedicated flows." },
+  { q: "Who can use AdaptiveTutor?", a: "AdaptiveTutor is built for administrators, teachers and students. Each has dedicated flows." },
   { q: "How is an organization created?", a: "Created from the register flow. The creator automatically becomes the first administrator." },
   { q: "Do students create their accounts?", a: "No. Teacher and student accounts are managed by the administrator." },
   { q: "How are tests generated?", a: "Teachers generate tests with AI based on content, review them, and publish." },

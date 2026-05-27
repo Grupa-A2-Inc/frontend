@@ -2,7 +2,6 @@ import type { EditorNodeType, NodeForm } from "./types";
 
 export const EMPTY_FORM: NodeForm = {
   title: "",
-  description: "",
   content: "",
   fileUrl: "",
   pendingFile: null,

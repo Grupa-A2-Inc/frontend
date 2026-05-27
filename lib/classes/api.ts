@@ -1,4 +1,6 @@
-const API_URL = "https://backend-for-render-ws6z.onrender.com";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
+
+const API_URL = "https://api.adaptiveelearning.online";
 
 const USE_MOCK = false; 
 
@@ -50,13 +52,14 @@ export async function apiFetch<T>(
   }
 
   // Daca USE_MOCK este false, codul ruleaza normal, catre backend-ul real:
-  const res = await fetch(`${API_URL}${path}`, {
+  const headers = new Headers(options?.headers);
+  if (!headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const res = await fetchWithAuth(`${API_URL}${path}`, token, {
     ...options,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...(options?.headers ?? {}),
-    },
+    headers,
   });
 
   if (!res.ok) {

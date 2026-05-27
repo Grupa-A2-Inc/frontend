@@ -5,7 +5,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     <div className="dashboard-body" style={{
       minHeight: '100vh',
       background: '#060d1f',
-      minWidth: '600px',
     }}>
       <SidebarWrapper>
         {children}

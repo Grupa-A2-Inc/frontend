@@ -8,57 +8,45 @@ type Props = {
 };
 
 export default function ClassSelector({ selectedClasses, onToggle }: Props) {
-  // Luam clasele din classesSlice care deja exista in store
   const { classrooms } = useAppSelector((state) => state.classes);
 
   if (classrooms.length === 0) {
     return (
-      <div className="flex flex-col gap-1.5">
-        <label className="text-xs font-medium text-brand-text/60">
-          Assign to Classes
-          <span className="text-brand-text/30 font-normal ml-1">(optional)</span>
-        </label>
-        <div className="bg-brand-mid border border-brand-primary/20 rounded-xl p-3">
-          <p className="text-xs text-brand-text/40">No classes available yet.</p>
-        </div>
+      <div className="bg-brand-mid border border-brand-primary/20 rounded-lg px-3 py-2">
+        <p className="text-xs text-brand-text/40">No classes available yet.</p>
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="text-xs font-medium text-brand-text/60">
-        Assign to Classes
-        <span className="text-brand-text/30 font-normal ml-1">(optional)</span>
-      </label>
-      <div className="flex flex-col gap-2 bg-brand-mid border border-brand-primary/20 rounded-xl p-3">
-        {classrooms.map((cls) => (
-          <label key={cls.id} className="flex items-center gap-3 cursor-pointer group">
-            <div
-              onClick={() => onToggle(cls.id)}
-              className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-colors ${
-                selectedClasses.includes(cls.id)
-                  ? "bg-brand-primary border-brand-primary"
-                  : "border-brand-primary/30 group-hover:border-brand-primary/60"
-              }`}
-            >
-              {selectedClasses.includes(cls.id) && (
-                <span className="material-symbols-rounded text-white" style={{ fontSize: "0.75rem" }}>
-                  check
-                </span>
-              )}
-            </div>
-            <span className="text-sm text-brand-text/70 group-hover:text-brand-text transition-colors">
-              {cls.name}
-            </span>
-          </label>
-        ))}
-      </div>
-      {selectedClasses.length > 0 && (
-        <p className="text-xs text-brand-primary">
-          {selectedClasses.length} class{selectedClasses.length !== 1 ? "es" : ""} selected
-        </p>
-      )}
+    <div className="flex flex-col gap-1.5 bg-brand-mid border border-brand-primary/20 rounded-lg px-3 py-2">
+      {classrooms.map((cls) => (
+        <label key={cls.id} className="flex items-center gap-2.5 cursor-pointer group">
+          <input
+            type="checkbox"
+            checked={selectedClasses.includes(cls.id)}
+            onChange={() => onToggle(cls.id)}
+            className="sr-only"
+          />
+          <div
+            aria-hidden="true"
+            className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-colors ${
+              selectedClasses.includes(cls.id)
+                ? "border-sky-600 bg-sky-600 dark:border-brand-primary dark:bg-brand-primary"
+                : "border-slate-500 bg-white group-hover:border-sky-500 dark:border-brand-primary/30 dark:bg-transparent dark:group-hover:border-brand-primary/60"
+            }`}
+          >
+            {selectedClasses.includes(cls.id) && (
+              <span className="material-symbols-rounded text-white" style={{ fontSize: "0.7rem" }}>
+                check
+              </span>
+            )}
+          </div>
+          <span className="text-sm text-brand-text/70 group-hover:text-brand-text transition-colors truncate">
+            {cls.name}
+          </span>
+        </label>
+      ))}
     </div>
   );
 }

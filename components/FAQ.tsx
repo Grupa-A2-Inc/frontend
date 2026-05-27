@@ -24,8 +24,8 @@ const F = {
 
 const FAQS = [
   {
-    q: "Who can use TestifyAI?",
-    a: "TestifyAI is built for three main roles: administrators, teachers and students. Each role has its own dedicated flows and permissions inside the platform.",
+    q: "Who can use AdaptiveTutor?",
+    a: "AdaptiveTutor is built for three main roles: administrators, teachers and students. Each role has its own dedicated flows and permissions inside the platform.",
   },
   {
     q: "How is an organization created?",

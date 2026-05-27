@@ -7,10 +7,30 @@ import {
   StoredUser,
   UpdateOrganizationPayload,
 } from "./types";
+import { API_BASE } from "@/lib/config";
+import { ENDPOINTS } from "@/lib/api-endpoints";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
-const API_BASE =
-  process.env.NEXT_PUBLIC_API_URL ||
-  "https://backend-for-render-ws6z.onrender.com";
+type DashboardUserRow = {
+  roleName?: unknown;
+  role?: unknown;
+};
+
+function getDataList(data: unknown): unknown[] {
+  if (Array.isArray(data)) return data;
+  if (!data || typeof data !== "object") return [];
+
+  const record = data as Record<string, unknown>;
+  const list = record.data ?? record.content ?? record.users ?? record.items ?? record.classrooms;
+  return Array.isArray(list) ? list : [];
+}
+
+function getUserRole(user: unknown): string {
+  if (!user || typeof user !== "object") return "";
+
+  const row = user as DashboardUserRow;
+  return String(row.roleName ?? row.role ?? "").toUpperCase();
+}
 
 export function getStoredUser(): StoredUser | null {
   if (typeof window === "undefined") return null;
@@ -36,11 +56,8 @@ export function getOrganizationIdFromStorage(): string | null {
 }
 
 function getAuthHeaders(): HeadersInit {
-  const token = getAccessToken();
-
   return {
     "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }
 
@@ -54,8 +71,9 @@ export async function getOrganizationById(
   }
 
   try {
-    const response = await fetch(
-      `${API_BASE}/api/v1/organizations/${organizationId}`,
+    const response = await fetchWithAuth(
+      `${API_BASE}${ENDPOINTS.organizations.byId(organizationId)}`,
+      token,
       {
         method: "GET",
         headers: getAuthHeaders(),
@@ -101,8 +119,9 @@ export async function updateOrganizationById(
   }
 
   try {
-    const response = await fetch(
-      `${API_BASE}/api/v1/organizations/${organizationId}`,
+    const response = await fetchWithAuth(
+      `${API_BASE}${ENDPOINTS.organizations.byId(organizationId)}`,
+      token,
       {
         method: "PUT",
         headers: getAuthHeaders(),
@@ -140,12 +159,16 @@ export async function getDashboardStats(): Promise<AdminDashboardStats> {
   const warnings: string[] = [];
 
   try {
-    const [usersRes, coursesRes] = await Promise.all([
-      fetch(`${API_BASE}/api/v1/users`, {
+    const [usersRes, coursesRes, classroomsRes] = await Promise.all([
+      fetchWithAuth(`${API_BASE}${ENDPOINTS.users.organization}`, token, {
         headers: getAuthHeaders(),
         cache: "no-store",
       }),
-      fetch(`${API_BASE}/api/courses/public`, {
+      fetchWithAuth(`${API_BASE}${ENDPOINTS.courses.public}`, token, {
+        headers: getAuthHeaders(),
+        cache: "no-store",
+      }),
+      fetchWithAuth(`${API_BASE}${ENDPOINTS.classrooms.list}`, token, {
         headers: getAuthHeaders(),
         cache: "no-store",
       }),
@@ -156,42 +179,43 @@ export async function getDashboardStats(): Promise<AdminDashboardStats> {
 
     if (usersRes.ok) {
       const users = await usersRes.json();
-      const list = Array.isArray(users)
-        ? users
-        : Array.isArray(users?.data)
-        ? users.data
-        : [];
+      const list = getDataList(users);
 
       totalStudents = list.filter(
-        (u: any) => String(u.roleName ?? u.role ?? "").toUpperCase() === "STUDENT"
+        (user) => getUserRole(user) === "STUDENT"
       ).length;
 
       totalTeachers = list.filter(
-        (u: any) => String(u.roleName ?? u.role ?? "").toUpperCase() === "TEACHER"
+        (user) => getUserRole(user) === "TEACHER"
       ).length;
     } else {
-      warnings.push("Could not load users data.");
+      warnings.push("Could not load organization users data.");
     }
 
     let totalCourses = 0;
 
     if (coursesRes.ok) {
       const courses = await coursesRes.json();
-      const list = Array.isArray(courses)
-        ? courses
-        : Array.isArray(courses?.data)
-        ? courses.data
-        : [];
+      const list = getDataList(courses);
 
       totalCourses = list.length;
     } else {
       warnings.push("Could not load courses data.");
     }
 
+    let totalClasses = 0;
+
+    if (classroomsRes.ok) {
+      const classrooms = await classroomsRes.json();
+      totalClasses = getDataList(classrooms).length;
+    } else {
+      warnings.push("Could not load classes data.");
+    }
+
     return {
       totalStudents,
       totalTeachers,
-      totalClasses: 0,
+      totalClasses,
       totalCourses,
       warnings,
     };

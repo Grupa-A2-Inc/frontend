@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Course } from "@/store/slices/coursesSlice";
+import { Course } from "@/lib/courses/types";
 
 type Props = { course: Course; onEdit: (courseId: string) => void; onManage: (courseId: string) => void; };
 

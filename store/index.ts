@@ -1,26 +1,32 @@
 import { configureStore } from "@reduxjs/toolkit";
+import takeTestReducer from "@/store/slices/takeTestSlice";
 
 import authReducer from "@/store/slices/authSlice";
 import classesReducer from "@/store/slices/classesSlice";
 import usersReducer from "@/store/slices/usersSlice";
-<<<<<<< HEAD
 import testDraftReducer from "@/store/slices/testDraftSlice";
-=======
 import courseManagementReducer from "@/store/slices/courseManagementSlice";
 import coursesReducer from "@/store/slices/coursesSlice";
->>>>>>> 6db640c55172b9d6d43a57d9728ae9253ee62c3a
+import studentCoursesReducer from "@/store/slices/studentCoursesSlice"; 
+import adaptiveReducer from "@/store/slices/adaptiveSlice";
+import customerSupportReducer from "@/store/slices/customerSupportSlice";
+import analyticsReducer from './slices/analyticsSlice';
+import lessonRatingReducer from './slices/lessonRatingSlice';
 
 export const store = configureStore({
   reducer: {
     auth: authReducer,
     classes: classesReducer,
     users: usersReducer,
-<<<<<<< HEAD
     testDraft: testDraftReducer,
-=======
     courseManagement: courseManagementReducer,
     courses: coursesReducer,
->>>>>>> 6db640c55172b9d6d43a57d9728ae9253ee62c3a
+    studentCourses: studentCoursesReducer,
+    adaptive: adaptiveReducer,
+    takeTest: takeTestReducer,
+    customerSupport: customerSupportReducer,
+    analytics: analyticsReducer,
+    lessonRating: lessonRatingReducer,
   },
 });
 

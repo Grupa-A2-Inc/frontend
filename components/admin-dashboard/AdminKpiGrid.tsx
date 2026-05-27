@@ -7,7 +7,7 @@ export default function AdminKpiGrid({ stats }: { stats: AdminDashboardStats }) 
     return null;
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
+    <div className="grid gap-4 grid-cols-2 xl:grid-cols-4">
       <AdminKpiCard
         label="Total Students"
         value={stats.totalStudents}
@@ -22,7 +22,7 @@ export default function AdminKpiGrid({ stats }: { stats: AdminDashboardStats }) 
       <AdminKpiCard
         label="Total Classes"
         value={stats.totalClasses}
-        helperText="Pending backend support."
+        helperText="Calculated from the current class list."
       />
       <AdminKpiCard
         label="Total Courses"

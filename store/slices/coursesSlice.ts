@@ -1,22 +1,11 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { Course, CourseStatus, Lesson, LessonResource } from "@/lib/courses/types";
 
-const API_URL = "https://backend-for-render-ws6z.onrender.com";
+// URL-ul backend-ului
+const API_URL = "https://api.adaptiveelearning.online";
 
 // ---------- Types ----------
-
-export type CourseStatus = "DRAFT" | "PUBLISHED";
-export type CourseVisibility = "PRIVATE" | "PUBLIC";
-
-export interface Course {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  status: CourseStatus;
-  visibility: CourseVisibility;
-  createdBy: string;
-}
 
 export interface Teacher {
   id: string;
@@ -27,38 +16,65 @@ export interface Teacher {
 
 interface CoursesState {
   courses: Course[];
-  teachers: Teacher[];
+  currentCourse: Course | null; 
   loading: boolean;
   creating: boolean;
-  deleting: string | null;   // holds the id being deleted
+  deleting: string | null;
   error: string | null;
   createError: string | null;
   deleteError: string | null;
+  
+  // Stare Lesson
+  activeLesson: Lesson | null;
+  activeLessonResources: LessonResource[];
+  isLoadingLesson: boolean;
 }
 
 // ---------- Initial state ----------
 
 const initialState: CoursesState = {
   courses: [],
-  teachers: [],
+  currentCourse: null,
   loading: false,
   creating: false,
   deleting: null,
   error: null,
   createError: null,
   deleteError: null,
+  
+  activeLesson: null,
+  activeLessonResources: [],
+  isLoadingLesson: false,
 };
 
 // ---------- Thunks ----------
 
+// Aduce lista simplă de cursuri
 export const fetchCourses = createAsyncThunk(
-  "classes/fetchCourses",
+  "courses/fetchCourses",
   async (token: string, { rejectWithValue }) => {
     try {
       const response = await fetchWithAuth(`${API_URL}/api/v1/courses/my-courses`, token);
       if (!response.ok) {
         const err = await response.json();
         return rejectWithValue(err.message || "Failed to load courses");
+      }
+      const data = await response.json();
+      return Array.isArray(data) ? data : (data.content ?? data.courses ?? data.items ?? []);
+    } catch {
+      return rejectWithValue("Network error");
+    }
+  }
+);
+
+export const fetchCourseDetails = createAsyncThunk(
+  "courses/fetchCourseDetails",
+  async (payload: { token: string; courseId: string }, { rejectWithValue }) => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/api/v1/courses/${payload.courseId}/full-view`, payload.token);
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        return rejectWithValue(err.message || `Failed to load course details (${response.status})`);
       }
       return await response.json();
     } catch {
@@ -68,7 +84,7 @@ export const fetchCourses = createAsyncThunk(
 );
 
 export const fetchTeachers = createAsyncThunk(
-  "classes/fetchTeachers",
+  "courses/fetchTeachers",
   async (token: string, { rejectWithValue }) => {
     try {
       const response = await fetchWithAuth(`${API_URL}/api/v1/users`, token);
@@ -76,8 +92,7 @@ export const fetchTeachers = createAsyncThunk(
         const err = await response.json();
         return rejectWithValue(err.message || "Failed to load teachers");
       }
-      const data = await response.json();
-      return data.filter((u: any) => u.roleName === "TEACHER");
+      return await response.json();
     } catch {
       return rejectWithValue("Network error");
     }
@@ -85,7 +100,7 @@ export const fetchTeachers = createAsyncThunk(
 );
 
 export const createCourse = createAsyncThunk(
-  "classes/createCourse",
+  "courses/createCourse",
   async (
     payload: {
       token: string;
@@ -127,7 +142,7 @@ export const createCourse = createAsyncThunk(
 );
 
 export const deleteCourse = createAsyncThunk(
-  "classes/deleteCourse",
+  "courses/deleteCourse",
   async (payload: { token: string; id: string }, { rejectWithValue }) => {
     try {
       const response = await fetchWithAuth(`${API_URL}/api/v1/courses/${payload.id}`, payload.token, {
@@ -144,6 +159,33 @@ export const deleteCourse = createAsyncThunk(
   }
 );
 
+export const fetchActiveLessonData = createAsyncThunk(
+  "courses/fetchActiveLesson",
+  async (payload: { token: string; lessonId: string }, { rejectWithValue }) => {
+    try {
+      const lessonRes = await fetchWithAuth(`${API_URL}/api/v1/lessons/${payload.lessonId}`, payload.token);
+      if (!lessonRes.ok) throw new Error("Failed to load lesson content");
+      const lesson = await lessonRes.json();
+
+      let resources = [];
+      try {
+        const resourcesRes = await fetchWithAuth(`${API_URL}/api/v1/lessons/${payload.lessonId}/resources`, payload.token);
+        if (resourcesRes.ok) {
+          resources = await resourcesRes.json();
+        }
+      } catch (e) {
+        console.warn("Nu s-au putut încărca resursele lecției", e);
+      }
+
+      return { lesson, resources };
+    } catch (err) {
+      return rejectWithValue(
+        err instanceof Error ? err.message : "Eroare la încărcarea lecției"
+      );
+    }
+  }
+);
+
 // ---------- Slice ----------
 
 const coursesSlice = createSlice({
@@ -156,9 +198,13 @@ const coursesSlice = createSlice({
     clearDeleteError(state) {
       state.deleteError = null;
     },
+    resetCurrentCourse(state) {
+      state.currentCourse = null;
+    }
   },
   extraReducers: (builder) => {
     builder
+      // Fetch list
       .addCase(fetchCourses.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -171,20 +217,37 @@ const coursesSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-      .addCase(fetchTeachers.fulfilled, (state, action) => {
-        state.teachers = action.payload;
+
+      .addCase(fetchCourseDetails.pending, (state) => {
+        state.loading = true;
+        state.error = null;
       })
+      .addCase(fetchCourseDetails.fulfilled, (state, action) => {
+        state.loading = false;
+        state.currentCourse = action.payload;
+      })
+      .addCase(fetchCourseDetails.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      // Create
       .addCase(createCourse.pending, (state) => {
         state.creating = true;
         state.createError = null;
       })
-      .addCase(createCourse.fulfilled, (state) => {
+      .addCase(createCourse.fulfilled, (state, action) => {
         state.creating = false;
+        if (action.payload) {
+          state.courses.push(action.payload);
+        }
       })
       .addCase(createCourse.rejected, (state, action) => {
         state.creating = false;
         state.createError = action.payload as string;
       })
+
+      // Delete
       .addCase(deleteCourse.pending, (state, action) => {
         state.deleting = action.meta.arg.id;
         state.deleteError = null;
@@ -196,9 +259,24 @@ const coursesSlice = createSlice({
       .addCase(deleteCourse.rejected, (state, action) => {
         state.deleting = null;
         state.deleteError = action.payload as string;
+      })
+      
+      // Lesson
+      .addCase(fetchActiveLessonData.pending, (state) => {
+        state.isLoadingLesson = true;
+        state.error = null;
+      })
+      .addCase(fetchActiveLessonData.fulfilled, (state, action) => {
+        state.isLoadingLesson = false;
+        state.activeLesson = action.payload.lesson;
+        state.activeLessonResources = action.payload.resources;
+      })
+      .addCase(fetchActiveLessonData.rejected, (state, action) => {
+        state.isLoadingLesson = false;
+        state.error = action.payload as string;
       });
   },
 });
 
-export const { clearCreateError, clearDeleteError } = coursesSlice.actions;
+export const { clearCreateError, clearDeleteError, resetCurrentCourse } = coursesSlice.actions;
 export default coursesSlice.reducer;

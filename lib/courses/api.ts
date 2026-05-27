@@ -12,6 +12,7 @@ import {
     mapStudentAverage,
     mapCourseTest,
     mapClassroomCourseResponse,
+    mapOrganizationUser,
 } from "./mappers";
 
 import {
@@ -24,37 +25,25 @@ import {
     CourseTest,
     ClassroomCourseResponse,
     AssignCoursePayload,
+    OrganizationUser,
 } from "./types";
 
-// URL-ul de baza al backend-ului
-const API_BASE = "https://backend-for-render-ws6z.onrender.com";
+import { API_BASE } from "@/lib/config";
+import { ENDPOINTS } from "@/lib/api-endpoints";
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
 // ----- HELPER FUNCTIONS -----
 
-// Returneaza token-ul de autentificare din localStorage
-function getAccessToken(): string | null {
-    if (typeof window === "undefined") 
-        return null;
-    return localStorage.getItem("accessToken");
-}
-
-// Construieste header-ele pentru request-urile autentificate
-function getAuthHeaders(): HeadersInit {
-    const token = getAccessToken();
-    return {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-}
-
 // Functie generica pentru fetch cu gestionarea erorilor
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
-    const response = await fetch(`${API_BASE}${path}`, {
+    const headers = new Headers(options?.headers);
+    if (!headers.has("Content-Type")) {
+        headers.set("Content-Type", "application/json");
+    }
+
+    const response = await fetchWithAuth(`${API_BASE}${path}`, undefined, {
         ...options,
-        headers: {
-            ...getAuthHeaders(),
-            ...(options?.headers ?? {}),
-        },
+        headers,
     });
 
     // Gestionam erorile HTTP
@@ -79,6 +68,18 @@ async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
     return response.json();
 }
 
+function getList(data: unknown, ...nestedKeys: Array<"content" | "members">): unknown[] {
+    if (Array.isArray(data)) return data;
+    if (!data || typeof data !== "object") return [];
+
+    for (const nestedKey of nestedKeys) {
+        const nested = (data as Record<string, unknown>)[nestedKey];
+        if (Array.isArray(nested)) return nested;
+    }
+
+    return [];
+}
+
 // ----- COURSE -----
 
 // Aduce datele complete ale cursului (cu chapters + lessons + resources)
@@ -86,7 +87,7 @@ export async function fetchCourseFullView(courseId: string): Promise<{
     course: Course;
     chapters: Chapter[];
 }> {
-    const data = await apiFetch<any>(`/api/v1/courses/${courseId}/full-view`);
+    const data = await apiFetch<unknown>(ENDPOINTS.courses.fullView(courseId));
     return mapCourseFullView(data);
 }
 
@@ -99,7 +100,7 @@ export async function fetchTestForLesson(
     lessonId: string
 ): Promise<CourseTest | null> {
     try {
-        const data = await apiFetch<any>(`/api/v1/lessons/${lessonId}/test`);
+        const data = await apiFetch<unknown>(ENDPOINTS.lessons.test(lessonId));
         return mapCourseTest(data, lessonId);
     } catch (error) {
         // Daca testul nu exista (404), returnam null in loc sa aruncam eroare
@@ -132,10 +133,10 @@ export async function fetchTestsForLessons(
 // ----- CLASE -----
 
 // Aduce toate clasele din organizația utilizatorului
-// Endpoint: GET /api/v1/classrooms
+// Endpoint: GET /api/v1/classrooms/me
 export async function fetchClassrooms(): Promise<Classroom[]> {
-    const data = await apiFetch<any>(`/api/v1/classrooms`);
-    const list = Array.isArray(data) ? data : data?.content ?? [];
+    const data = await apiFetch<unknown>(`/api/v1/classrooms/me`);
+    const list = getList(data, "content");
     return list.map(mapClassroom);
 }
 
@@ -144,10 +145,10 @@ export async function fetchClassrooms(): Promise<Classroom[]> {
 export async function fetchClassroomStudents(
     classroomId: string 
 ): Promise<ClassroomMember[]> {
-    const data = await apiFetch<any>(
-        `/api/v1/classrooms/${classroomId}/members?role=STUDENT`
+    const data = await apiFetch<unknown>(
+        `${ENDPOINTS.classrooms.members(classroomId)}?role=STUDENT`
     );
-    const list = Array.isArray(data) ? data : data?.members ?? [];
+    const list = getList(data, "members", "content");
     return list.map(mapClassroomMember);
 }
 
@@ -160,10 +161,10 @@ export async function fetchStudentsProgress(
     page: number = 0,
     size: number = 100
 ): Promise<StudentProgress[]> {
-    const data = await apiFetch<any>(
-        `/api/v1/courses/${courseId}/students-progress?page=${page}&size=${size}`
+    const data = await apiFetch<unknown>(
+        `${ENDPOINTS.courses.studentsProgress(courseId)}?page=${page}&size=${size}`
     );
-    const list = Array.isArray(data) ? data : data?.content ?? [];
+    const list = getList(data, "content");
     return list.map(mapStudentProgress);
 }
 
@@ -174,10 +175,10 @@ export async function fetchStudentAverages(
     page: number = 0,
     size: number = 100
 ): Promise<StudentAverage[]> {
-    const data = await apiFetch<any>(
-        `/api/v1/courses/${courseId}/analytics/student-averages?page=${page}&size=${size}`
+    const data = await apiFetch<unknown>(
+        `${ENDPOINTS.courses.analyticsStudentAverages(courseId)}?page=${page}&size=${size}`
     );
-    const list = Array.isArray(data) ? data : data?.content ?? [];
+    const list = getList(data, "content");
     return list.map(mapStudentAverage);
 }
 
@@ -193,8 +194,8 @@ export async function assignCourseToClassroom(
         courseIds: [courseId],
     };
 
-    const data = await apiFetch<any>(
-        `/api/v1/classrooms/${classroomId}/courses`,
+    const data = await apiFetch<unknown>(
+        ENDPOINTS.classrooms.courses(classroomId),
         {
             method: "POST",
             body: JSON.stringify(payload),
@@ -202,4 +203,44 @@ export async function assignCourseToClassroom(
     );
 
     return mapClassroomCourseResponse(data);
+}
+
+
+// ----- STUDENTII ORGANIZATIEI -----
+
+// Toti studentii din organizatia utilizatorului.
+// Conform swagger, acest endpoint este pentru administratorul organizatiei.
+// Endpoint: GET /api/v1/users/organization?role=STUDENT
+export async function fetchOrganizationStudents(): Promise<OrganizationUser[]> {
+    const data = await apiFetch<unknown>(`${ENDPOINTS.users.organization}?role=STUDENT`);
+    const list = getList(data, "content");
+    return list.map(mapOrganizationUser);
+}
+
+// Studentii pe care profesorul ii poate vedea prin clasele lui.
+// Endpoint-uri: GET /api/v1/classrooms/me + GET /api/v1/classrooms/{id}/members?role=STUDENT
+export async function fetchTeacherStudentDirectory(): Promise<OrganizationUser[]> {
+    const classrooms = await fetchClassrooms();
+    const results = await Promise.allSettled(
+        classrooms.map((classroom) => fetchClassroomStudents(classroom.id))
+    );
+
+    const usersById = new Map<string, OrganizationUser>();
+
+    results.forEach((result) => {
+        if (result.status !== "fulfilled") return;
+
+        result.value.forEach((member) => {
+            if (member.membershipType !== "STUDENT" || usersById.has(member.userId)) {
+                return;
+            }
+
+            usersById.set(member.userId, {
+                id: member.userId,
+                email: member.email,
+            });
+        });
+    });
+
+    return Array.from(usersById.values());
 }

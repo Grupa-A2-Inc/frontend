@@ -3,8 +3,6 @@ import { NextRequest } from "next/server";
 
 // Rute care necesita autentificare
 const protectedRoutes = ["/dashboard"];
-const token = "token-test";
-const role = "STUDENT";
 
 export function proxy(request: NextRequest) {
     const { pathname } = request.nextUrl;
@@ -12,6 +10,8 @@ export function proxy(request: NextRequest) {
     // Citim token-ul si rolul din cookies (proxy NU are acces la localStorage)
     const token = request.cookies.get("accessToken")?.value;
     const role = request.cookies.get("role")?.value;
+
+
 
     // Daca user-ul este deja logat si incearca sa intre pe /login
     if (pathname === "/login" && token) {
@@ -57,10 +57,10 @@ export function proxy(request: NextRequest) {
         return NextResponse.next();
 
     // Daca nu exista token -> redirect la login
-    // if (!token) {
-    //     const loginUrl = new URL("/login", request.url);
-    //     return NextResponse.redirect(loginUrl);
-    // }
+    if (!token) {
+        const loginUrl = new URL("/login", request.url);
+        return NextResponse.redirect(loginUrl);
+     }
 
     // Daca exista token -> acces permis
     return NextResponse.next();
@@ -68,5 +68,5 @@ export function proxy(request: NextRequest) {
 
 // Definim rutele pe care proxy-ul le asculta
 export const config = {
-    matcher: ["/dashboard/:path*"],
+    matcher: ["/dashboard/:path*", "/login"],
 };

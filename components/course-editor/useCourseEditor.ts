@@ -4,11 +4,17 @@ import {
   createCourse,
   updateCourse,
   fetchCourseForEditor,
-  createCourseNode,
-  updateCourseNode,
-  deleteCourseNode,
-  moveCourseNode,
+  createChapter,
+  updateChapter,
+  deleteChapter,
+  createLesson,
+  updateLesson,
+  deleteLesson,
+  createResource,
+  updateResource,
+  deleteResource,
 } from "@/lib/courses/editorApi";
+import { isVideoResourceUrl } from "@/lib/courses/resourceType";
 import { EMPTY_FORM, tempId } from "./helpers";
 import type {
   AddTarget,
@@ -25,24 +31,24 @@ import type {
 interface EditorCourseResponse {
   title?: string | null;
   description?: string | null;
-  expirationDate?: string | null;
+  category?: string | null;
+  status?: "DRAFT" | "PUBLISHED" | null;
   chapters?: EditorChapterResponse[] | null;
 }
 
 interface EditorChapterResponse {
   id: string;
   title?: string | null;
-  description?: string | null;
   orderIndex?: number | null;
   lessons?: EditorLessonResponse[] | null;
 }
 
 interface EditorLessonResponse {
   id: string;
-  resourceType?: EditorLeaf["type"] | null;
+  testId?: string | null;
   title?: string | null;
   contentMarkdown?: string | null;
-  lessonResources?: { url?: string | null }[] | null;
+  lessonResources?: { id?: string | null; url?: string | null }[] | null;
   orderIndex?: number | null;
 }
 
@@ -51,7 +57,8 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [expirationDate, setExpiration] = useState("");
+  const [category, setCategory] = useState("");
+  const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
   const [chapters, setChapters] = useState<EditorChapter[]>([]);
   const [selected, setSelected] = useState<SelectedRef | null>(null);
   const [nodeForm, setNodeForm] = useState<NodeForm>(EMPTY_FORM);
@@ -80,7 +87,8 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
       .then((data: EditorCourseResponse) => {
         setTitle(data.title ?? "");
         setDescription(data.description ?? "");
-        setExpiration(data.expirationDate ? data.expirationDate.slice(0, 10) : "");
+        setCategory(data.category ?? "");
+        setStatus(data.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT");
         setChapters(mapCourseToChapters(data));
       })
       .catch((error: Error) => setLoadErr(error.message))
@@ -101,7 +109,6 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
       if (chapter) {
         setNodeForm({
           title: chapter.title,
-          description: chapter.description,
           content: "",
           fileUrl: "",
           pendingFile: null,
@@ -116,7 +123,6 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     if (leaf) {
       setNodeForm({
         title: leaf.title,
-        description: "",
         content: leaf.content,
         fileUrl: leaf.fileUrl,
         pendingFile: leaf.pendingFile,
@@ -136,6 +142,12 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
 
   async function handleSaveNode() {
     if (!selected) return;
+
+    if (!nodeForm.title.trim()) {
+      setSaveNodeErr("Title is required.");
+      setSaveNodeOk(false);
+      return;
+    }
 
     setSavingNode(true);
     setSaveNodeErr(null);
@@ -157,26 +169,51 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
   }
 
   async function saveChapterNode(selection: Extract<SelectedRef, { kind: "chapter" }>) {
+    const title = nodeForm.title.trim();
+
     if (!selection.id.startsWith("temp_") && mode === "edit") {
-      await updateCourseNode(selection.id, {
-        title: nodeForm.title,
-        description: nodeForm.description,
-      });
+      await updateChapter(selection.id, { title });
     }
 
     setChapters(prev => prev.map(chapter =>
       chapter.id === selection.id
-        ? { ...chapter, title: nodeForm.title, description: nodeForm.description }
+        ? { ...chapter, title }
         : chapter,
     ));
   }
 
   async function saveLeafNode(selection: Extract<SelectedRef, { kind: "leaf" }>) {
+    let newResourceId = selectedLeaf?.resourceId ?? "";
+    const title = nodeForm.title.trim();
+
     if (!selection.id.startsWith("temp_") && mode === "edit") {
-      await updateCourseNode(selection.id, {
-        title: nodeForm.title,
-        content: nodeForm.content,
+      const isText = selectedLeaf?.type === "TEXT";
+      await updateLesson(selection.id, {
+        title,
+        content: isText ? nodeForm.content : undefined,
       });
+
+      const isFileOrVideo = selectedLeaf?.type === "FILE" || selectedLeaf?.type === "VIDEO";
+      if (isFileOrVideo) {
+        const hasUrl = nodeForm.fileUrl.trim() !== "";
+        const existingResourceId = selectedLeaf?.resourceId ?? "";
+
+        if (hasUrl && existingResourceId) {
+          await updateResource(selection.id, existingResourceId, {
+            title,
+            url: nodeForm.fileUrl.trim(),
+          });
+        } else if (hasUrl && !existingResourceId) {
+          const result = await createResource(selection.id, {
+            title,
+            url: nodeForm.fileUrl.trim(),
+          });
+          newResourceId = result.id;
+        } else if (!hasUrl && existingResourceId) {
+          await deleteResource(selection.id, existingResourceId);
+          newResourceId = "";
+        }
+      }
     }
 
     setChapters(prev => prev.map(chapter =>
@@ -187,10 +224,11 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
             leaf.id === selection.id
               ? {
                 ...leaf,
-                title: nodeForm.title,
+                title,
                 content: nodeForm.content,
                 fileUrl: nodeForm.fileUrl,
-                pendingFile: nodeForm.pendingFile,
+                resourceId: newResourceId,
+                pendingFile: null,
               }
               : leaf,
           ),
@@ -221,14 +259,18 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
       return;
     }
 
+    const leafType = addType as Exclude<EditorNodeType, "CHAPTER">;
+    const form = addForm;
+    const target = addTarget;
+
     setAddingNode(true);
     setAddNodeErr(null);
 
     try {
       if (mode === "edit" && courseId) {
-        await addRemoteNode(addTarget);
+        await addRemoteNode(target, form, leafType);
       } else {
-        addLocalNode(addTarget);
+        addLocalNode(target, form, leafType);
       }
 
       setAddTarget(null);
@@ -239,35 +281,45 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     }
   }
 
-  async function addRemoteNode(target: AddTarget) {
-    const isChapter = target.kind === "chapter";
-    const result = await createCourseNode(courseId!, {
-      title: addForm.title.trim(),
-      nodeType: isChapter ? "CHAPTER" : "LESSON",
-      ...(isChapter
-        ? { description: addForm.description || undefined }
-        : {
-          resourceType: addType,
-          parentNodeId: target.parentId ?? undefined,
-          ...(addType === "TEXT" ? { content: addForm.content } : {}),
-        }),
-    });
-
-    addNodeToState(target, result.id);
+  async function addRemoteNode(
+    target: AddTarget,
+    form: NodeForm,
+    leafType: Exclude<EditorNodeType, "CHAPTER">,
+  ) {
+    if (target.kind === "chapter") {
+      const result = await createChapter(courseId!, {
+        title: form.title.trim(),
+      });
+      addNodeToState(target, result.id, form, leafType);
+    } else {
+      const result = await createLesson(target.parentId!, {
+        title: form.title.trim(),
+        ...(leafType === "TEXT" && form.content ? { contentMarkdown: form.content } : {}),
+      });
+      addNodeToState(target, result.id, form, leafType);
+    }
   }
 
-  function addLocalNode(target: AddTarget) {
-    addNodeToState(target, tempId());
+  function addLocalNode(
+    target: AddTarget,
+    form: NodeForm,
+    leafType: Exclude<EditorNodeType, "CHAPTER">,
+  ) {
+    addNodeToState(target, tempId(), form, leafType);
   }
 
-  function addNodeToState(target: AddTarget, id: string) {
+  function addNodeToState(
+    target: AddTarget,
+    id: string,
+    form: NodeForm,
+    leafType: Exclude<EditorNodeType, "CHAPTER">,
+  ) {
     if (target.kind === "chapter") {
       setChapters(prev => [
         ...prev,
         {
           id,
-          title: addForm.title.trim(),
-          description: addForm.description,
+          title: form.title.trim(),
           orderIndex: prev.length,
           children: [],
         },
@@ -277,10 +329,11 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
 
     const newLeaf: EditorLeaf = {
       id,
-      type: addType as Exclude<EditorNodeType, "CHAPTER">,
-      title: addForm.title.trim(),
-      content: addForm.content,
+      type: leafType,
+      title: form.title.trim(),
+      content: form.content,
       fileUrl: "",
+      resourceId: "",
       pendingFile: null,
       orderIndex: 0,
     };
@@ -299,7 +352,7 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     setDeleteTarget({
       label: `chapter "${chapter.title || "Untitled"}"`,
       onConfirm: async () => {
-        if (mode === "edit" && !chapter.id.startsWith("temp_")) await deleteCourseNode(chapter.id);
+        if (mode === "edit" && !chapter.id.startsWith("temp_")) await deleteChapter(chapter.id);
         setChapters(prev => prev.filter(item => item.id !== chapter.id));
         if (selected?.kind === "chapter" && selected.id === chapter.id) setSelected(null);
         if (selected?.kind === "leaf" && selected.chapterId === chapter.id) setSelected(null);
@@ -312,7 +365,7 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     setDeleteTarget({
       label: `"${leaf.title || "Untitled"}"`,
       onConfirm: async () => {
-        if (mode === "edit" && !leaf.id.startsWith("temp_")) await deleteCourseNode(leaf.id);
+        if (mode === "edit" && !leaf.id.startsWith("temp_")) await deleteLesson(leaf.id);
         setChapters(prev => prev.map(chapter =>
           chapter.id === chapterId
             ? { ...chapter, children: chapter.children.filter(item => item.id !== leaf.id) }
@@ -344,12 +397,6 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     if (direction === "UP" && index === 0) return;
     if (direction === "DOWN" && index === chapters.length - 1) return;
 
-    if (mode === "edit" && !id.startsWith("temp_")) {
-      try {
-        await moveCourseNode(id, direction);
-      } catch {}
-    }
-
     const next = [...chapters];
     const swapIndex = direction === "UP" ? index - 1 : index + 1;
     [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
@@ -363,12 +410,6 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     const index = chapter.children.findIndex(leaf => leaf.id === leafId);
     if (direction === "UP" && index === 0) return;
     if (direction === "DOWN" && index === chapter.children.length - 1) return;
-
-    if (mode === "edit" && !leafId.startsWith("temp_")) {
-      try {
-        await moveCourseNode(leafId, direction);
-      } catch {}
-    }
 
     const nextChildren = [...chapter.children];
     const swapIndex = direction === "UP" ? index - 1 : index + 1;
@@ -387,6 +428,11 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
       return;
     }
 
+    if (!category.trim()) {
+      setSaveErr("Course category is required.");
+      return;
+    }
+
     setSaving(true);
     setSaveErr(null);
     setSaveOk(false);
@@ -395,8 +441,8 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
       const meta = {
         title: title.trim(),
         description: description.trim(),
-        expirationDate: expirationDate || undefined,
-        status: "DRAFT" as const,
+        category: category.trim(),
+        status,
       };
 
       if (mode === "create") {
@@ -425,8 +471,10 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     setTitle,
     description,
     setDescription,
-    expirationDate,
-    setExpiration,
+    category,
+    setCategory,
+    status,
+    setStatus,
     chapters,
     selected,
     setSelected,
@@ -468,40 +516,51 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
   };
 }
 
+function inferLessonType(lesson: EditorLessonResponse): Exclude<EditorNodeType, "CHAPTER"> {
+  if (lesson.testId) return "TEST";
+  const firstUrl = lesson.lessonResources?.[0]?.url ?? "";
+  if (firstUrl) return isVideoResourceUrl(firstUrl) ? "VIDEO" : "FILE";
+  return "TEXT";
+}
+
 function mapCourseToChapters(data: EditorCourseResponse): EditorChapter[] {
   return (data.chapters ?? []).map((chapter, chapterIndex) => ({
     id: chapter.id,
     title: chapter.title ?? "",
-    description: chapter.description ?? "",
     orderIndex: chapter.orderIndex ?? chapterIndex,
     children: (chapter.lessons ?? []).map((lesson, lessonIndex): EditorLeaf => ({
       id: lesson.id,
-      type: (lesson.resourceType ?? "TEXT") as Exclude<EditorNodeType, "CHAPTER">,
+      type: inferLessonType(lesson),
       title: lesson.title ?? "",
       content: lesson.contentMarkdown ?? "",
       fileUrl: lesson.lessonResources?.[0]?.url ?? "",
+      resourceId: lesson.lessonResources?.[0]?.id ?? "",
       pendingFile: null,
       orderIndex: lesson.orderIndex ?? lessonIndex,
     })),
   }));
 }
 
+//fix bug
+//nodurile capitolelor
 async function createCourseTree(courseId: string, chapters: EditorChapter[]) {
   for (const chapter of [...chapters].sort((a, b) => a.orderIndex - b.orderIndex)) {
-    const chapterResult = await createCourseNode(courseId, {
-      nodeType: "CHAPTER",
-      title: chapter.title,
-      description: chapter.description || undefined,
+    const chapterResult = await createChapter(courseId, {
+      title: chapter.title.trim(),
     });
 
     for (const leaf of [...chapter.children].sort((a, b) => a.orderIndex - b.orderIndex)) {
-      await createCourseNode(courseId, {
-        nodeType: "LESSON",
-        resourceType: leaf.type,
-        parentNodeId: chapterResult.id,
-        title: leaf.title,
-        content: leaf.type === "TEXT" ? leaf.content || undefined : undefined,
+      const lessonResult = await createLesson(chapterResult.id, {
+        title: leaf.title.trim(),
+        ...(leaf.type === "TEXT" && leaf.content ? { contentMarkdown: leaf.content } : {}),
       });
+
+      if ((leaf.type === "FILE" || leaf.type === "VIDEO") && leaf.fileUrl && leaf.fileUrl.trim() !== "") {
+        await createResource(lessonResult.id, {
+          title: leaf.title.trim(),
+          url: leaf.fileUrl.trim(),
+        });
+      }
     }
   }
 }

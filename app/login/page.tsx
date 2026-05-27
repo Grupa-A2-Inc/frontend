@@ -5,7 +5,17 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 // Redux Toolkit hooks
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import Link from "next/link";
 import { login, clearError } from "@/store/slices/authSlice";
+
+function formatAuthError(msg: string): string {
+  return msg.replace(/after (\d{1,2}):(\d{2})/i, (_, h, m) => {
+    const hour = parseInt(h, 10);
+    const suffix = hour >= 12 ? "PM" : "AM";
+    const hour12 = hour % 12 || 12;
+    return `at ${hour12}:${m} ${suffix}`;
+  });
+}
 
 export default function LoginPage() {
   // State pentru input-uri
@@ -31,7 +41,7 @@ export default function LoginPage() {
       return;
     const role = result.payload.user.role;
 
-    if (role === "ORGANIZATION_ADMIN") 
+    if (role === "ADMIN" || role === "ORGANIZATION_ADMIN") 
       router.push("/dashboard/admin");
 
     if (role === "TEACHER") 
@@ -86,18 +96,23 @@ export default function LoginPage() {
 
               {/* INPUT PAROLA */}
               <div className="flex flex-col gap-1">
-                <label className="text-sm font-medium text-brand-text">Password</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-sm font-medium text-brand-text">Password</label>
+                  <Link href="/forgot-password" className="text-xs text-brand-primary hover:opacity-80 transition">
+                    Forgot password?
+                  </Link>
+                </div>
                 <input
                   type="password"
                   value={password}
-                  className="bg-brand-bg/50 border border-brand-border text-brand-text rounded-xl px-4 py-2 placeholder-brand-muted focus:outline-none focus:border-brand-primary transition"                
+                  className="bg-brand-bg/50 border border-brand-border text-brand-text rounded-xl px-4 py-2 placeholder-brand-muted focus:outline-none focus:border-brand-primary transition"
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                 />
               </div>
 
               {/* MESAJ DE EROARE */}
-              {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
+              {error && <p className="text-red-500 text-sm font-medium">{formatAuthError(error)}</p>}
 
               {/* BUTON LOGIN */}
               <button
@@ -111,7 +126,7 @@ export default function LoginPage() {
 
             {/* LINK CATRE REGISTER */}
             <p className="text-sm text-brand-muted text-center mt-4">            
-              Don't have an account?
+              Don&apos;t have an account?
               <a
                 href="/register"
                 className="text-brand-primary hover:opacity-80 ml-1"

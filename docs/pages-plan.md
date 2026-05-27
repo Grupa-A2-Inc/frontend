@@ -543,7 +543,6 @@ Payload-uri:
 pentru curs:
 title
 description
-expirationDate
 pentru creare nod:
 parentNodeId
 nodeType
@@ -1109,4 +1108,3 @@ Landing Page
 
 Landing Page este pagina publică principală a platformei, destinată utilizatorilor neautentificați. Rolul ei este să prezinte pe scurt produsul, să explice cui se adresează și să conducă utilizatorul către acțiunile principale: creare organizație și autentificare. Pagina nu are logică complexă de business și, în MVP, poate fi complet statică.
 Secțiunile principale ale paginii sunt: Header public, Hero, How It Works, Benefits by Role, Core Features, Product Preview, FAQ, Final CTA și Footer. Împreună, aceste secțiuni explică valoarea produsului, fluxul general al platformei și diferențele de utilizare între admin, profesor și elev.
-
