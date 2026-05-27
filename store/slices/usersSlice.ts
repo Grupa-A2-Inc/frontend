@@ -92,6 +92,7 @@ export type BulkImportResponse = {
 interface UsersState {
   users: User[];
   loading: boolean;
+  initialized: boolean;
   error: string | null;
   creating: boolean;
   createError: string | null;
@@ -116,6 +117,7 @@ const DEFAULT_USERS_PAGINATION: UsersPaginationMeta = {
 const initialState: UsersState = {
   users: [],
   loading: false,
+  initialized: false,
   error: null,
   creating: false,
   createError: null,
@@ -351,6 +353,7 @@ const usersSlice = createSlice({
       })
       .addCase(fetchUsers.fulfilled, (state, action) => {
         state.loading = false;
+        state.initialized = true;
         state.users = action.payload.users.map((u) => ({
           ...u,
           role: u.roleName ?? u.role,
@@ -359,6 +362,7 @@ const usersSlice = createSlice({
       })
       .addCase(fetchUsers.rejected, (state, action) => {
         state.loading = false;
+        state.initialized = true;
         state.error = action.payload as string;
       })
       .addCase(createUser.pending, (state) => {

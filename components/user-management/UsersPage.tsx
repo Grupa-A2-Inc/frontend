@@ -43,6 +43,7 @@ export default function UsersPage() {
   const {
     users,
     loading,
+    initialized,
     error,
     createError,
     importing,
@@ -234,7 +235,7 @@ export default function UsersPage() {
     }
   }
 
-  if (loading && users.length === 0) {
+  if (loading && !initialized) {
     return (
       <div className="w-full px-6 py-10 space-y-10">
         <div className="space-y-2">
