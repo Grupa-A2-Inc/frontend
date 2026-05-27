@@ -5,7 +5,7 @@ export default defineConfig({
   testDir: './specs',
 
   use: {
-    baseURL: 'https://frontend-teal-five-57.vercel.app',
+    baseURL: process.env.E2E_BASE_URL ?? 'https://frontend-teal-five-57.vercel.app',
     headless: true,
     viewport: { width: 1280, height: 720 },
     ignoreHTTPSErrors: true,

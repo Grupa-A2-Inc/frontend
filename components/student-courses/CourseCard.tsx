@@ -4,6 +4,7 @@ import type { KeyboardEvent, MouseEvent } from "react";
 import { StudentCourse } from "@/lib/student-courses/types";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2, PlusCircle } from "lucide-react";
+import CertificateDownloadAction from "./CertificateDownloadAction";
 
 //generez la final fiecare imagine
 const CATEGORY_IMAGE: Record<string, string> = {
@@ -21,6 +22,7 @@ type Props = {
   isEnrolled?: boolean;
   isEnrolling?: boolean;
   onEnroll?: (courseId: string) => void;
+  token?: string;
 };
 
 function getCourseStatusLabel(course: StudentCourse, isEnrolled: boolean) {
@@ -39,6 +41,7 @@ export default function CourseCard({
   isEnrolled = false,
   isEnrolling = false,
   onEnroll,
+  token = "",
 }: Props) {
   const router = useRouter();
   const image = CATEGORY_IMAGE[course.category] ?? "📚";
@@ -107,6 +110,17 @@ export default function CourseCard({
               />
             </div>
           </div>
+        )}
+
+        {variant === "my" && (course.progressPercent ?? 0) >= 100 && course.enrollmentId && (
+          <CertificateDownloadAction
+            token={token}
+            courseId={course.id}
+            courseTitle={course.title}
+            enrollment={course}
+            compact
+            preventParentNavigation
+          />
         )}
 
         <div className="flex items-center justify-between pt-2 border-t border-brand-border mt-auto">

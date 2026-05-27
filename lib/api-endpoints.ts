@@ -73,13 +73,19 @@ export const ENDPOINTS = {
       `/api/v1/students/${studentId}/courses-progress`,
   },
 
-  // 6. Chapters
+  // 6. Enrollments & Certificates
+  enrollments: {
+    certificate: (enrollmentId: string) =>
+      `/api/v1/enrollments/${enrollmentId}/certificat`,
+  },
+
+  // 7. Chapters
   chapters: {
     lessons: (chapterId: string) => `/api/v1/chapters/${chapterId}/lessons`,
     byId: (id: string) => `/api/v1/chapters/${id}`,
   },
 
-  // 7. Lessons
+  // 8. Lessons
   lessons: {
     byId: (id: string) => `/api/v1/lessons/${id}`,
     content: (id: string) => `/api/v1/lessons/${id}/content`,

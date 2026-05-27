@@ -9,6 +9,7 @@ type Props = {
   enrolledCourseIds?: Set<string>;
   enrollingCourseId?: string | null;
   onEnroll?: (courseId: string) => void;
+  token?: string;
 };
 
 export default function CoursesGrid({
@@ -19,6 +20,7 @@ export default function CoursesGrid({
   enrolledCourseIds = new Set(),
   enrollingCourseId = null,
   onEnroll,
+  token = "",
 }: Props) {
     if (loading) 
         return <p className="text-brand-muted">Loading...</p>;
@@ -35,6 +37,7 @@ export default function CoursesGrid({
               isEnrolled={enrolledCourseIds.has(course.id)}
               isEnrolling={enrollingCourseId === course.id}
               onEnroll={onEnroll}
+              token={token}
             />
             ))}
         </div>

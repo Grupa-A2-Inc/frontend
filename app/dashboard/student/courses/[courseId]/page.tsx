@@ -2,6 +2,7 @@
 
 import { useEffect, use } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -12,6 +13,12 @@ import {
 } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { fetchCourseDetails, resetCurrentCourse } from "@/store/slices/coursesSlice";
+import CertificateDownloadAction from "@/components/student-courses/CertificateDownloadAction";
+import type { Chapter, Course } from "@/lib/courses/types";
+
+type StudentCourseDetails = Course & {
+  chapters?: Chapter[];
+};
 
 export default function CoursePage({ params }: { params: Promise<{ courseId: string }> }) {
   const resolvedParams = use(params);
@@ -43,14 +50,13 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
     </div>
   );
 
-  // Extragere sigură a datelor pentru a evita erorile TypeScript (Linia 47)
-  const chapters = (currentCourse as any).chapters || [];
-  console.log("currentCourse complet:", JSON.stringify(currentCourse, null, 2));
+  const course = currentCourse as StudentCourseDetails;
+  const chapters = course.chapters ?? [];
   const firstChapter = chapters[0];
   const firstLesson = firstChapter?.lessons?.[0];
   const firstLessonId = firstLesson?.id; 
 
-  const totalLessons = chapters.reduce((acc: number, cap: any) => acc + (cap.lessons?.length || 0), 0);
+  const totalLessons = chapters.reduce((acc, chapter) => acc + chapter.lessons.length, 0);
 
   return (
     <div className="max-w-5xl mx-auto p-6 lg:p-8">
@@ -69,8 +75,8 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
 
       {/* Info Card */}
       <div className="bg-brand-card border border-brand-border rounded-xl p-6 mb-6 shadow-sm">
-        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{(currentCourse as any).title}</h2> 
-        <p className="text-slate-600 dark:text-brand-muted text-sm mb-6">{(currentCourse as any).description}</p> 
+        <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-1">{course.title}</h2>
+        <p className="text-slate-600 dark:text-brand-muted text-sm mb-6">{course.description}</p>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div className="bg-brand-bg border border-brand-border rounded-lg p-4">
@@ -84,10 +90,22 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
           
           <div className="bg-brand-bg border border-brand-border rounded-lg p-4">
             <span className="block text-xs text-slate-500 dark:text-brand-muted mb-1">Category</span> 
-            <span className="block text-lg font-bold text-slate-900 dark:text-white truncate" title={(currentCourse as any).category}>
-              {(currentCourse as any).category}
+            <span className="block text-lg font-bold text-slate-900 dark:text-white truncate" title={course.category}>
+              {course.category}
             </span> 
           </div>
+        </div>
+
+        <div className="mt-6 border-t border-brand-border pt-6">
+          <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">
+            Course certificate
+          </h3>
+          <CertificateDownloadAction
+            token={token ?? ""}
+            courseId={courseId}
+            courseTitle={course.title}
+            visibility={course.visibility}
+          />
         </div>
       </div>
 
@@ -126,18 +144,18 @@ export default function CoursePage({ params }: { params: Promise<{ courseId: str
         </div>
 
         <div className="md:col-span-1 bg-brand-card border border-brand-border rounded-xl p-2 shadow-sm flex items-center justify-center relative overflow-hidden group min-h-[260px]">
-          <img src="/images/imagine-neagra.png" className="w-60 h-60 object-contain dark:hidden block group-hover:scale-105 transition-transform" alt="Course decorative" />
-          <img src="/images/imagine-alba.png" className="w-60 h-60 object-contain hidden dark:block group-hover:scale-105 transition-transform" alt="Course decorative dark" />
+          <Image src="/images/imagine-neagra.png" width={240} height={240} className="w-60 h-60 object-contain dark:hidden block group-hover:scale-105 transition-transform" alt="Course decorative" />
+          <Image src="/images/imagine-alba.png" width={240} height={240} className="w-60 h-60 object-contain hidden dark:block group-hover:scale-105 transition-transform" alt="Course decorative dark" />
         </div>
       </div>
 
       <div className="bg-brand-card border border-brand-border rounded-xl p-6 shadow-sm">
         <h3 className="font-bold text-slate-900 dark:text-white mb-6">Course Content</h3>
         <div className="space-y-6">
-          {chapters.length > 0 ? chapters.map((chapter: any) => (
+          {chapters.length > 0 ? chapters.map((chapter) => (
             <div key={chapter.id} className="space-y-3">
               <h4 className="text-sm font-medium text-slate-500 dark:text-brand-muted px-1">{chapter.title}</h4> 
-              {chapter.lessons?.map((lesson: any) => (
+              {chapter.lessons.map((lesson) => (
                 <Link
                   key={lesson.id}
                   href={`/dashboard/student/courses/${courseId}/lessons/${lesson.id}`}

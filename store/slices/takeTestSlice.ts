@@ -59,9 +59,9 @@ export const submitTestThunk = createAsyncThunk(
 
 export const fetchTestResultThunk = createAsyncThunk(
   "takeTest/fetchResult",
-  async (attemptId: string, { rejectWithValue }) => {
+  async ({ attemptId, testId }: { attemptId: string; testId?: string }, { rejectWithValue }) => {
     try {
-      return await apiGetTestResult(attemptId);
+      return await apiGetTestResult(attemptId, testId);
     } catch (err: unknown) {
       return rejectWithValue(getErrorMessage(err, "Failed to load result."));
     }
@@ -149,9 +149,9 @@ const takeTestSlice = createSlice({
         state.loading = true;
         state.error = null;
       })
-      .addCase(submitTestThunk.fulfilled, (state, action) => {
+      .addCase(submitTestThunk.fulfilled, (state) => {
         state.loading = false;
-        state.result = action.payload;
+        state.result = null;
       })
       .addCase(submitTestThunk.rejected, (state, action) => {
         state.loading = false;
@@ -160,6 +160,7 @@ const takeTestSlice = createSlice({
       .addCase(fetchTestResultThunk.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.result = null;
       })
       .addCase(fetchTestResultThunk.fulfilled, (state, action) => {
         state.loading = false;
