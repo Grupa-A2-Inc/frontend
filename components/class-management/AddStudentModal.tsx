@@ -4,8 +4,9 @@ import { ClassMember } from "@/lib/classes/types";
 import Avatar from "@/components/class-ui/Avatar";
 import Spinner from "@/components/class-ui/Spinner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { API_BASE } from "@/lib/config";
 
-const API_URL = "https://api.adaptiveelearning.online";
+const API_URL = API_BASE;
 
 interface OrgUser {
   id: string;

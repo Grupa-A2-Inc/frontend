@@ -1,8 +1,9 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { ClassMember } from "@/lib/classes/types";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { API_BASE } from "@/lib/config";
 
-const API_URL = "https://api.adaptiveelearning.online";
+const API_URL = API_BASE;
 
 // ---------- Types ----------
 
