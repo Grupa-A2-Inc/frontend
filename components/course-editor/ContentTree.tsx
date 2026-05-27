@@ -93,17 +93,23 @@ function ChapterRow({
   return (
     <div className="rounded-xl border border-brand-primary/15 overflow-hidden">
       <div
-        onClick={() => onSelect({ kind: "chapter", id: chapter.id })}
         className={`flex items-center gap-2 px-3 py-2.5 cursor-pointer transition-colors ${
           chapterSelected ? "bg-brand-primary/15" : "bg-brand-card hover:bg-brand-primary/8"
         }`}
       >
-        <span className="material-symbols-rounded text-brand-primary flex-shrink-0" style={{ fontSize: "1rem" }}>folder</span>
-        <span className="flex-1 text-sm font-medium text-brand-text truncate min-w-0">
-          {chapter.title || "Untitled Chapter"}
-        </span>
-        <div className="flex items-center gap-0.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
+        <button
+          type="button"
+          onClick={() => onSelect({ kind: "chapter", id: chapter.id })}
+          className="flex min-w-0 flex-1 items-center gap-2 text-left"
+        >
+          <span className="material-symbols-rounded text-brand-primary flex-shrink-0" style={{ fontSize: "1rem" }}>folder</span>
+          <span className="flex-1 text-sm font-medium text-brand-text truncate min-w-0">
+            {chapter.title || "Untitled Chapter"}
+          </span>
+        </button>
+        <div className="flex items-center gap-0.5 flex-shrink-0">
           <button
+            type="button"
             onClick={() => onMoveChapter(chapter.id, "UP")}
             disabled={chapterIndex === 0}
             className="w-6 h-6 flex items-center justify-center text-brand-text/30 hover:text-brand-text disabled:opacity-20 transition-colors rounded"
@@ -111,6 +117,7 @@ function ChapterRow({
             <span className="material-symbols-rounded" style={{ fontSize: "0.9rem" }}>expand_less</span>
           </button>
           <button
+            type="button"
             onClick={() => onMoveChapter(chapter.id, "DOWN")}
             disabled={chapterIndex === chapterCount - 1}
             className="w-6 h-6 flex items-center justify-center text-brand-text/30 hover:text-brand-text disabled:opacity-20 transition-colors rounded"
@@ -118,6 +125,7 @@ function ChapterRow({
             <span className="material-symbols-rounded" style={{ fontSize: "0.9rem" }}>expand_more</span>
           </button>
           <button
+            type="button"
             onClick={() => onDeleteChapter(chapter)}
             className="w-6 h-6 flex items-center justify-center text-brand-text/20 hover:text-red-400 transition-colors rounded"
           >
@@ -176,19 +184,25 @@ function LeafRow({
 
   return (
     <div
-      onClick={() => onSelect({ kind: "leaf", chapterId, id: leaf.id })}
       className={`flex items-center gap-2 px-3 py-2 pl-6 cursor-pointer transition-colors ${
         leafSelected ? "bg-brand-primary/10" : "hover:bg-brand-primary/5"
       }`}
     >
-      <span className="material-symbols-rounded text-brand-primary/60 flex-shrink-0" style={{ fontSize: "0.9rem" }}>
-        {nodeIcon(leaf.type)}
-      </span>
-      <span className="flex-1 text-xs text-brand-text truncate min-w-0">
-        {leaf.title || "Untitled"}
-      </span>
-      <div className="flex items-center gap-0.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
+      <button
+        type="button"
+        onClick={() => onSelect({ kind: "leaf", chapterId, id: leaf.id })}
+        className="flex min-w-0 flex-1 items-center gap-2 text-left"
+      >
+        <span className="material-symbols-rounded text-brand-primary/60 flex-shrink-0" style={{ fontSize: "0.9rem" }}>
+          {nodeIcon(leaf.type)}
+        </span>
+        <span className="flex-1 text-xs text-brand-text truncate min-w-0">
+          {leaf.title || "Untitled"}
+        </span>
+      </button>
+      <div className="flex items-center gap-0.5 flex-shrink-0">
         <button
+          type="button"
           onClick={() => onMoveLeaf(chapterId, leaf.id, "UP")}
           disabled={leafIndex === 0}
           className="w-5 h-5 flex items-center justify-center text-brand-text/30 hover:text-brand-text disabled:opacity-20 transition-colors rounded"
@@ -196,6 +210,7 @@ function LeafRow({
           <span className="material-symbols-rounded" style={{ fontSize: "0.8rem" }}>expand_less</span>
         </button>
         <button
+          type="button"
           onClick={() => onMoveLeaf(chapterId, leaf.id, "DOWN")}
           disabled={leafIndex === leafCount - 1}
           className="w-5 h-5 flex items-center justify-center text-brand-text/30 hover:text-brand-text disabled:opacity-20 transition-colors rounded"
@@ -203,6 +218,7 @@ function LeafRow({
           <span className="material-symbols-rounded" style={{ fontSize: "0.8rem" }}>expand_more</span>
         </button>
         <button
+          type="button"
           onClick={() => onDeleteLeaf(chapterId, leaf)}
           className="w-5 h-5 flex items-center justify-center text-brand-text/20 hover:text-red-400 transition-colors rounded"
         >
