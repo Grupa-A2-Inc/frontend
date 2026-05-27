@@ -191,15 +191,17 @@ export default function TakeLessonTestPage({ params }: Props) {
                         }
                         className={`flex w-full items-center gap-3 rounded-lg border px-4 py-3 text-left text-sm font-medium transition-all ${
                           isSelected
-                            ? "border-brand-primary bg-brand-primary/15 text-brand-primary dark:text-white"
-                            : "border-brand-border bg-brand-bg text-gray-700 hover:border-brand-primary/50 hover:bg-brand-primary/5 dark:text-brand-text"
+                            ? "border-sky-500 bg-sky-50 text-sky-800 dark:border-brand-primary dark:bg-brand-primary/15 dark:text-white"
+                            : "border-slate-300 bg-brand-bg text-gray-700 hover:border-sky-400 hover:bg-sky-50/70 dark:border-brand-border dark:text-brand-text dark:hover:border-brand-primary/50 dark:hover:bg-brand-primary/5"
                         }`}
                       >
                         <span
                           className={`flex h-5 w-5 flex-shrink-0 items-center justify-center border-2 transition-colors ${
                             multi ? "rounded" : "rounded-full"
                           } ${
-                            isSelected ? "border-brand-primary bg-brand-primary" : "border-brand-border"
+                            isSelected
+                              ? "border-sky-600 bg-sky-600 dark:border-brand-primary dark:bg-brand-primary"
+                              : "border-slate-500 bg-white dark:border-brand-border dark:bg-transparent"
                           }`}
                         >
                           {isSelected &&

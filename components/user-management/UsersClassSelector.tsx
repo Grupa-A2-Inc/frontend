@@ -32,8 +32,8 @@ export default function ClassSelector({ selectedClasses, onToggle }: Props) {
             aria-hidden="true"
             className={`w-4 h-4 rounded flex items-center justify-center flex-shrink-0 border transition-colors ${
               selectedClasses.includes(cls.id)
-                ? "bg-brand-primary border-brand-primary"
-                : "border-brand-primary/30 group-hover:border-brand-primary/60"
+                ? "border-sky-600 bg-sky-600 dark:border-brand-primary dark:bg-brand-primary"
+                : "border-slate-500 bg-white group-hover:border-sky-500 dark:border-brand-primary/30 dark:bg-transparent dark:group-hover:border-brand-primary/60"
             }`}
           >
             {selectedClasses.includes(cls.id) && (
