@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Bot, Loader2, Minus, Plus } from "lucide-react";
+import { Bot, Loader2, Minus, Plus, Save } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
+import { MIN_TEST_TIME_LIMIT_SEC } from "@/lib/tests/types";
 
 type Props = {
   lessonTitle?: string;
@@ -12,8 +13,10 @@ type Props = {
   onDescriptionChange: (description: string) => void;
   timeLimitSec: number;
   onTimeLimitChange: (value: number) => void;
+  onSaveMetadata: () => void;
+  isSavingMetadata?: boolean;
+  saveDisabled?: boolean;
   onGenerate: (count: number) => void;
-  metadataReadOnly?: boolean;
   readOnly?: boolean;
   generateDisabled?: boolean;
   generateWarning?: string | null;
@@ -27,16 +30,18 @@ export default function TestSettingsPanel({
   onDescriptionChange,
   timeLimitSec,
   onTimeLimitChange,
+  onSaveMetadata,
+  isSavingMetadata = false,
+  saveDisabled = false,
   onGenerate,
-  metadataReadOnly,
   readOnly = false,
   generateDisabled = false,
   generateWarning = null,
 }: Props) {
   const { isGenerating } = useAppSelector((state) => state.testDraft);
   const [qCount, setQCount] = useState(5);
-  const canAdjustAiCount = !readOnly && !isGenerating && !generateDisabled;
-  const canEditMetadata = !readOnly && !metadataReadOnly;
+  const canAdjustAiCount = !readOnly && !isGenerating && !isSavingMetadata && !generateDisabled;
+  const canEditMetadata = !readOnly && !isSavingMetadata;
 
   function updateQuestionCount(nextValue: number) {
     const normalized = Number.isFinite(nextValue) ? nextValue : 1;
@@ -45,7 +50,7 @@ export default function TestSettingsPanel({
 
   function updateTimeLimit(nextValue: number) {
     const normalized = Number.isFinite(nextValue) ? nextValue : 0;
-    onTimeLimitChange(Math.max(0, normalized));
+    onTimeLimitChange(Math.max(0, Math.floor(normalized)));
   }
 
   return (
@@ -123,6 +128,25 @@ export default function TestSettingsPanel({
               <Plus size={15} />
             </button>
           </div>
+          {!readOnly && timeLimitSec < MIN_TEST_TIME_LIMIT_SEC && (
+            <p className="mt-1.5 text-xs text-red-300">
+              Minimum time limit is {MIN_TEST_TIME_LIMIT_SEC} seconds.
+            </p>
+          )}
+          {!readOnly && !title.trim() && (
+            <p className="mt-1.5 text-xs text-red-300">Test title is required.</p>
+          )}
+          {!readOnly && (
+            <button
+              type="button"
+              onClick={onSaveMetadata}
+              disabled={!canEditMetadata || saveDisabled}
+              className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-brand-primary px-3 py-2 text-sm font-medium text-white transition hover:bg-brand-primary/90 disabled:opacity-50"
+            >
+              {isSavingMetadata ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+              {isSavingMetadata ? "Saving" : "Save settings"}
+            </button>
+          )}
         </div>
 
         <div className="grid gap-3 sm:grid-cols-[132px_minmax(150px,1fr)]">
@@ -165,7 +189,7 @@ export default function TestSettingsPanel({
           <button
             type="button"
             onClick={() => onGenerate(qCount)}
-            disabled={readOnly || isGenerating || generateDisabled}
+            disabled={readOnly || isGenerating || isSavingMetadata || generateDisabled}
             className="flex min-h-[42px] items-center justify-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:opacity-50 sm:mt-5"
           >
             {isGenerating ? <Loader2 className="animate-spin" size={18} /> : <Bot size={18} />}

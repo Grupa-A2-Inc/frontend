@@ -9,6 +9,7 @@ import {
   SubmitTestPayload,
   TakeTestSession,
   TestAnalytics,
+  DEFAULT_TEST_TIME_LIMIT_SEC,
   TestEditPayload,
   TestEntity,
   TestOption,
@@ -215,9 +216,20 @@ export async function apiCreateLessonTest(
     body: JSON.stringify({
       title: payload.title,
       description: payload.description ?? "",
-      timeLimitSec: payload.timeLimitSec ?? 0,
+      timeLimitSec: payload.timeLimitSec ?? DEFAULT_TEST_TIME_LIMIT_SEC,
       aiEnabled: payload.aiEnabled ?? false,
     }),
+  });
+  return normalizeTest(data);
+}
+
+export async function apiUpdateTest(
+  testId: string,
+  payload: TestEditPayload
+): Promise<TestEntity> {
+  const data = await apiFetch<unknown>(ENDPOINTS.tests.byId(testId), {
+    method: "PATCH",
+    body: JSON.stringify(payload),
   });
   return normalizeTest(data);
 }

@@ -1,7 +1,10 @@
 import { createAsyncThunk, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import {
+  DEFAULT_TEST_TIME_LIMIT_SEC,
   GenerateTestPayload,
+  MIN_TEST_TIME_LIMIT_SEC,
   QuestionType,
+  TestEditPayload,
   TestEntity,
   TestQuestion,
 } from "@/lib/tests/types";
@@ -14,6 +17,7 @@ import {
   apiGetTestForLesson,
   apiPublishTest,
   apiUpdateQuestion,
+  apiUpdateTest,
 } from "@/lib/tests/api";
 
 interface TestDraftState {
@@ -23,6 +27,7 @@ interface TestDraftState {
   isLoading: boolean;
   isGenerating: boolean;
   isPreparingTest: boolean;
+  isSavingMetadata: boolean;
   isPublishing: boolean;
   savingQuestionIds: string[];
   deletingQuestionIds: string[];
@@ -42,6 +47,7 @@ const initialState: TestDraftState = {
   isLoading: false,
   isGenerating: false,
   isPreparingTest: false,
+  isSavingMetadata: false,
   isPublishing: false,
   savingQuestionIds: [],
   deletingQuestionIds: [],
@@ -158,11 +164,37 @@ export const ensureLessonTestThunk = createAsyncThunk(
       return apiCreateLessonTest(lessonId, {
         title: "Lesson test",
         description: "",
-        timeLimitSec: 0,
+        timeLimitSec: DEFAULT_TEST_TIME_LIMIT_SEC,
         aiEnabled: false,
       });
     } catch (err: unknown) {
       return rejectWithValue(getErrorMessage(err, "Failed to prepare lesson test."));
+    }
+  }
+);
+
+export const saveTestMetadataThunk = createAsyncThunk(
+  "testDraft/saveMetadata",
+  async (
+    { lessonId, payload }: { lessonId: string; payload: TestEditPayload },
+    { getState, rejectWithValue }
+  ) => {
+    try {
+      if (!payload.title.trim()) {
+        throw new Error("Test title is required.");
+      }
+      if ((payload.timeLimitSec ?? 0) < MIN_TEST_TIME_LIMIT_SEC) {
+        throw new Error("Time limit must be at least 60 seconds.");
+      }
+
+      const state = getState() as { testDraft: TestDraftState };
+      const test = state.testDraft.test;
+
+      return test
+        ? await apiUpdateTest(test.id, payload)
+        : await apiCreateLessonTest(lessonId, payload);
+    } catch (err: unknown) {
+      return rejectWithValue(getErrorMessage(err, "Failed to save test settings."));
     }
   }
 );
@@ -200,7 +232,7 @@ export const saveQuestionThunk = createAsyncThunk(
         test = await apiCreateLessonTest(lessonId, {
           title: "Lesson test",
           description: "",
-          timeLimitSec: 0,
+          timeLimitSec: DEFAULT_TEST_TIME_LIMIT_SEC,
           aiEnabled: false,
         });
       }
@@ -255,6 +287,9 @@ export const publishDraftThunk = createAsyncThunk(
       if (!testId) {
         throw new Error("This lesson does not have a test yet.");
       }
+      if ((state.testDraft.test?.timeLimitSec ?? 0) < MIN_TEST_TIME_LIMIT_SEC) {
+        throw new Error("Set a time limit of at least 60 seconds before publishing.");
+      }
 
       const validationErrors = state.testDraft.questions.flatMap(validateQuestion);
       if (validationErrors.length > 0) {
@@ -276,6 +311,9 @@ const testDraftSlice = createSlice({
   reducers: {
     resetDraft() {
       return initialState;
+    },
+    clearDraftError(state) {
+      state.error = null;
     },
     updateQuestionText(state, action: PayloadAction<{ qId: string; newText: string }>) {
       const question = state.questions.find((item) => item.clientId === action.payload.qId);
@@ -405,6 +443,19 @@ const testDraftSlice = createSlice({
         state.isPreparingTest = false;
         state.error = action.payload as string;
       })
+      .addCase(saveTestMetadataThunk.pending, (state) => {
+        state.isSavingMetadata = true;
+        state.error = null;
+      })
+      .addCase(saveTestMetadataThunk.fulfilled, (state, action) => {
+        state.isSavingMetadata = false;
+        state.test = action.payload;
+        state.lessonId = action.payload.lessonId;
+      })
+      .addCase(saveTestMetadataThunk.rejected, (state, action) => {
+        state.isSavingMetadata = false;
+        state.error = action.payload as string;
+      })
       .addCase(saveQuestionThunk.pending, (state, action) => {
         state.savingQuestionIds.push(action.meta.arg.questionClientId);
         state.lessonId = action.meta.arg.lessonId;
@@ -468,6 +519,7 @@ const testDraftSlice = createSlice({
 export const {
   addManualQuestion,
   addOption,
+  clearDraftError,
   deleteOption,
   resetDraft,
   toggleCorrectOption,

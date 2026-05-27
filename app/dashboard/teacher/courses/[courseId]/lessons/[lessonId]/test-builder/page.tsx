@@ -18,14 +18,16 @@ import TestSettingsPanel from "@/components/tests/TestSettingsPanel";
 import { fetchCourseFullView } from "@/lib/courses/api";
 import { lessonHasVideoResource } from "@/lib/courses/resourceType";
 import { Chapter } from "@/lib/courses/types";
+import { DEFAULT_TEST_TIME_LIMIT_SEC, MIN_TEST_TIME_LIMIT_SEC } from "@/lib/tests/types";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import {
   addManualQuestion,
-  ensureLessonTestThunk,
+  clearDraftError,
   generateQuestionsThunk,
   loadLessonTestDraftThunk,
   publishDraftThunk,
   resetDraft,
+  saveTestMetadataThunk,
 } from "@/store/slices/testDraftSlice";
 
 type Props = {
@@ -41,6 +43,7 @@ export default function LessonTestBuilderPage({ params }: Props) {
     isLoading,
     isGenerating,
     isPreparingTest,
+    isSavingMetadata,
     isPublishing,
     error,
     lastInjectionMessage,
@@ -52,6 +55,7 @@ export default function LessonTestBuilderPage({ params }: Props) {
   const [timeLimitSecDraft, setTimeLimitSecDraft] = useState<number | null>(null);
   const [lessonError, setLessonError] = useState<string | null>(null);
   const [isVideoLesson, setIsVideoLesson] = useState(false);
+  const [metadataSuccess, setMetadataSuccess] = useState("");
 
   useEffect(() => {
     dispatch(loadLessonTestDraftThunk(lessonId));
@@ -85,33 +89,81 @@ export default function LessonTestBuilderPage({ params }: Props) {
   }, [courseId, lessonId]);
 
   const readOnly = test?.status === "PUBLISHED";
-  const busy = isLoading || isGenerating || isPreparingTest || isPublishing;
+  const busy = isLoading || isGenerating || isPreparingTest || isSavingMetadata || isPublishing;
   const testTitle = testTitleDraft ?? test?.title ?? "Lesson test";
   const description = descriptionDraft ?? test?.description ?? "";
-  const timeLimitSec = timeLimitSecDraft ?? test?.timeLimitSec ?? 0;
+  const timeLimitSec = timeLimitSecDraft ?? test?.timeLimitSec ?? DEFAULT_TEST_TIME_LIMIT_SEC;
   const statusLabel = useMemo(() => {
     if (!test) return "No test yet";
     return test.status === "PUBLISHED" ? "Published" : "Draft";
   }, [test]);
 
-  function handleGenerate(count: number) {
+  function clearMetadataFeedback() {
+    setMetadataSuccess("");
+    dispatch(clearDraftError());
+  }
+
+  function handleTitleChange(value: string) {
+    clearMetadataFeedback();
+    setTestTitleDraft(value);
+  }
+
+  function handleDescriptionChange(value: string) {
+    clearMetadataFeedback();
+    setDescriptionDraft(value);
+  }
+
+  function handleTimeLimitChange(value: number) {
+    clearMetadataFeedback();
+    setTimeLimitSecDraft(value);
+  }
+
+  async function persistMetadata() {
+    try {
+      await dispatch(
+        saveTestMetadataThunk({
+          lessonId,
+          payload: {
+            title: testTitle.trim(),
+            description: description.trim(),
+            timeLimitSec,
+            aiEnabled: test?.aiEnabled ?? false,
+          },
+        })
+      ).unwrap();
+      setTestTitleDraft(null);
+      setDescriptionDraft(null);
+      setTimeLimitSecDraft(null);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  async function handleSaveMetadata() {
+    if (readOnly) return;
+    if (await persistMetadata()) {
+      setMetadataSuccess("Test settings were saved.");
+    }
+  }
+
+  async function handleGenerate(count: number) {
     if (readOnly) return;
     if (isVideoLesson) return;
+    if (!(await persistMetadata())) return;
     dispatch(generateQuestionsThunk({ lessonId, payload: { count } }));
   }
 
   async function handleAddQuestion() {
     if (readOnly) return;
-    try {
-      await dispatch(ensureLessonTestThunk(lessonId)).unwrap();
+    if (await persistMetadata()) {
       dispatch(addManualQuestion());
-    } catch {
-      // Error is already stored in the draft slice and rendered above the editor.
     }
   }
 
-  function handlePublish() {
+  async function handlePublish() {
     if (readOnly) return;
+    if (!(await persistMetadata())) return;
     dispatch(publishDraftThunk());
   }
 
@@ -159,7 +211,7 @@ export default function LessonTestBuilderPage({ params }: Props) {
               <button
                 type="button"
                 onClick={handlePublish}
-                disabled={busy || !test || questions.length === 0 || !testTitle.trim()}
+                disabled={busy || !test || questions.length === 0 || !testTitle.trim() || timeLimitSec < MIN_TEST_TIME_LIMIT_SEC}
                 className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-primary px-5 py-2.5 font-medium text-white transition hover:bg-brand-primary/90 disabled:opacity-50 sm:w-auto"
               >
                 {isPublishing ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
@@ -203,6 +255,12 @@ export default function LessonTestBuilderPage({ params }: Props) {
           {lastInjectionMessage}
         </div>
       )}
+      {metadataSuccess && (
+        <div className="mb-6 flex items-center gap-3 rounded-xl border border-green-500/30 bg-green-500/10 p-4 text-sm text-green-300">
+          <CheckCircle2 className="h-5 w-5" />
+          {metadataSuccess}
+        </div>
+      )}
 
       {isLoading ? (
         <div className="flex min-h-[320px] items-center justify-center gap-3 rounded-xl border border-brand-border bg-brand-card p-8 text-brand-muted">
@@ -215,13 +273,15 @@ export default function LessonTestBuilderPage({ params }: Props) {
             <TestSettingsPanel
               lessonTitle={lessonTitle}
               title={testTitle}
-              onTitleChange={setTestTitleDraft}
+              onTitleChange={handleTitleChange}
               description={description}
-              onDescriptionChange={setDescriptionDraft}
+              onDescriptionChange={handleDescriptionChange}
               timeLimitSec={timeLimitSec}
-              onTimeLimitChange={setTimeLimitSecDraft}
+              onTimeLimitChange={handleTimeLimitChange}
+              onSaveMetadata={handleSaveMetadata}
+              isSavingMetadata={isSavingMetadata}
+              saveDisabled={!testTitle.trim() || timeLimitSec < MIN_TEST_TIME_LIMIT_SEC}
               onGenerate={handleGenerate}
-              metadataReadOnly
               readOnly={readOnly}
               generateDisabled={isVideoLesson}
               generateWarning={

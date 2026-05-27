@@ -2,6 +2,9 @@ export type QuestionType = "SINGLE_CHOICE" | "MULTI_CHOICE" | "TRUE_FALSE";
 
 export type TestStatus = "DRAFT" | "PUBLISHED";
 
+export const DEFAULT_TEST_TIME_LIMIT_SEC = 600;
+export const MIN_TEST_TIME_LIMIT_SEC = 60;
+
 export interface TestEntity {
   id: string;
   lessonId: string;
