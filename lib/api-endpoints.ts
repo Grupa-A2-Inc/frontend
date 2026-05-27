@@ -186,6 +186,8 @@ export const ENDPOINTS = {
       `/api/v1/rewards/organizations/${organizationId}/config`,
     organizationLatest: (organizationId: string) =>
       `/api/v1/rewards/organizations/${organizationId}/latest`,
+    mockPayment: (organizationId: string) =>
+      `/api/v1/rewards/organizations/${organizationId}/mock-payment`,
     calculateCycle: (organizationId: string) =>
       `/api/v1/rewards/cycles/${organizationId}/calculate`,
     cycle: (cycleId: string) => `/api/v1/rewards/cycles/${cycleId}`,

@@ -26,6 +26,18 @@ export type CalculateRewardCycleRequest = {
   eurcDepositedAmount?: number;
 };
 
+export type StablecoinFundingResponse = {
+  cycleId: string;
+  organizationId: string;
+  paymentAmount: number;
+  rewardPoolAmount: number;
+  eurcDepositedAmount: number;
+  provider: string;
+  chainId: number;
+  transactionHash?: string | null;
+  status: string;
+};
+
 export type StudentReward = {
   id: string;
   rewardCycleId: string;
