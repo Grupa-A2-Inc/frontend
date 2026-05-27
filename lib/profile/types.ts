@@ -35,6 +35,15 @@ export type ChangePasswordPayload = {
   newPasswordConfirm: string;
 };
 
+export type UpdateOrganizationPayload = {
+  name: string;
+  organizationType: string;
+  country: string;
+  city: string;
+  address: string;
+  phoneNumber: string;
+};
+
 export function mapOrganizationResponse(
   data: BackendOrganizationResponse | null | undefined,
   fallback?: User | null

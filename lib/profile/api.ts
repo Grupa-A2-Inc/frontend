@@ -5,6 +5,7 @@ import {
   BackendOrganizationResponse,
   BackendUserResponse,
   ChangePasswordPayload,
+  UpdateOrganizationPayload,
   UpdateProfilePayload,
 } from "@/lib/profile/types";
 
@@ -95,4 +96,27 @@ export async function fetchProfileOrganization(
   }
 
   return (await response.json()) as BackendOrganizationResponse;
+}
+
+export async function updateProfileOrganization(
+  organizationId: string,
+  payload: UpdateOrganizationPayload,
+  token?: string | null
+): Promise<void> {
+  const response = await fetchWithAuth(
+    `${API_BASE}${ENDPOINTS.organizations.byId(organizationId)}`,
+    token,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+        ...(await getXsrfHeadersAsync()),
+      },
+      body: JSON.stringify(payload),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(await parseError(response, "Failed to update organization"));
+  }
 }
