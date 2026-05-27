@@ -1,9 +1,9 @@
 "use client";
 
-import { User, UserRoleFilter, UserStatusFilter } from "@/store/slices/usersSlice";
+import { UsersRoleCounts, UserRoleFilter, UserStatusFilter } from "@/store/slices/usersSlice";
 
 type Props = {
-  users: User[];
+  roleCounts: UsersRoleCounts | null;
   search: string;
   onSearchChange: (value: string) => void;
   roleFilter: UserRoleFilter;
@@ -13,7 +13,7 @@ type Props = {
 };
 
 export default function UsersToolbar({
-  users,
+  roleCounts,
   search,
   onSearchChange,
   roleFilter,
@@ -21,16 +21,12 @@ export default function UsersToolbar({
   statusFilter,
   onStatusFilterChange,
 }: Props) {
-  const studentCount = users.filter((u) => u.role === "STUDENT").length;
-  const teacherCount = users.filter((u) => u.role === "TEACHER").length;
-  const adminCount = users.filter((u) => u.role === "ORGANIZATION_ADMIN").length;
-
   //Role tabs
-  const roleTabs: { label: string; value: UserRoleFilter; count: number }[] = [
-    { label: "All",      value: "ALL",     count: users.length },
-    { label: "Students", value: "STUDENT", count: studentCount },
-    { label: "Teachers", value: "TEACHER", count: teacherCount },
-    { label: "Admins",   value: "ORGANIZATION_ADMIN", count: adminCount },
+  const roleTabs: { label: string; value: UserRoleFilter; count?: number }[] = [
+    { label: "All",      value: "ALL",     count: roleCounts?.all },
+    { label: "Students", value: "STUDENT", count: roleCounts?.students },
+    { label: "Teachers", value: "TEACHER", count: roleCounts?.teachers },
+    { label: "Admins",   value: "ORGANIZATION_ADMIN", count: roleCounts?.admins },
   ];
 
   //Status tabs
@@ -60,7 +56,7 @@ export default function UsersToolbar({
                 ? "bg-brand-text/20 text-brand-text"
                 : "bg-brand-text/10 text-brand-muted"
             }`}>
-              {tab.count}
+              {tab.count ?? "-"}
             </span>
           </button>
         ))}

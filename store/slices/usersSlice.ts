@@ -37,6 +37,7 @@ export interface UpdateUserPayload {
 
 type UserResponse = User & {
   roleName?: UserRole;
+  createdAt?: string;
 };
 
 export type UsersPaginationMeta = {
@@ -75,6 +76,13 @@ export type FetchUsersParams = {
   sortDir?: "asc" | "desc";
 };
 
+export type UsersRoleCounts = {
+  all: number;
+  students: number;
+  teachers: number;
+  admins: number;
+};
+
 export type UserImportResult = {
   email?: string;
   success?: boolean;
@@ -91,6 +99,7 @@ export type BulkImportResponse = {
 
 interface UsersState {
   users: User[];
+  roleCounts: UsersRoleCounts | null;
   loading: boolean;
   initialized: boolean;
   error: string | null;
@@ -116,6 +125,7 @@ const DEFAULT_USERS_PAGINATION: UsersPaginationMeta = {
 
 const initialState: UsersState = {
   users: [],
+  roleCounts: null,
   loading: false,
   initialized: false,
   error: null,
@@ -136,73 +146,183 @@ async function parseError(response: Response, fallback: string): Promise<string>
 
 // ---------- Thunks ----------
 
+type UsersRequestParams = Omit<FetchUsersParams, "status"> & {
+  status?: UserStatusFilter | UserStatus;
+};
+
+type UsersRequestResult = {
+  users: UserResponse[];
+  pagination: UsersPaginationMeta;
+  paginated: boolean;
+};
+
+function normalizeUsersResponse(
+  data: UsersPageResponse | UserResponse[],
+  page: number,
+  size: number
+): UsersRequestResult {
+  const users = Array.isArray(data) ? data : (data.content ?? data.users ?? data.items ?? []);
+
+  if (Array.isArray(data)) {
+    return {
+      users,
+      paginated: false,
+      pagination: {
+        totalElements: users.length,
+        totalPages: users.length > 0 ? 1 : 0,
+        number: 0,
+        size: users.length || size,
+        numberOfElements: users.length,
+        first: true,
+        last: true,
+      },
+    };
+  }
+
+  const totalElements = data.totalElements ?? users.length;
+  const responseSize = Math.max(1, data.size ?? size);
+  const currentPage = Math.max(0, data.number ?? data.page ?? page);
+  const totalPages = data.totalPages
+    ?? (totalElements > 0 ? Math.ceil(totalElements / responseSize) : 0);
+
+  return {
+    users,
+    paginated: true,
+    pagination: {
+      totalElements,
+      totalPages,
+      number: currentPage,
+      size: responseSize,
+      numberOfElements: data.numberOfElements ?? users.length,
+      first: data.first ?? currentPage === 0,
+      last: data.last ?? currentPage >= totalPages - 1,
+    },
+  };
+}
+
+async function requestUsers(params: UsersRequestParams): Promise<UsersRequestResult> {
+  const {
+    token,
+    scope = "organization",
+    page = 0,
+    size = 10,
+    search,
+    role = "ALL",
+    status = "ALL",
+    sortBy = "firstName",
+    sortDir = "asc",
+  } = params;
+  const query = new URLSearchParams({
+    page: String(Math.max(0, page)),
+    size: String(Math.max(1, size)),
+    sortBy,
+    sortDir,
+  });
+  const trimmedSearch = search?.trim();
+  if (trimmedSearch) query.set("search", trimmedSearch);
+  if (role !== "ALL") query.set("role", role);
+  if (status !== "ALL") query.set("status", status);
+
+  const endpoint = scope === "global" ? ENDPOINTS.users.list : ENDPOINTS.users.organization;
+  const response = await fetchWithAuth(`${API_BASE}${endpoint}?${query.toString()}`, token);
+  if (!response.ok) {
+    throw new Error(await parseError(response, "Failed to load users"));
+  }
+
+  return normalizeUsersResponse(
+    (await response.json()) as UsersPageResponse | UserResponse[],
+    page,
+    size
+  );
+}
+
+async function requestAllUsers(params: UsersRequestParams): Promise<UserResponse[]> {
+  const result = await requestUsers({ ...params, page: 0, size: 100 });
+  if (!result.paginated || result.pagination.last) return result.users;
+
+  const pages = await Promise.all(
+    Array.from({ length: result.pagination.totalPages - 1 }, (_, index) =>
+      requestUsers({ ...params, page: index + 1, size: result.pagination.size })
+    )
+  );
+
+  return [...result.users, ...pages.flatMap((page) => page.users)];
+}
+
+function sortUsers(
+  users: UserResponse[],
+  sortBy: NonNullable<FetchUsersParams["sortBy"]>,
+  sortDir: NonNullable<FetchUsersParams["sortDir"]>
+): UserResponse[] {
+  const direction = sortDir === "asc" ? 1 : -1;
+  return [...users].sort((left, right) => {
+    const leftValue = String(left[sortBy] ?? "").toLocaleLowerCase();
+    const rightValue = String(right[sortBy] ?? "").toLocaleLowerCase();
+    return leftValue.localeCompare(rightValue) * direction;
+  });
+}
+
+async function requestInactiveUsers(params: FetchUsersParams): Promise<UsersRequestResult> {
+  const { page = 0, size = 10, sortBy = "firstName", sortDir = "asc" } = params;
+  const usersByStatus = await Promise.all(
+    (["INACTIVE", "BLOCKED", "PENDING"] as UserStatus[]).map((status) =>
+      requestAllUsers({ ...params, status })
+    )
+  );
+  const uniqueUsers = new Map<string, UserResponse>();
+  usersByStatus.flat().forEach((user) => uniqueUsers.set(user.id, user));
+  const users = sortUsers([...uniqueUsers.values()], sortBy, sortDir);
+  const totalElements = users.length;
+  const start = page * size;
+  const content = users.slice(start, start + size);
+  const totalPages = totalElements > 0 ? Math.ceil(totalElements / size) : 0;
+
+  return {
+    users: content,
+    paginated: true,
+    pagination: {
+      totalElements,
+      totalPages,
+      number: page,
+      size,
+      numberOfElements: content.length,
+      first: page === 0,
+      last: page >= totalPages - 1,
+    },
+  };
+}
+
 export const fetchUsers = createAsyncThunk(
   "users/fetchUsers",
   async (params: FetchUsersParams, { rejectWithValue }) => {
     try {
-      const {
-        token,
-        scope = "organization",
-        page = 0,
-        size = 10,
-        search,
-        role = "ALL",
-        status = "ALL",
-        sortBy = "firstName",
-        sortDir = "asc",
-      } = params;
-      const query = new URLSearchParams({
-        page: String(Math.max(0, page)),
-        size: String(Math.max(1, size)),
-        sortBy,
-        sortDir,
-      });
-      const trimmedSearch = search?.trim();
-      if (trimmedSearch) query.set("search", trimmedSearch);
-      if (role !== "ALL") query.set("role", role);
-      if (status !== "ALL") query.set("status", status);
+      return params.status === "INACTIVE"
+        ? await requestInactiveUsers(params)
+        : await requestUsers(params);
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : "Network error");
+    }
+  }
+);
 
-      const endpoint = scope === "global" ? ENDPOINTS.users.list : ENDPOINTS.users.organization;
-      const response = await fetchWithAuth(`${API_BASE}${endpoint}?${query.toString()}`, token);
-      if (!response.ok) {
-        const err = await response.json();
-        return rejectWithValue(err.message || "Failed to load users");
-      }
-      const data = (await response.json()) as UsersPageResponse | UserResponse[];
-      const users = Array.isArray(data) ? data : (data.content ?? data.users ?? data.items ?? []);
-      let pagination: UsersPaginationMeta;
-
-      if (Array.isArray(data)) {
-        pagination = {
-          totalElements: users.length,
-          totalPages: users.length > 0 ? 1 : 0,
-          number: 0,
-          size: users.length || size,
-          numberOfElements: users.length,
-          first: true,
-          last: true,
-        };
-      } else {
-        const totalElements = data.totalElements ?? users.length;
-        const responseSize = Math.max(1, data.size ?? size);
-        const currentPage = Math.max(0, data.number ?? data.page ?? page);
-        const totalPages = data.totalPages
-          ?? (totalElements > 0 ? Math.ceil(totalElements / responseSize) : 0);
-
-        pagination = {
-          totalElements,
-          totalPages,
-          number: currentPage,
-          size: responseSize,
-          numberOfElements: data.numberOfElements ?? users.length,
-          first: data.first ?? currentPage === 0,
-          last: data.last ?? currentPage >= totalPages - 1,
-        };
-      }
-
-      return { users, pagination };
-    } catch {
-      return rejectWithValue("Network error");
+export const fetchUserRoleCounts = createAsyncThunk(
+  "users/fetchUserRoleCounts",
+  async (
+    params: Pick<FetchUsersParams, "token" | "scope">,
+    { rejectWithValue }
+  ) => {
+    try {
+      const users = await requestAllUsers(params);
+      return {
+        all: users.length,
+        students: users.filter((user) => user.roleName === "STUDENT" || user.role === "STUDENT").length,
+        teachers: users.filter((user) => user.roleName === "TEACHER" || user.role === "TEACHER").length,
+        admins: users.filter(
+          (user) => user.roleName === "ORGANIZATION_ADMIN" || user.role === "ORGANIZATION_ADMIN"
+        ).length,
+      };
+    } catch (error) {
+      return rejectWithValue(error instanceof Error ? error.message : "Network error");
     }
   }
 );
@@ -364,6 +484,9 @@ const usersSlice = createSlice({
         state.loading = false;
         state.initialized = true;
         state.error = action.payload as string;
+      })
+      .addCase(fetchUserRoleCounts.fulfilled, (state, action) => {
+        state.roleCounts = action.payload;
       })
       .addCase(createUser.pending, (state) => {
         state.creating = true;

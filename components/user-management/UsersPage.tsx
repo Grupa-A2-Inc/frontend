@@ -8,6 +8,7 @@ import {
   UserStatusFilter,
   FetchUsersParams,
   fetchUsers,
+  fetchUserRoleCounts,
   createUser,
   toggleUserStatus,
   deleteUser,
@@ -42,6 +43,7 @@ export default function UsersPage() {
   const dispatch = useAppDispatch();
   const {
     users,
+    roleCounts,
     loading,
     initialized,
     error,
@@ -69,7 +71,8 @@ export default function UsersPage() {
   useEffect(() => {
     if (!token) return;
     dispatch(fetchClassrooms(token));
-  }, [token, dispatch]);
+    dispatch(fetchUserRoleCounts({ token, scope: usersScope }));
+  }, [token, dispatch, usersScope]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {
@@ -174,6 +177,7 @@ export default function UsersPage() {
           if (!createdUser?.id) {
             setSaveError("User was created, but the response did not include an id for class assignment.");
             dispatch(fetchUsers(userFetchParams));
+            dispatch(fetchUserRoleCounts({ token, scope: usersScope }));
             return;
           }
 
@@ -183,12 +187,14 @@ export default function UsersPage() {
             const message = error instanceof Error ? error.message : "Failed to assign teacher to selected classes";
             setSaveError(`Teacher was created, but class assignment failed: ${message}`);
             dispatch(fetchUsers(userFetchParams));
+            dispatch(fetchUserRoleCounts({ token, scope: usersScope }));
             return;
           }
         }
 
         setPage(0);
         dispatch(fetchUsers({ ...userFetchParams, page: 0 }));
+        dispatch(fetchUserRoleCounts({ token, scope: usersScope }));
         closeModal();
       }
     }
@@ -209,6 +215,7 @@ export default function UsersPage() {
     const result = await dispatch(toggleUserStatus({ token, userId, status: newStatus }));
     if (toggleUserStatus.fulfilled.match(result)) {
       dispatch(fetchUsers(userFetchParams));
+      dispatch(fetchUserRoleCounts({ token, scope: usersScope }));
     }
   }
 
@@ -219,6 +226,7 @@ export default function UsersPage() {
       const nextPage = users.length === 1 && page > 0 ? page - 1 : page;
       setPage(nextPage);
       dispatch(fetchUsers({ ...userFetchParams, page: nextPage }));
+      dispatch(fetchUserRoleCounts({ token, scope: usersScope }));
     }
   }
 
@@ -230,6 +238,7 @@ export default function UsersPage() {
       dispatch(importUsersCsvSucceeded(result));
       setPage(0);
       dispatch(fetchUsers({ ...userFetchParams, page: 0 }));
+      dispatch(fetchUserRoleCounts({ token, scope: usersScope }));
     } catch (error) {
       dispatch(importUsersCsvFailed(error instanceof Error ? error.message : "Failed to import CSV"));
     }
@@ -267,7 +276,7 @@ export default function UsersPage() {
   return (
     <div className="flex min-h-[calc(100vh-4rem)] flex-col">
       <UsersHeader
-        totalUsers={pagination.totalElements}
+        totalUsers={roleCounts?.all ?? pagination.totalElements}
         onAddUser={openAddModal}
         onImportCsv={handleImportCsv}
         importing={importing}
@@ -293,7 +302,7 @@ export default function UsersPage() {
       )}
 
       <UsersToolbar
-        users={users}
+        roleCounts={roleCounts}
         search={search}
         onSearchChange={handleSearchChange}
         roleFilter={roleFilter}
