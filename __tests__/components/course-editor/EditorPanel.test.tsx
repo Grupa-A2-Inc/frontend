@@ -11,10 +11,6 @@ vi.mock('@/components/course-editor/helpers', () => ({
   entityLabel: (kind: string) => kind === 'chapter' ? 'Chapter' : kind === 'lesson' ? 'Lesson' : 'Resource',
 }))
 
-vi.mock('@/components/course-editor/LinkifyText', () => ({
-  LinkifyText: ({ text }: { text: string }) => React.createElement('span', null, text),
-}))
-
 import React from 'react'
 import { EditorPanel } from '@/components/course-editor/EditorPanel'
 import type { EditorForm, SelectedRef } from '@/components/course-editor/types'
@@ -110,8 +106,9 @@ describe('EditorPanel', () => {
   })
 
   it('shows preview when lesson content is non-empty', () => {
-    render(<EditorPanel {...baseProps} selected={lessonSelected} selectedKind="lesson" form={{ ...baseForm, contentMarkdown: 'Hello content' }} />)
+    render(<EditorPanel {...baseProps} selected={lessonSelected} selectedKind="lesson" form={{ ...baseForm, contentMarkdown: '# Preview heading' }} />)
     expect(screen.getByText('Preview')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Preview heading' })).toBeInTheDocument()
   })
 
   it('shows "Tests can be added after course created" in create mode for lesson', () => {

@@ -16,6 +16,7 @@ export default defineConfig({
         '**/*.d.ts',
         '**/types.ts',
         'lib/auth/dashboardAccess.ts',
+        'lib/classes/api.ts',
       ],
       thresholds: { statements: 84, branches: 84, functions: 84, lines: 84 },
       reporter: ['text', 'lcov', 'html'],

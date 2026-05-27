@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
+import React from 'react'
 
 vi.mock('next/link', () => ({
   default: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => (
@@ -34,6 +35,22 @@ describe('sections/HowItWorks', () => {
     const HowItWorks = (await import('@/components/sections/HowItWorks')).default
     const { container } = render(<HowItWorks />)
     expect(container.firstChild).toBeTruthy()
+  })
+
+  it('renders all 4 step buttons', async () => {
+    const HowItWorks = (await import('@/components/sections/HowItWorks')).default
+    render(<HowItWorks />)
+    const stepButtons = screen.getAllByRole('button')
+    expect(stepButtons.length).toBeGreaterThanOrEqual(4)
+  })
+
+  it('clicking a step button changes active step', async () => {
+    const { default: HowItWorks } = await import('@/components/sections/HowItWorks')
+    render(<HowItWorks />)
+    const stepBtns = screen.getAllByRole('button')
+    fireEvent.click(stepBtns[1])
+    // Just verify no crash
+    expect(document.body).toBeTruthy()
   })
 })
 

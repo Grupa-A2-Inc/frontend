@@ -1,7 +1,9 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
 import AdaptiveQuestionNavigator from '@/components/adaptive/AdaptiveQuestionNavigator'
 import type { ClientExercise } from '@/lib/adaptive/types'
+
+window.HTMLElement.prototype.scrollIntoView = vi.fn()
 
 const exercises: ClientExercise[] = [
   { exerciseId: 'e1', text: 'Q1', type: 'SINGLE_CHOICE', answers: ['A', 'B'] },
@@ -35,5 +37,28 @@ describe('AdaptiveQuestionNavigator', () => {
   it('renders Go to question heading', () => {
     render(<AdaptiveQuestionNavigator exercises={exercises} answeredIds={new Set()} />)
     expect(screen.getByText('Go to question')).toBeInTheDocument()
+  })
+
+  it('clicking a question button triggers scrollIntoView when element exists', () => {
+    const mockEl = { scrollIntoView: vi.fn() }
+    vi.spyOn(document, 'getElementById').mockReturnValue(mockEl as unknown as HTMLElement)
+    render(<AdaptiveQuestionNavigator exercises={exercises} answeredIds={new Set()} />)
+    fireEvent.click(screen.getAllByRole('button')[0])
+    expect(mockEl.scrollIntoView).toHaveBeenCalled()
+    vi.restoreAllMocks()
+  })
+
+  it('clicking a question button when element does not exist does not throw', () => {
+    vi.spyOn(document, 'getElementById').mockReturnValue(null)
+    render(<AdaptiveQuestionNavigator exercises={exercises} answeredIds={new Set()} />)
+    expect(() => fireEvent.click(screen.getAllByRole('button')[0])).not.toThrow()
+    vi.restoreAllMocks()
+  })
+
+  it('renders answered button with different style', () => {
+    render(<AdaptiveQuestionNavigator exercises={exercises} answeredIds={new Set(['e1'])} />)
+    const buttons = screen.getAllByRole('button')
+    // First button (e1) is answered, should have different className
+    expect(buttons[0].className).toContain('bg-brand-primary')
   })
 })

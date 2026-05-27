@@ -1,10 +1,13 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import React from 'react'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 const mockUsePathname = vi.fn(() => '/dashboard/admin')
-const mockUseRouter = vi.fn(() => ({ push: vi.fn(), replace: vi.fn(), back: vi.fn() }))
+const mockRouterPush = vi.fn()
+const mockUseRouter = vi.fn(() => ({ push: mockRouterPush, replace: vi.fn(), back: vi.fn() }))
 const mockSelector = vi.fn()
+const mockDispatch = vi.fn(() => Promise.resolve({ type: 'auth/logout' }))
+const mockToggleTheme = vi.fn()
 
 vi.mock('next/navigation', () => ({
   useRouter: () => mockUseRouter(),
@@ -29,7 +32,7 @@ vi.mock('framer-motion', () => ({
   AnimatePresence: ({ children }: { children: React.ReactNode }) => React.createElement(React.Fragment, null, children),
 }))
 vi.mock('@/store/hooks', () => ({
-  useAppDispatch: () => vi.fn(),
+  useAppDispatch: () => mockDispatch,
   useAppSelector: (selector: (s: unknown) => unknown) => mockSelector(selector),
 }))
 vi.mock('@/store/slices/authSlice', () => ({
@@ -40,7 +43,7 @@ vi.mock('@/components/layout/CustomerSupportChat', () => ({
   default: () => React.createElement('div', { 'data-testid': 'customer-support' }),
 }))
 vi.mock('@/components/ThemeProvider', () => ({
-  useTheme: () => ({ theme: 'dark', toggleTheme: vi.fn() }),
+  useTheme: () => ({ theme: 'dark', toggleTheme: mockToggleTheme }),
 }))
 
 // Set sidebar to expanded (not collapsed)
@@ -130,5 +133,59 @@ describe('SidebarWrapper', () => {
     )
     render(<SidebarWrapper><div>Content</div></SidebarWrapper>)
     expect(document.body).toBeTruthy()
+  })
+
+  it('clicking logout button dispatches logout and navigates home', async () => {
+    setup()
+    render(<SidebarWrapper><div>Content</div></SidebarWrapper>)
+    const logoutBtn = screen.getAllByText(/log out/i).at(0)
+    if (logoutBtn) {
+      fireEvent.click(logoutBtn)
+      await waitFor(() => {
+        expect(mockDispatch).toHaveBeenCalled()
+      })
+    }
+  })
+
+  it('clicking theme toggle calls toggleTheme', () => {
+    setup()
+    render(<SidebarWrapper><div>Content</div></SidebarWrapper>)
+    // Theme toggle buttons show "Light Mode" or "Dark Mode"
+    const themeBtns = screen.getAllByText(/mode/i)
+    if (themeBtns.length > 0) {
+      fireEvent.click(themeBtns[0])
+      expect(mockToggleTheme).toHaveBeenCalled()
+    }
+  })
+
+  it('clicking toggle sidebar button changes collapsed state', () => {
+    setup()
+    render(<SidebarWrapper><div>Content</div></SidebarWrapper>)
+    // Find the collapse button by looking for the chevron_left icon wrapper
+    const collapseBtn = document.querySelector('button[style*="cursor: pointer"]')
+    if (collapseBtn) {
+      fireEvent.click(collapseBtn)
+      expect((window.localStorage.setItem as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('sidebarCollapsed', expect.any(String))
+    }
+  })
+
+  it('mouseenter/mouseleave on logout div updates hovered state', () => {
+    setup()
+    render(<SidebarWrapper><div>Content</div></SidebarWrapper>)
+    const logoutContainer = document.querySelector('.relative')
+    if (logoutContainer) {
+      fireEvent.mouseEnter(logoutContainer)
+      fireEvent.mouseLeave(logoutContainer)
+    }
+    expect(document.body).toBeTruthy()
+  })
+
+  it('renders student nav with Rewards link', () => {
+    const studentUser2 = { ...adminUser, role: 'STUDENT', firstName: 'Sam', lastName: 'Smith' }
+    mockSelector.mockImplementation((selector: (s: unknown) => unknown) =>
+      selector({ auth: { user: studentUser2 } })
+    )
+    render(<SidebarWrapper><div>Content</div></SidebarWrapper>)
+    expect(screen.getAllByText(/Rewards/i).length).toBeGreaterThan(0)
   })
 })

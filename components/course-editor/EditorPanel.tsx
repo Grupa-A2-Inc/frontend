@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Dispatch, SetStateAction } from "react";
+import MarkdownViewer from "@/components/course-content/MarkdownViewer";
 import { entityIcon, entityLabel } from "./helpers";
-import { LinkifyText } from "./LinkifyText";
 import type { EditorEntityKind, EditorForm, EditorLesson, SelectedRef } from "./types";
 
 interface EditorPanelProps {
@@ -143,8 +143,8 @@ function LessonContentField({
             <span className="material-symbols-rounded text-brand-muted" style={{ fontSize: "0.85rem" }}>preview</span>
             <span className="text-xs text-brand-muted">Preview</span>
           </div>
-          <div className="px-4 py-3 text-sm text-brand-text leading-relaxed whitespace-pre-wrap break-words">
-            <LinkifyText text={form.contentMarkdown} />
+          <div className="px-4 py-3 break-words">
+            <MarkdownViewer content={form.contentMarkdown} />
           </div>
         </div>
       )}

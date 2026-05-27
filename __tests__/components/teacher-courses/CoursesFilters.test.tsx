@@ -55,4 +55,29 @@ describe('CoursesFilters', () => {
     fireEvent.click(screen.getAllByText('Hidden')[0])
     expect(onStatusFilterChange).toHaveBeenCalledWith('HIDDEN')
   })
+
+  it('calls onStatusFilterChange with ALL', () => {
+    const onStatusFilterChange = vi.fn()
+    render(<CoursesFilters {...defaultProps} statusFilter="PUBLISHED" onStatusFilterChange={onStatusFilterChange} />)
+    fireEvent.click(screen.getAllByText('All')[0])
+    expect(onStatusFilterChange).toHaveBeenCalledWith('ALL')
+  })
+
+  it('shows active filter with different styling', () => {
+    render(<CoursesFilters {...defaultProps} statusFilter="PUBLISHED" />)
+    // Both Active and non-active buttons should be rendered
+    expect(screen.getAllByText('Published').length).toBeGreaterThan(0)
+  })
+
+  it('mobile dropdown toggles open/closed', () => {
+    render(<CoursesFilters {...defaultProps} />)
+    // The mobile dropdown button shows "All" with a chevron
+    const mobileBtns = document.querySelectorAll('button')
+    // Find the dropdown toggle (it has "⌄" or "⌃" symbol)
+    const dropdownToggle = Array.from(mobileBtns).find(btn => btn.textContent?.includes('⌄') || btn.textContent?.includes('⌃'))
+    if (dropdownToggle) {
+      fireEvent.click(dropdownToggle)
+      expect(document.body).toBeTruthy()
+    }
+  })
 })

@@ -43,4 +43,35 @@ describe('CourseRow', () => {
     fireEvent.click(screen.getByText('Manage'))
     expect(onManage).toHaveBeenCalledWith('c1')
   })
+
+  it('renders HIDDEN status badge', () => {
+    render(<CourseRow course={{ ...baseCourse, status: 'HIDDEN' }} onEdit={vi.fn()} onManage={vi.fn()} />)
+    expect(screen.getByText('Hidden')).toBeInTheDocument()
+  })
+
+  it('toggles mobile expand/collapse on chevron click', () => {
+    render(<CourseRow course={baseCourse} onEdit={vi.fn()} onManage={vi.fn()} />)
+    const chevronBtn = screen.getByText('⌄')
+    fireEvent.click(chevronBtn)
+    // After click, open=true, should show ⌃
+    expect(screen.getByText('⌃')).toBeInTheDocument()
+  })
+
+  it('mobile dropdown shows Edit and Manage buttons when open', () => {
+    render(<CourseRow course={baseCourse} onEdit={vi.fn()} onManage={vi.fn()} />)
+    fireEvent.click(screen.getByText('⌄'))
+    // Now there are multiple Edit and Manage buttons (desktop hidden + mobile visible)
+    const editBtns = screen.getAllByText('Edit')
+    expect(editBtns.length).toBeGreaterThan(1)
+  })
+
+  it('mobile Edit calls onEdit and closes drawer', () => {
+    const onEdit = vi.fn()
+    render(<CourseRow course={baseCourse} onEdit={onEdit} onManage={vi.fn()} />)
+    fireEvent.click(screen.getByText('⌄'))
+    // Click the last Edit button (mobile one)
+    const editBtns = screen.getAllByText('Edit')
+    fireEvent.click(editBtns[editBtns.length - 1])
+    expect(onEdit).toHaveBeenCalledWith('c1')
+  })
 })
