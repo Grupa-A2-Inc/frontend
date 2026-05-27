@@ -5,6 +5,7 @@ import { Award, Calculator, Coins, Loader2, RefreshCcw, Save } from "lucide-reac
 import { useAppSelector } from "@/store/hooks";
 import {
   calculateRewardCycle,
+  fundSepoliaRewardCycle,
   getLatestRewardCycle,
   getRewardConfig,
   mintRewardCycle,
@@ -42,7 +43,7 @@ export default function AdminRewardsPage() {
   const [actionState, setActionState] = useState<ActionState>("idle");
   const [message, setMessage] = useState("");
 
-  const canMint = user?.role === "ADMIN";
+  const canMint = user?.role === "ADMIN" || user?.role === "ORGANIZATION_ADMIN";
   const winners = useMemo(() => cycle?.rewards ?? [], [cycle?.rewards]);
   const totalRewards = useMemo(
     () => winners.reduce((sum, reward) => sum + reward.rewardAmount, 0),
@@ -127,6 +128,28 @@ export default function AdminRewardsPage() {
     } catch (error) {
       setActionState("error");
       setMessage(error instanceof Error ? error.message : "Failed to calculate reward cycle.");
+    }
+  }
+
+  async function handleFundSepolia() {
+    if (!organizationId) return;
+
+    setActionState("loading");
+    setMessage("");
+
+    try {
+      const funded = await fundSepoliaRewardCycle(organizationId, 100);
+      const latest = await getLatestRewardCycle(organizationId);
+      setCycle(latest);
+      setActionState("success");
+      setMessage(
+        funded.provider === "circle-sepolia-faucet"
+          ? "Sepolia EURC funded and deposited in TAIEngine."
+          : `Reward cycle funded with ${funded.provider}.`
+      );
+    } catch (error) {
+      setActionState("error");
+      setMessage(error instanceof Error ? error.message : "Failed to fund reward cycle.");
     }
   }
 
@@ -255,6 +278,15 @@ export default function AdminRewardsPage() {
                 {cycle.status}
               </span>
             )}
+            <button
+              type="button"
+              onClick={handleFundSepolia}
+              disabled={actionState === "loading"}
+              className="inline-flex items-center gap-2 rounded-xl border border-brand-primary/20 px-4 py-2 text-sm font-semibold text-brand-text transition-colors hover:bg-brand-primary/10 disabled:opacity-60"
+            >
+              <Coins size={16} />
+              Fund Sepolia
+            </button>
             <button
               type="button"
               onClick={handleCalculate}

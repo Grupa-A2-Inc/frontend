@@ -6,6 +6,7 @@ import type {
   RewardConfigRequest,
   RewardConfigResponse,
   RewardCycle,
+  StablecoinFundingResponse,
   StudentReward,
   StudentWalletResponse,
 } from "./types";
@@ -118,6 +119,27 @@ export async function calculateRewardCycle(
 
   if (!response.ok) {
     throw await parseRewardError(response, "Failed to calculate reward cycle");
+  }
+
+  return response.json();
+}
+
+export async function fundSepoliaRewardCycle(organizationId: string, amount = 100): Promise<StablecoinFundingResponse> {
+  const response = await fetchWithAuth(
+    rewardUrl(ENDPOINTS.rewards.mockPayment(organizationId)),
+    getAccessToken(),
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ amount }),
+    }
+  );
+
+  if (!response.ok) {
+    throw await parseRewardError(response, "Failed to fund reward cycle");
   }
 
   return response.json();
