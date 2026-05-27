@@ -327,7 +327,6 @@ export default function ProfilePage() {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-brand-text md:text-3xl">My Profile</h1>
-          <p className="mt-1 text-sm text-brand-muted">Account details loaded from the backend.</p>
         </div>
         <button
           type="button"
@@ -348,7 +347,7 @@ export default function ProfilePage() {
           {avatarLetter}
         </div>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-xl font-bold text-brand-text">{displayName}</p>
+          <p className="break-words text-xl font-bold text-brand-text">{displayName}</p>
           <p className="truncate text-sm text-brand-muted">{displayedProfile.email}</p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${roleClass(displayedProfile.role)}`}>
