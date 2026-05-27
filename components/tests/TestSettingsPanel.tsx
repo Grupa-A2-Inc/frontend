@@ -55,9 +55,9 @@ export default function TestSettingsPanel({
 
   return (
     <div className="bg-brand-card border border-brand-border p-6 rounded-xl shadow-sm">
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_170px_300px] xl:items-end">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <label>
+      <div className="grid gap-4 xl:grid-cols-[170px_minmax(300px,1fr)] xl:items-start">
+        <div className="grid min-w-0 gap-4 sm:grid-cols-2 xl:col-span-2">
+          <label className="min-w-0">
             <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-brand-muted">
               Lesson
             </span>
@@ -68,7 +68,7 @@ export default function TestSettingsPanel({
             />
           </label>
 
-          <label>
+          <label className="min-w-0">
             <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-brand-muted">
               Test title
             </span>
@@ -80,7 +80,7 @@ export default function TestSettingsPanel({
             />
           </label>
 
-          <label className="sm:col-span-2">
+          <label className="min-w-0 sm:col-span-2">
             <span className="mb-1 block text-xs font-medium uppercase tracking-wider text-brand-muted">
               Description
             </span>
