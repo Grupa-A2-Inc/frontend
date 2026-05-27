@@ -1,6 +1,6 @@
 "use client";
 
-import type { MouseEvent } from "react";
+import type { KeyboardEvent, MouseEvent } from "react";
 import { StudentCourse } from "@/lib/student-courses/types";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2, PlusCircle } from "lucide-react";
@@ -25,6 +25,16 @@ type Props = {
   token?: string;
 };
 
+function getCourseStatusLabel(course: StudentCourse, isEnrolled: boolean) {
+  if (isEnrolled) return "Enrolled";
+  if (course.status === "PUBLISHED") return "Published";
+  return "Draft";
+}
+
+function isOpenActivationKey(key: string) {
+  return key === "Enter" || key === " ";
+}
+
 export default function CourseCard({
   course,
   variant = "my",
@@ -43,6 +53,13 @@ export default function CourseCard({
     }
   }
 
+  function handleOpenKeyDown(event: KeyboardEvent<HTMLDivElement>) {
+    if (isOpenActivationKey(event.key)) {
+      event.preventDefault();
+      handleOpen();
+    }
+  }
+
   function handleEnroll(event: MouseEvent<HTMLButtonElement>) {
     event.stopPropagation();
     if (!isEnrolled && !isEnrolling) {
@@ -50,9 +67,13 @@ export default function CourseCard({
     }
   }
 
+  const statusLabel = getCourseStatusLabel(course, isEnrolled);
+  const enrollLabel = isEnrolling ? "Enrolling" : statusLabel;
+
   return (
     <div
       onClick={handleOpen}
+      onKeyDown={handleOpenKeyDown}
       className={`bg-brand-card border border-brand-border rounded-2xl overflow-hidden transition-all duration-200 hover:shadow-md flex flex-col ${
         canOpenCourse
           ? "cursor-pointer hover:border-brand-primary/50"
@@ -104,7 +125,7 @@ export default function CourseCard({
 
         <div className="flex items-center justify-between pt-2 border-t border-brand-border mt-auto">
           <span className="text-xs text-brand-muted">
-            {isEnrolled ? "Enrolled" : course.status === "PUBLISHED" ? "Published" : "Draft"}
+            {statusLabel}
           </span>
           {variant === "discover" ? (
             <button
@@ -120,7 +141,7 @@ export default function CourseCard({
               ) : (
                 <PlusCircle size={13} />
               )}
-              {isEnrolling ? "Enrolling" : isEnrolled ? "Enrolled" : "Enroll"}
+              {isEnrolled ? "Enrolled" : enrollLabel}
             </button>
           ) : (
             <span className="text-brand-primary text-xs font-medium">

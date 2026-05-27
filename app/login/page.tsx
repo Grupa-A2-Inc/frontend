@@ -59,7 +59,7 @@ export default function LoginPage() {
         {/* -------------------- */}
         <div className="hidden lg:flex w-1/2 items-center justify-center p-10">
           <Image
-            src="/log-image.jpg"
+            src="/login.svg"
             alt="Edu Illustration"
             width={500}
             height={500}

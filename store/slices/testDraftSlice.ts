@@ -291,7 +291,9 @@ export const publishDraftThunk = createAsyncThunk(
         throw new Error("Set a time limit of at least 60 seconds before publishing.");
       }
 
-      const validationErrors = state.testDraft.questions.flatMap(validateQuestion);
+      const validationErrors = state.testDraft.questions.flatMap((question, index) =>
+        validateQuestion(question, index)
+      );
       if (validationErrors.length > 0) {
         throw new Error(validationErrors.join(" "));
       }

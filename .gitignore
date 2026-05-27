@@ -40,20 +40,24 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# Playwright
-node_modules/
-/test-results/
-html-report/
-/playwright-report/
-/blob-report/
-/playwright/.cache/
-/playwright/.auth/
+# Playwright artifacts
+**/test-results/
+**/playwright-report/
+**/html-report/
+**/blob-report/
+**/playwright/.cache/
+**/playwright/.auth/
+**/.cache/ms-playwright/
+**/ms-playwright/
+**/traces/
+**/screenshots/
+**/videos/
+**/trace.zip
+**/.last-run.json
 
+sonar.js 
 swagger.json
 SPRINT_ACTIVITY_REPORT.md
 todo.md
 test-users-import.csv
 
-Sprint-5-Tests/html-report/    
-
-S5-TESTS/html-report/

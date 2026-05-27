@@ -42,10 +42,11 @@ export default function HowItWorks() {
           {STEPS.map((s, i) => {
             const isActive = activeStep === i;
             return (
-              <div 
+              <button
+                type="button"
                 key={s.step}
                 onClick={() => setActiveStep(i)}
-                className={`relative p-8 rounded-2xl cursor-pointer border transition-all duration-500 overflow-hidden
+                className={`relative p-8 rounded-2xl cursor-pointer border transition-all duration-500 overflow-hidden text-left
                   ${isActive 
                     ? "bg-brand-card border-brand-primary shadow-[0_0_30px_rgba(91,106,208,0.15)] scale-[1.02]" 
                     : "bg-transparent border-brand-border hover:bg-brand-card hover:border-brand-border"
@@ -66,7 +67,7 @@ export default function HowItWorks() {
                 <p className="text-sm text-brand-muted font-medium leading-relaxed">
                   {s.desc}
                 </p>
-              </div>
+              </button>
             );
           })}
         </div>
