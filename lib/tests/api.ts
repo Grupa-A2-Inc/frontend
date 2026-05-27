@@ -427,9 +427,45 @@ export async function apiSubmitTest(
   return normalizeResult(data);
 }
 
-export async function apiGetTestResult(attemptId: string): Promise<TestResult> {
+export async function apiGetTestResult(attemptId: string, testId?: string): Promise<TestResult> {
   const data: any = await apiFetch(ENDPOINTS.attempts.result(attemptId));
-  return normalizeResult(data);
+  const result = normalizeResult(data);
+
+  if (!testId || result.questions.every((question) => question.options.length > 0)) {
+    return result;
+  }
+
+  const testQuestions = await apiGetQuestionsForTest(testId).catch(() => []);
+  const questionsById = new Map(
+    testQuestions
+      .filter((question) => question.id !== undefined)
+      .map((question) => [question.id, question])
+  );
+
+  return {
+    ...result,
+    questions: result.questions.map((question) => {
+      if (question.options.length > 0) return question;
+
+      const sourceQuestion = questionsById.get(question.questionId);
+      if (!sourceQuestion) return question;
+
+      const selectedIds = new Set(question.selectedOptionIds);
+      const correctIds = new Set(question.correctOptionIds);
+
+      return {
+        ...question,
+        options: sourceQuestion.options
+          .filter((option): option is TestOption & { id: number } => option.id !== undefined)
+          .map((option) => ({
+            id: option.id,
+            label: option.text,
+            isSelected: selectedIds.has(option.id),
+            isCorrect: correctIds.has(option.id),
+          })),
+      };
+    }),
+  };
 }
 
 function normalizeResult(data: any): TestResult {
