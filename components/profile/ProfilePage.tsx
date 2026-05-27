@@ -52,6 +52,10 @@ function roleClass(role: string): string {
   return "bg-brand-primary/15 text-brand-text";
 }
 
+function canLoadOrganizationDetails(role: User["role"]): boolean {
+  return role === "ADMIN" || role === "ORGANIZATION_ADMIN";
+}
+
 function StatusBadge({ status }: { status: string }) {
   const active = status === "ACTIVE";
 
@@ -176,7 +180,7 @@ export default function ProfilePage() {
       const organizationId = backendUser.organizationId ?? currentAuthUser.organizationId;
       let nextOrganization = mapOrganizationResponse(null, currentAuthUser);
 
-      if (organizationId) {
+      if (organizationId && canLoadOrganizationDetails(currentAuthUser.role)) {
         try {
           const backendOrganization = await fetchProfileOrganization(organizationId, token);
           nextOrganization = mapOrganizationResponse(backendOrganization, currentAuthUser);
