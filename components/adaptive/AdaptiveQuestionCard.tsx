@@ -86,14 +86,14 @@ export default function AdaptiveQuestionCard(props: AdaptiveQuestionCardProps) {
                 key={answer}
                 onClick={() => props.onAnswer(exercise.exerciseId, answer, multi)}
                 className={`w-full text-left px-4 py-3 rounded-lg border transition-all text-sm font-medium flex items-center gap-3 ${selected
-                  ? "bg-brand-primary/15 border-brand-primary text-brand-primary dark:text-white"
-                  : "bg-brand-bg border-brand-border text-gray-700 dark:text-brand-text hover:border-brand-primary/50 hover:bg-brand-primary/5"
+                  ? "border-sky-500 bg-sky-50 text-sky-800 dark:border-brand-primary dark:bg-brand-primary/15 dark:text-white"
+                  : "border-slate-300 bg-brand-bg text-gray-700 hover:border-sky-400 hover:bg-sky-50/70 dark:border-brand-border dark:text-brand-text dark:hover:border-brand-primary/50 dark:hover:bg-brand-primary/5"
                   }`}
               >
                 <span
                   className={`w-5 h-5 ${multi ? "rounded-sm" : "rounded-full"} border-2 flex-shrink-0 flex items-center justify-center transition-colors ${selected
-                      ? "border-brand-primary bg-brand-primary"
-                      : "border-brand-border"
+                      ? "border-sky-600 bg-sky-600 dark:border-brand-primary dark:bg-brand-primary"
+                      : "border-slate-500 bg-white dark:border-brand-border dark:bg-transparent"
                     }`}
                 >
                   {selected && <span className={`${multi ? "w-3 h-3" : "w-2 h-2 rounded-full"} bg-white`} />}
