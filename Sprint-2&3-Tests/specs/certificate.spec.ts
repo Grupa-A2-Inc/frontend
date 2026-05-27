@@ -23,10 +23,12 @@ const student = {
 
 type EnrollmentOptions = {
   completed?: boolean;
+  completedAt?: string | null;
 };
 
 function enrollmentCourse({
   completed = true,
+  completedAt = completed ? "2026-05-25T10:00:00.000Z" : null,
 }: EnrollmentOptions = {}) {
   return {
     unrollmentId: ENROLLMENT_ID,
@@ -35,7 +37,7 @@ function enrollmentCourse({
     courseCategory: "Mathematics",
     enrolledAt: "2026-05-01T10:00:00.000Z",
     progressPercent: completed ? 100 : 40,
-    completedAt: completed ? "2026-05-25T10:00:00.000Z" : null,
+    completedAt,
   };
 }
 
@@ -74,13 +76,13 @@ async function seedStudentSession(page: Page) {
 
 async function mockDashboard(
   page: Page,
-  options: { completed?: boolean; visibility?: "PUBLIC" | "PRIVATE" } = {}
+  options: { completed?: boolean; completedAt?: string | null; visibility?: "PUBLIC" | "PRIVATE" } = {}
 ) {
-  const { completed = true, visibility = "PUBLIC" } = options;
+  const { completed = true, completedAt, visibility = "PUBLIC" } = options;
 
   await page.route("**/api/v1/students/me/courses?*", async (route) => {
     await json(route, {
-      content: [enrollmentCourse({ completed })],
+      content: [enrollmentCourse({ completed, completedAt })],
       totalPages: 1,
       totalElements: 1,
       numberOfElements: 1,
@@ -154,7 +156,10 @@ test.describe("Student certificate PDF", () => {
   test("hides certificate on an unfinished card and explains it in course overview", async ({
     page,
   }) => {
-    await mockDashboard(page, { completed: false });
+    await mockDashboard(page, {
+      completed: false,
+      completedAt: "2026-05-25T10:00:00.000Z",
+    });
 
     await page.goto("/dashboard/student");
     await expect(page.getByText("Download certificate")).toHaveCount(0);

@@ -91,7 +91,7 @@ export default function CourseCard({
           </div>
         )}
 
-        {variant === "my" && course.completedAt && course.enrollmentId && (
+        {variant === "my" && (course.progressPercent ?? 0) >= 100 && course.enrollmentId && (
           <CertificateDownloadAction
             token={token}
             courseId={course.id}

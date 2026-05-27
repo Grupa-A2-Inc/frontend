@@ -29,6 +29,10 @@ type Props = {
   preventParentNavigation?: boolean;
 };
 
+function isCourseComplete(enrollment?: StudentCourse | null): boolean {
+  return (enrollment?.progressPercent ?? 0) >= 100;
+}
+
 function certificateFileName(courseTitle: string): string {
   const safeTitle = courseTitle
     .trim()
@@ -85,7 +89,7 @@ export default function CertificateDownloadAction({
         if (ignore) return;
         setResolvedEnrollment(currentEnrollment);
 
-        if (!currentEnrollment?.completedAt || !currentEnrollment.enrollmentId) {
+        if (!currentEnrollment?.enrollmentId || !isCourseComplete(currentEnrollment)) {
           setStatus("incomplete");
           return;
         }
