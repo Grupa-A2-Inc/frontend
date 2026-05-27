@@ -1,82 +1,58 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  createCourse,
-  updateCourse,
-  fetchCourseForEditor,
   createChapter,
-  updateChapter,
-  deleteChapter,
+  createCourse,
   createLesson,
-  updateLesson,
-  deleteLesson,
   createResource,
-  updateResource,
+  deleteChapter,
+  deleteLesson,
   deleteResource,
+  fetchCourseForEditor,
+  updateChapter,
+  updateCourse,
+  updateLesson,
+  updateResource,
+  type CourseFullViewDto,
+  type CreateCoursePayload,
 } from "@/lib/courses/editorApi";
-import { isVideoResourceUrl } from "@/lib/courses/resourceType";
 import { EMPTY_FORM, tempId } from "./helpers";
 import type {
   AddTarget,
   CourseEditorProps,
   DeleteTarget,
   EditorChapter,
-  EditorLeaf,
-  EditorNodeType,
+  EditorEntityKind,
+  EditorForm,
+  EditorLesson,
+  EditorResource,
   MoveDirection,
-  NodeForm,
   SelectedRef,
 } from "./types";
 
-interface EditorCourseResponse {
-  title?: string | null;
-  description?: string | null;
-  category?: string | null;
-  status?: "DRAFT" | "PUBLISHED" | null;
-  chapters?: EditorChapterResponse[] | null;
-}
-
-interface EditorChapterResponse {
-  id: string;
-  title?: string | null;
-  orderIndex?: number | null;
-  lessons?: EditorLessonResponse[] | null;
-}
-
-interface EditorLessonResponse {
-  id: string;
-  testId?: string | null;
-  title?: string | null;
-  contentMarkdown?: string | null;
-  lessonResources?: { id?: string | null; url?: string | null }[] | null;
-  orderIndex?: number | null;
-}
-
 export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
   const router = useRouter();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [status, setStatus] = useState<"DRAFT" | "PUBLISHED">("DRAFT");
   const [chapters, setChapters] = useState<EditorChapter[]>([]);
   const [selected, setSelected] = useState<SelectedRef | null>(null);
-  const [nodeForm, setNodeForm] = useState<NodeForm>(EMPTY_FORM);
-  const [savingNode, setSavingNode] = useState(false);
-  const [saveNodeError, setSaveNodeErr] = useState<string | null>(null);
-  const [saveNodeOk, setSaveNodeOk] = useState(false);
+  const [form, setForm] = useState<EditorForm>(EMPTY_FORM);
+  const [savingEntity, setSavingEntity] = useState(false);
+  const [saveEntityError, setSaveEntityError] = useState<string | null>(null);
+  const [saveEntityOk, setSaveEntityOk] = useState(false);
   const [addTarget, setAddTarget] = useState<AddTarget | null>(null);
-  const [addType, setAddType] = useState<EditorNodeType>("TEXT");
-  const [addForm, setAddForm] = useState<NodeForm>(EMPTY_FORM);
-  const [addingNode, setAddingNode] = useState(false);
-  const [addNodeErr, setAddNodeErr] = useState<string | null>(null);
+  const [addForm, setAddForm] = useState<EditorForm>(EMPTY_FORM);
+  const [addingEntity, setAddingEntity] = useState(false);
+  const [addEntityError, setAddEntityError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const [deleteErr, setDeleteErr] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [loadErr, setLoadErr] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [saveErr, setSaveErr] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [saveOk, setSaveOk] = useState(false);
 
   useEffect(() => {
@@ -84,309 +60,271 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
 
     setLoading(true);
     fetchCourseForEditor(courseId)
-      .then((data: EditorCourseResponse) => {
+      .then(data => {
         setTitle(data.title ?? "");
         setDescription(data.description ?? "");
         setCategory(data.category ?? "");
         setStatus(data.status === "PUBLISHED" ? "PUBLISHED" : "DRAFT");
-        setChapters(mapCourseToChapters(data));
+        setChapters(mapCourseStructure(data));
       })
-      .catch((error: Error) => setLoadErr(error.message))
+      .catch((error: Error) => setLoadError(error.message))
       .finally(() => setLoading(false));
   }, [mode, courseId]);
 
+  const selectedChapter = selected
+    ? chapters.find(chapter => chapter.id === selectedChapterId(selected)) ?? null
+    : null;
+  const selectedLesson = selected && selected.kind !== "chapter"
+    ? selectedChapter?.lessons.find(lesson => lesson.id === selectedLessonId(selected)) ?? null
+    : null;
+  const selectedResource = selected?.kind === "resource"
+    ? selectedLesson?.resources.find(resource => resource.id === selected.id) ?? null
+    : null;
+  const selectedKind: EditorEntityKind | null = selected?.kind ?? null;
+
   useEffect(() => {
-    setSaveNodeErr(null);
-    setSaveNodeOk(false);
+    setSaveEntityError(null);
+    setSaveEntityOk(false);
 
     if (!selected) {
-      setNodeForm(EMPTY_FORM);
+      setForm(EMPTY_FORM);
       return;
     }
 
-    if (selected.kind === "chapter") {
-      const chapter = chapters.find(item => item.id === selected.id);
-      if (chapter) {
-        setNodeForm({
-          title: chapter.title,
-          content: "",
-          fileUrl: "",
-          pendingFile: null,
-        });
-      }
+    if (selected.kind === "chapter" && selectedChapter) {
+      setForm({ title: selectedChapter.title, contentMarkdown: "", url: "" });
       return;
     }
 
-    const chapter = chapters.find(item => item.id === selected.chapterId);
-    const leaf = chapter?.children.find(item => item.id === selected.id);
-
-    if (leaf) {
-      setNodeForm({
-        title: leaf.title,
-        content: leaf.content,
-        fileUrl: leaf.fileUrl,
-        pendingFile: leaf.pendingFile,
+    if (selected.kind === "lesson" && selectedLesson) {
+      setForm({
+        title: selectedLesson.title,
+        contentMarkdown: selectedLesson.contentMarkdown,
+        url: "",
       });
-    }
-  }, [selected, chapters]);
-
-  const selectedChapter = selected
-    ? chapters.find(chapter => chapter.id === (selected.kind === "chapter" ? selected.id : selected.chapterId))
-    : null;
-  const selectedLeaf = selected?.kind === "leaf"
-    ? selectedChapter?.children.find(leaf => leaf.id === selected.id) ?? null
-    : null;
-  const selectedType: EditorNodeType | null = selected
-    ? selected.kind === "chapter" ? "CHAPTER" : selectedLeaf?.type ?? null
-    : null;
-
-  async function handleSaveNode() {
-    if (!selected) return;
-
-    if (!nodeForm.title.trim()) {
-      setSaveNodeErr("Title is required.");
-      setSaveNodeOk(false);
       return;
     }
 
-    setSavingNode(true);
-    setSaveNodeErr(null);
+    if (selected.kind === "resource" && selectedResource) {
+      setForm({ title: selectedResource.title, contentMarkdown: "", url: selectedResource.url });
+    }
+  }, [selected, selectedChapter, selectedLesson, selectedResource]);
+
+  async function handleSaveEntity() {
+    if (!selected || !form.title.trim()) {
+      setSaveEntityError("Title is required.");
+      return;
+    }
+
+    if (selected.kind === "resource" && !form.url.trim()) {
+      setSaveEntityError("Resource URL is required.");
+      return;
+    }
+
+    setSavingEntity(true);
+    setSaveEntityError(null);
 
     try {
       if (selected.kind === "chapter") {
-        await saveChapterNode(selected);
+        if (mode === "edit" && !isTemporary(selected.id)) {
+          await updateChapter(selected.id, { title: form.title.trim() });
+        }
+        setChapters(previous => previous.map(chapter =>
+          chapter.id === selected.id ? { ...chapter, title: form.title.trim() } : chapter,
+        ));
+      } else if (selected.kind === "lesson") {
+        if (mode === "edit" && !isTemporary(selected.id)) {
+          await updateLesson(selected.id, {
+            title: form.title.trim(),
+            contentMarkdown: form.contentMarkdown,
+          });
+        }
+        updateLessonInState(selected.chapterId, selected.id, lesson => ({
+          ...lesson,
+          title: form.title.trim(),
+          contentMarkdown: form.contentMarkdown,
+        }));
       } else {
-        await saveLeafNode(selected);
+        if (mode === "edit" && !isTemporary(selected.id)) {
+          await updateResource(selected.lessonId, selected.id, {
+            title: form.title.trim(),
+            url: form.url.trim(),
+          });
+        }
+        updateResourceInState(selected.chapterId, selected.lessonId, selected.id, resource => ({
+          ...resource,
+          title: form.title.trim(),
+          url: form.url.trim(),
+        }));
       }
 
-      setSaveNodeOk(true);
-      setTimeout(() => setSaveNodeOk(false), 2000);
+      setSaveEntityOk(true);
+      setTimeout(() => setSaveEntityOk(false), 2000);
     } catch (error) {
-      setSaveNodeErr(error instanceof Error ? error.message : "Failed to save node");
+      setSaveEntityError(error instanceof Error ? error.message : "Failed to save changes.");
     } finally {
-      setSavingNode(false);
+      setSavingEntity(false);
     }
-  }
-
-  async function saveChapterNode(selection: Extract<SelectedRef, { kind: "chapter" }>) {
-    const title = nodeForm.title.trim();
-
-    if (!selection.id.startsWith("temp_") && mode === "edit") {
-      await updateChapter(selection.id, { title });
-    }
-
-    setChapters(prev => prev.map(chapter =>
-      chapter.id === selection.id
-        ? { ...chapter, title }
-        : chapter,
-    ));
-  }
-
-  async function saveLeafNode(selection: Extract<SelectedRef, { kind: "leaf" }>) {
-    let newResourceId = selectedLeaf?.resourceId ?? "";
-    const title = nodeForm.title.trim();
-
-    if (!selection.id.startsWith("temp_") && mode === "edit") {
-      const isText = selectedLeaf?.type === "TEXT";
-      await updateLesson(selection.id, {
-        title,
-        content: isText ? nodeForm.content : undefined,
-      });
-
-      const isFileOrVideo = selectedLeaf?.type === "FILE" || selectedLeaf?.type === "VIDEO";
-      if (isFileOrVideo) {
-        const hasUrl = nodeForm.fileUrl.trim() !== "";
-        const existingResourceId = selectedLeaf?.resourceId ?? "";
-
-        if (hasUrl && existingResourceId) {
-          await updateResource(selection.id, existingResourceId, {
-            title,
-            url: nodeForm.fileUrl.trim(),
-          });
-        } else if (hasUrl && !existingResourceId) {
-          const result = await createResource(selection.id, {
-            title,
-            url: nodeForm.fileUrl.trim(),
-          });
-          newResourceId = result.id;
-        } else if (!hasUrl && existingResourceId) {
-          await deleteResource(selection.id, existingResourceId);
-          newResourceId = "";
-        }
-      }
-    }
-
-    setChapters(prev => prev.map(chapter =>
-      chapter.id === selection.chapterId
-        ? {
-          ...chapter,
-          children: chapter.children.map(leaf =>
-            leaf.id === selection.id
-              ? {
-                ...leaf,
-                title,
-                content: nodeForm.content,
-                fileUrl: nodeForm.fileUrl,
-                resourceId: newResourceId,
-                pendingFile: null,
-              }
-              : leaf,
-          ),
-        }
-        : chapter,
-    ));
   }
 
   function openAddChapter() {
-    setAddType("CHAPTER");
-    setAddForm(EMPTY_FORM);
-    setAddNodeErr(null);
-    setAddTarget({ kind: "chapter", parentId: null });
+    openAdd({ kind: "chapter" });
   }
 
-  function openAddLeaf(chapterId: string) {
-    setAddType("TEXT");
-    setAddForm(EMPTY_FORM);
-    setAddNodeErr(null);
-    setAddTarget({ kind: "leaf", parentId: chapterId });
+  function openAddLesson(chapterId: string) {
+    openAdd({ kind: "lesson", chapterId });
   }
 
-  async function handleAddNode() {
-    if (!addTarget) return;
+  function openAddResource(chapterId: string, lessonId: string) {
+    openAdd({ kind: "resource", chapterId, lessonId });
+  }
 
-    if (!addForm.title.trim()) {
-      setAddNodeErr("Title is required.");
+  function openAdd(target: AddTarget) {
+    setAddTarget(target);
+    setAddForm(EMPTY_FORM);
+    setAddEntityError(null);
+  }
+
+  async function handleAddEntity() {
+    if (!addTarget || !addForm.title.trim()) {
+      setAddEntityError("Title is required.");
       return;
     }
 
-    const leafType = addType as Exclude<EditorNodeType, "CHAPTER">;
-    const form = addForm;
-    const target = addTarget;
+    if (addTarget.kind === "resource" && !addForm.url.trim()) {
+      setAddEntityError("Resource URL is required.");
+      return;
+    }
 
-    setAddingNode(true);
-    setAddNodeErr(null);
+    setAddingEntity(true);
+    setAddEntityError(null);
 
     try {
-      if (mode === "edit" && courseId) {
-        await addRemoteNode(target, form, leafType);
+      if (addTarget.kind === "chapter") {
+        const id = mode === "edit" && courseId
+          ? (await createChapter(courseId, addForm.title.trim())).id
+          : tempId();
+        if (mode === "edit") {
+          await updateChapter(id, { orderIndex: chapters.length });
+        }
+        const chapter: EditorChapter = {
+          id,
+          title: addForm.title.trim(),
+          orderIndex: chapters.length,
+          lessons: [],
+        };
+        setChapters(previous => [...previous, chapter]);
+        setSelected({ kind: "chapter", id });
+      } else if (addTarget.kind === "lesson") {
+        const chapter = chapters.find(item => item.id === addTarget.chapterId);
+        const orderIndex = chapter?.lessons.length ?? 0;
+        const id = mode === "edit"
+          ? (await createLesson(addTarget.chapterId, {
+              title: addForm.title.trim(),
+              ...(addForm.contentMarkdown ? { contentMarkdown: addForm.contentMarkdown } : {}),
+            })).id
+          : tempId();
+        if (mode === "edit") {
+          await updateLesson(id, { orderIndex });
+        }
+        const lesson: EditorLesson = {
+          id,
+          title: addForm.title.trim(),
+          contentMarkdown: addForm.contentMarkdown,
+          orderIndex,
+          resources: [],
+        };
+        setChapters(previous => previous.map(item =>
+          item.id === addTarget.chapterId
+            ? { ...item, lessons: [...item.lessons, lesson] }
+            : item,
+        ));
+        setSelected({ kind: "lesson", chapterId: addTarget.chapterId, id });
       } else {
-        addLocalNode(target, form, leafType);
+        const id = mode === "edit"
+          ? (await createResource(addTarget.lessonId, {
+              title: addForm.title.trim(),
+              url: addForm.url.trim(),
+            })).id
+          : tempId();
+        const resource: EditorResource = {
+          id,
+          title: addForm.title.trim(),
+          url: addForm.url.trim(),
+        };
+        updateLessonInState(addTarget.chapterId, addTarget.lessonId, lesson => ({
+          ...lesson,
+          resources: [...lesson.resources, resource],
+        }));
+        setSelected({
+          kind: "resource",
+          chapterId: addTarget.chapterId,
+          lessonId: addTarget.lessonId,
+          id,
+        });
       }
 
       setAddTarget(null);
     } catch (error) {
-      setAddNodeErr(error instanceof Error ? error.message : "Failed to add node");
+      setAddEntityError(error instanceof Error ? error.message : "Failed to add item.");
     } finally {
-      setAddingNode(false);
+      setAddingEntity(false);
     }
-  }
-
-  async function addRemoteNode(
-    target: AddTarget,
-    form: NodeForm,
-    leafType: Exclude<EditorNodeType, "CHAPTER">,
-  ) {
-    if (target.kind === "chapter") {
-      const result = await createChapter(courseId!, {
-        title: form.title.trim(),
-      });
-      addNodeToState(target, result.id, form, leafType);
-    } else {
-      const result = await createLesson(target.parentId!, {
-        title: form.title.trim(),
-        ...(leafType === "TEXT" && form.content ? { contentMarkdown: form.content } : {}),
-      });
-      addNodeToState(target, result.id, form, leafType);
-    }
-  }
-
-  function addLocalNode(
-    target: AddTarget,
-    form: NodeForm,
-    leafType: Exclude<EditorNodeType, "CHAPTER">,
-  ) {
-    addNodeToState(target, tempId(), form, leafType);
-  }
-
-  function addNodeToState(
-    target: AddTarget,
-    id: string,
-    form: NodeForm,
-    leafType: Exclude<EditorNodeType, "CHAPTER">,
-  ) {
-    if (target.kind === "chapter") {
-      setChapters(prev => [
-        ...prev,
-        {
-          id,
-          title: form.title.trim(),
-          orderIndex: prev.length,
-          children: [],
-        },
-      ]);
-      return;
-    }
-
-    const newLeaf: EditorLeaf = {
-      id,
-      type: leafType,
-      title: form.title.trim(),
-      content: form.content,
-      fileUrl: "",
-      resourceId: "",
-      pendingFile: null,
-      orderIndex: 0,
-    };
-
-    setChapters(prev => prev.map(chapter =>
-      chapter.id === target.parentId
-        ? { ...chapter, children: [...chapter.children, { ...newLeaf, orderIndex: chapter.children.length }] }
-        : chapter,
-    ));
-
-    setSelected({ kind: "leaf", chapterId: target.parentId!, id });
   }
 
   function promptDeleteChapter(chapter: EditorChapter) {
-    setDeleteErr(null);
+    setDeleteError(null);
     setDeleteTarget({
       label: `chapter "${chapter.title || "Untitled"}"`,
       onConfirm: async () => {
-        if (mode === "edit" && !chapter.id.startsWith("temp_")) await deleteChapter(chapter.id);
-        setChapters(prev => prev.filter(item => item.id !== chapter.id));
-        if (selected?.kind === "chapter" && selected.id === chapter.id) setSelected(null);
-        if (selected?.kind === "leaf" && selected.chapterId === chapter.id) setSelected(null);
+        if (mode === "edit" && !isTemporary(chapter.id)) await deleteChapter(chapter.id);
+        setChapters(previous => previous.filter(item => item.id !== chapter.id));
+        if (selected && selectedChapterId(selected) === chapter.id) setSelected(null);
       },
     });
   }
 
-  function promptDeleteLeaf(chapterId: string, leaf: EditorLeaf) {
-    setDeleteErr(null);
+  function promptDeleteLesson(chapterId: string, lesson: EditorLesson) {
+    setDeleteError(null);
     setDeleteTarget({
-      label: `"${leaf.title || "Untitled"}"`,
+      label: `lesson "${lesson.title || "Untitled"}"`,
       onConfirm: async () => {
-        if (mode === "edit" && !leaf.id.startsWith("temp_")) await deleteLesson(leaf.id);
-        setChapters(prev => prev.map(chapter =>
+        if (mode === "edit" && !isTemporary(lesson.id)) await deleteLesson(lesson.id);
+        setChapters(previous => previous.map(chapter =>
           chapter.id === chapterId
-            ? { ...chapter, children: chapter.children.filter(item => item.id !== leaf.id) }
+            ? { ...chapter, lessons: chapter.lessons.filter(item => item.id !== lesson.id) }
             : chapter,
         ));
-        if (selected?.kind === "leaf" && selected.id === leaf.id) setSelected(null);
+        if (selected && selectedLessonId(selected) === lesson.id) setSelected(null);
+      },
+    });
+  }
+
+  function promptDeleteResource(chapterId: string, lessonId: string, resource: EditorResource) {
+    setDeleteError(null);
+    setDeleteTarget({
+      label: `resource "${resource.title || "Untitled"}"`,
+      onConfirm: async () => {
+        if (mode === "edit" && !isTemporary(resource.id)) await deleteResource(lessonId, resource.id);
+        updateLessonInState(chapterId, lessonId, lesson => ({
+          ...lesson,
+          resources: lesson.resources.filter(item => item.id !== resource.id),
+        }));
+        if (selected?.kind === "resource" && selected.id === resource.id) setSelected(null);
       },
     });
   }
 
   async function handleDeleteConfirm() {
     if (!deleteTarget) return;
-
     setDeleting(true);
-    setDeleteErr(null);
+    setDeleteError(null);
 
     try {
       await deleteTarget.onConfirm();
       setDeleteTarget(null);
     } catch (error) {
-      setDeleteErr(error instanceof Error ? error.message : "Failed to delete");
+      setDeleteError(error instanceof Error ? error.message : "Failed to delete item.");
     } finally {
       setDeleting(false);
     }
@@ -394,76 +332,105 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
 
   async function moveChapter(id: string, direction: MoveDirection) {
     const index = chapters.findIndex(chapter => chapter.id === id);
-    if (direction === "UP" && index === 0) return;
-    if (direction === "DOWN" && index === chapters.length - 1) return;
+    if (index < 0 || (direction === "UP" && index === 0) || (direction === "DOWN" && index === chapters.length - 1)) return;
 
-    const next = [...chapters];
-    const swapIndex = direction === "UP" ? index - 1 : index + 1;
-    [next[index], next[swapIndex]] = [next[swapIndex], next[index]];
-    setChapters(next.map((chapter, orderIndex) => ({ ...chapter, orderIndex })));
+    const reordered = reorder(chapters, index, direction);
+    try {
+      if (mode === "edit") {
+        await Promise.all(reordered.map((chapter, orderIndex) =>
+          chapter.orderIndex !== orderIndex
+            ? updateChapter(chapter.id, { orderIndex })
+            : Promise.resolve(),
+        ));
+      }
+      setChapters(reordered.map((chapter, orderIndex) => ({ ...chapter, orderIndex })));
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Failed to reorder chapters.");
+    }
   }
 
-  async function moveLeaf(chapterId: string, leafId: string, direction: MoveDirection) {
+  async function moveLesson(chapterId: string, lessonId: string, direction: MoveDirection) {
     const chapter = chapters.find(item => item.id === chapterId);
-    if (!chapter) return;
+    const index = chapter?.lessons.findIndex(lesson => lesson.id === lessonId) ?? -1;
+    if (!chapter || index < 0 || (direction === "UP" && index === 0) || (direction === "DOWN" && index === chapter.lessons.length - 1)) return;
 
-    const index = chapter.children.findIndex(leaf => leaf.id === leafId);
-    if (direction === "UP" && index === 0) return;
-    if (direction === "DOWN" && index === chapter.children.length - 1) return;
-
-    const nextChildren = [...chapter.children];
-    const swapIndex = direction === "UP" ? index - 1 : index + 1;
-    [nextChildren[index], nextChildren[swapIndex]] = [nextChildren[swapIndex], nextChildren[index]];
-
-    setChapters(prev => prev.map(item =>
-      item.id === chapterId
-        ? { ...item, children: nextChildren.map((leaf, orderIndex) => ({ ...leaf, orderIndex })) }
-        : item,
-    ));
+    const reordered = reorder(chapter.lessons, index, direction);
+    try {
+      if (mode === "edit") {
+        await Promise.all(reordered.map((lesson, orderIndex) =>
+          lesson.orderIndex !== orderIndex
+            ? updateLesson(lesson.id, { orderIndex })
+            : Promise.resolve(),
+        ));
+      }
+      setChapters(previous => previous.map(item =>
+        item.id === chapterId
+          ? { ...item, lessons: reordered.map((lesson, orderIndex) => ({ ...lesson, orderIndex })) }
+          : item,
+      ));
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : "Failed to reorder lessons.");
+    }
   }
 
   async function handleSaveCourse() {
     if (!title.trim()) {
-      setSaveErr("Course title is required.");
+      setSaveError("Course title is required.");
       return;
     }
-
     if (!category.trim()) {
-      setSaveErr("Course category is required.");
+      setSaveError("Course category is required.");
       return;
     }
 
     setSaving(true);
-    setSaveErr(null);
+    setSaveError(null);
     setSaveOk(false);
+    const metadata = {
+      title: title.trim(),
+      description: description.trim(),
+      category: category.trim(),
+      status,
+    };
 
     try {
-      const meta = {
-        title: title.trim(),
-        description: description.trim(),
-        category: category.trim(),
-        status,
-      };
-
       if (mode === "create") {
-        const created = await createCourse(meta);
-        await createCourseTree(created.id, chapters);
+        const created = await createCourse(toCreatePayload(metadata, chapters));
         router.push(`/dashboard/teacher/courses/${created.id}`);
       } else {
-        await updateCourse(courseId!, meta);
+        await updateCourse(courseId!, metadata);
         setSaveOk(true);
         setTimeout(() => setSaveOk(false), 3000);
       }
     } catch (error) {
-      setSaveErr(error instanceof Error ? error.message : "Failed to save");
+      setSaveError(error instanceof Error ? error.message : "Failed to save course.");
     } finally {
       setSaving(false);
     }
   }
 
-  function closeDeleteModal() {
-    setDeleteTarget(null);
-    setDeleteErr(null);
+  function updateLessonInState(
+    chapterId: string,
+    lessonId: string,
+    update: (lesson: EditorLesson) => EditorLesson,
+  ) {
+    setChapters(previous => previous.map(chapter =>
+      chapter.id === chapterId
+        ? { ...chapter, lessons: chapter.lessons.map(lesson => lesson.id === lessonId ? update(lesson) : lesson) }
+        : chapter,
+    ));
+  }
+
+  function updateResourceInState(
+    chapterId: string,
+    lessonId: string,
+    resourceId: string,
+    update: (resource: EditorResource) => EditorResource,
+  ) {
+    updateLessonInState(chapterId, lessonId, lesson => ({
+      ...lesson,
+      resources: lesson.resources.map(resource => resource.id === resourceId ? update(resource) : resource),
+    }));
   }
 
   return {
@@ -478,89 +445,107 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     chapters,
     selected,
     setSelected,
-    nodeForm,
-    setNodeForm,
-    savingNode,
-    saveNodeError,
-    saveNodeOk,
+    selectedKind,
+    selectedLesson,
+    form,
+    setForm,
+    savingEntity,
+    saveEntityError,
+    saveEntityOk,
     addTarget,
-    addType,
-    setAddType,
     addForm,
     setAddForm,
-    addingNode,
-    addNodeErr,
+    addingEntity,
+    addEntityError,
     deleteTarget,
     deleting,
-    deleteErr,
+    deleteError,
     loading,
-    loadErr,
+    loadError,
     saving,
-    saveErr,
+    saveError,
     saveOk,
-    selectedLeaf,
-    selectedType,
-    fileInputRef,
     openAddChapter,
-    openAddLeaf,
-    handleAddNode,
+    openAddLesson,
+    openAddResource,
+    handleAddEntity,
+    handleSaveEntity,
     promptDeleteChapter,
-    promptDeleteLeaf,
+    promptDeleteLesson,
+    promptDeleteResource,
     handleDeleteConfirm,
     closeAddModal: () => setAddTarget(null),
-    closeDeleteModal,
+    closeDeleteModal: () => {
+      setDeleteTarget(null);
+      setDeleteError(null);
+    },
     moveChapter,
-    moveLeaf,
+    moveLesson,
     handleSaveCourse,
-    handleSaveNode,
   };
 }
 
-function inferLessonType(lesson: EditorLessonResponse): Exclude<EditorNodeType, "CHAPTER"> {
-  if (lesson.testId) return "TEST";
-  const firstUrl = lesson.lessonResources?.[0]?.url ?? "";
-  if (firstUrl) return isVideoResourceUrl(firstUrl) ? "VIDEO" : "FILE";
-  return "TEXT";
+function isTemporary(id: string): boolean {
+  return id.startsWith("temp_");
 }
 
-function mapCourseToChapters(data: EditorCourseResponse): EditorChapter[] {
+function selectedChapterId(selected: SelectedRef): string {
+  return selected.kind === "chapter" ? selected.id : selected.chapterId;
+}
+
+function selectedLessonId(selected: SelectedRef): string | undefined {
+  return selected.kind === "chapter" ? undefined : selected.kind === "lesson" ? selected.id : selected.lessonId;
+}
+
+function reorder<T>(items: T[], index: number, direction: MoveDirection): T[] {
+  const reordered = [...items];
+  const swapIndex = direction === "UP" ? index - 1 : index + 1;
+  [reordered[index], reordered[swapIndex]] = [reordered[swapIndex], reordered[index]];
+  return reordered;
+}
+
+function mapCourseStructure(data: CourseFullViewDto): EditorChapter[] {
   return (data.chapters ?? []).map((chapter, chapterIndex) => ({
     id: chapter.id,
     title: chapter.title ?? "",
     orderIndex: chapter.orderIndex ?? chapterIndex,
-    children: (chapter.lessons ?? []).map((lesson, lessonIndex): EditorLeaf => ({
+    lessons: (chapter.lessons ?? []).map((lesson, lessonIndex) => ({
       id: lesson.id,
-      type: inferLessonType(lesson),
       title: lesson.title ?? "",
-      content: lesson.contentMarkdown ?? "",
-      fileUrl: lesson.lessonResources?.[0]?.url ?? "",
-      resourceId: lesson.lessonResources?.[0]?.id ?? "",
-      pendingFile: null,
+      contentMarkdown: lesson.contentMarkdown ?? "",
       orderIndex: lesson.orderIndex ?? lessonIndex,
+      testId: lesson.testId ?? undefined,
+      resources: (lesson.lessonResources ?? []).map(resource => ({
+        id: resource.id,
+        title: resource.title ?? "",
+        url: resource.url ?? "",
+      })),
     })),
   }));
 }
 
-//fix bug
-//nodurile capitolelor
-async function createCourseTree(courseId: string, chapters: EditorChapter[]) {
-  for (const chapter of [...chapters].sort((a, b) => a.orderIndex - b.orderIndex)) {
-    const chapterResult = await createChapter(courseId, {
-      title: chapter.title.trim(),
-    });
-
-    for (const leaf of [...chapter.children].sort((a, b) => a.orderIndex - b.orderIndex)) {
-      const lessonResult = await createLesson(chapterResult.id, {
-        title: leaf.title.trim(),
-        ...(leaf.type === "TEXT" && leaf.content ? { contentMarkdown: leaf.content } : {}),
-      });
-
-      if ((leaf.type === "FILE" || leaf.type === "VIDEO") && leaf.fileUrl && leaf.fileUrl.trim() !== "") {
-        await createResource(lessonResult.id, {
-          title: leaf.title.trim(),
-          url: leaf.fileUrl.trim(),
-        });
-      }
-    }
-  }
+function toCreatePayload(
+  metadata: Omit<CreateCoursePayload, "chapters">,
+  chapters: EditorChapter[],
+): CreateCoursePayload {
+  return {
+    ...metadata,
+    chapters: [...chapters]
+      .sort((left, right) => left.orderIndex - right.orderIndex)
+      .map((chapter, chapterIndex) => ({
+        title: chapter.title.trim(),
+        orderIndex: chapterIndex,
+        lessons: [...chapter.lessons]
+          .sort((left, right) => left.orderIndex - right.orderIndex)
+          .map((lesson, lessonIndex) => ({
+            title: lesson.title.trim(),
+            contentMarkdown: lesson.contentMarkdown,
+            orderIndex: lessonIndex,
+            lessonResources: lesson.resources.map(resource => ({
+              title: resource.title.trim(),
+              url: resource.url.trim(),
+            })),
+          })),
+      })),
+  };
 }

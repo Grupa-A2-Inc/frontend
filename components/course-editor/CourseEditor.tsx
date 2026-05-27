@@ -1,12 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { AddNodeModal } from "./AddNodeModal";
+import { AddEntityModal } from "./AddEntityModal";
 import { ContentTree } from "./ContentTree";
 import { CourseEditorHeader } from "./CourseEditorHeader";
 import { CourseMetaForm } from "./CourseMetaForm";
 import { DeleteConfirmModal } from "./DeleteConfirmModal";
-import { NodeEditorPanel } from "./NodeEditorPanel";
+import { EditorPanel } from "./EditorPanel";
 import type { CourseEditorProps } from "./types";
 import { useCourseEditor } from "./useCourseEditor";
 
@@ -22,10 +22,10 @@ export default function CourseEditor(props: CourseEditorProps) {
     );
   }
 
-  if (editor.loadErr) {
+  if (editor.loadError) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-        <p className="text-red-400 text-sm">{editor.loadErr}</p>
+        <p className="text-red-400 text-sm">{editor.loadError}</p>
         <Link href="/dashboard/teacher" className="text-brand-primary text-sm hover:underline">
           Back to My Courses
         </Link>
@@ -41,11 +41,11 @@ export default function CourseEditor(props: CourseEditorProps) {
         title={editor.title}
         saving={editor.saving}
         saveOk={editor.saveOk}
-        saveErr={editor.saveErr}
+        saveErr={editor.saveError}
         onSave={editor.handleSaveCourse}
       />
       <div className="flex flex-col md:flex-row flex-1 md:overflow-hidden">
-        <div className="w-full md:w-[360px] md:flex-shrink-0 flex flex-col border-b md:border-b-0 md:border-r border-brand-primary/10 overflow-y-auto">
+        <div className="w-full md:w-[380px] md:flex-shrink-0 flex flex-col border-b md:border-b-0 md:border-r border-brand-primary/10 overflow-y-auto">
           <CourseMetaForm
             title={editor.title}
             description={editor.description}
@@ -57,48 +57,51 @@ export default function CourseEditor(props: CourseEditorProps) {
             onStatusChange={editor.setStatus}
           />
           <ContentTree
+            mode={mode}
+            courseId={courseId}
             chapters={editor.chapters}
             selected={editor.selected}
             onSelect={editor.setSelected}
             onAddChapter={editor.openAddChapter}
-            onAddLeaf={editor.openAddLeaf}
+            onAddLesson={editor.openAddLesson}
+            onAddResource={editor.openAddResource}
             onMoveChapter={editor.moveChapter}
-            onMoveLeaf={editor.moveLeaf}
+            onMoveLesson={editor.moveLesson}
             onDeleteChapter={editor.promptDeleteChapter}
-            onDeleteLeaf={editor.promptDeleteLeaf}
+            onDeleteLesson={editor.promptDeleteLesson}
+            onDeleteResource={editor.promptDeleteResource}
           />
         </div>
-        <NodeEditorPanel
-          selected={editor.selected}
-          selectedType={editor.selectedType}
-          selectedLeaf={editor.selectedLeaf}
-          nodeForm={editor.nodeForm}
-          savingNode={editor.savingNode}
-          saveNodeOk={editor.saveNodeOk}
-          saveNodeError={editor.saveNodeError}
+        <EditorPanel
+          mode={mode}
           courseId={courseId}
-          onFormChange={editor.setNodeForm}
-          onSaveNode={editor.handleSaveNode}
+          selected={editor.selected}
+          selectedKind={editor.selectedKind}
+          selectedLesson={editor.selectedLesson}
+          form={editor.form}
+          saving={editor.savingEntity}
+          saved={editor.saveEntityOk}
+          error={editor.saveEntityError}
+          onFormChange={editor.setForm}
+          onSave={editor.handleSaveEntity}
         />
       </div>
       {editor.addTarget && (
-        <AddNodeModal
+        <AddEntityModal
           addTarget={editor.addTarget}
-          addType={editor.addType}
           addForm={editor.addForm}
-          addingNode={editor.addingNode}
-          addNodeErr={editor.addNodeErr}
+          adding={editor.addingEntity}
+          error={editor.addEntityError}
           onClose={editor.closeAddModal}
-          onTypeChange={editor.setAddType}
           onFormChange={editor.setAddForm}
-          onAddNode={editor.handleAddNode}
+          onAdd={editor.handleAddEntity}
         />
       )}
       {editor.deleteTarget && (
         <DeleteConfirmModal
           deleteTarget={editor.deleteTarget}
           deleting={editor.deleting}
-          deleteErr={editor.deleteErr}
+          deleteErr={editor.deleteError}
           onClose={editor.closeDeleteModal}
           onConfirm={editor.handleDeleteConfirm}
         />

@@ -501,7 +501,7 @@ Course Editor
 Rolul paginii
 pagină unică pentru creare și editare de curs
 locul în care profesorul definește metadatele cursului și structura de conținut
-locul în care profesorul construiește content tree-ul cursului, inclusiv nodurile de tip test
+locul în care profesorul construiește ierarhia curs -> capitole -> lecții -> resurse
 Cine are acces
 profesorul care creează sau deține cursul
 Cum ajunge utilizatorul aici
@@ -511,73 +511,64 @@ Ce poate face utilizatorul pe pagină
 creează un curs nou sau editează un curs existent
 modifică titlul cursului
 modifică descrierea cursului
-setează data de expirare a cursului
-construiește și reorganizează content tree-ul cursului
-adaugă noduri noi în content tree
-editează nodurile existente
-șterge noduri existente
 adaugă capitole
-adaugă resurse de tip text, file, video și test
-pentru nodurile de tip text, poate scrie conținut cu recunoaștere de hyperlink-uri
+adaugă și reorganizează lecții în capitole
+scrie conținutul markdown al unei lecții
+adaugă, editează și șterge mai multe resurse URL în fiecare lecție
+din editare, deschide builder-ul dedicat pentru testul unic al unei lecții
 salvează modificările asupra cursului
 Date consumate din backend
 Endpoint-uri:
 în modul create nu este necesar fetch inițial complex, în afară de eventuale valori default
-GET /courses/{courseId}
-GET /courses/{courseId}/tree
+GET /api/v1/courses/{courseId}/full-view
 Date afișate:
 metadatele cursului
-data de expirare, dacă există
-structura completă a content tree-ului
-datele nodului selectat pentru editare
+capitolele, lecțiile și toate resursele asociate lecțiilor
+indicator/acțiune de test per lecție în modul editare
 Date trimise către backend
 Endpoint-uri:
-POST /courses
-PUT /courses/{courseId}
-POST /courses/{courseId}/nodes
-PUT /course-nodes/{nodeId}
-DELETE /course-nodes/{nodeId}
-POST /course-nodes/{nodeId}/move
-endpoint dedicat de upload pentru fișiere/video, dacă backend-ul îl separă
+POST /api/v1/courses
+PUT /api/v1/courses/{courseId}
+POST /api/v1/courses/{courseId}/chapters
+PATCH /api/v1/chapters/{id}
+DELETE /api/v1/chapters/{id}
+POST /api/v1/chapters/{chapterId}/lessons
+PATCH /api/v1/lessons/{id}/metadata
+PATCH /api/v1/lessons/{id}/content
+DELETE /api/v1/lessons/{id}
+POST /api/v1/lessons/{lessonId}/resources
+PATCH /api/v1/lessons/{lessonId}/resources/{resourceId}
+DELETE /api/v1/lessons/{lessonId}/resources/{resourceId}
 Payload-uri:
-pentru curs:
-title
-description
-pentru creare nod:
-parentNodeId
-nodeType
-resourceType
-title
-description opțional, pentru chapter
-content pentru text
-referință la fișierul încărcat pentru file/video
-pentru update nod:
-câmpurile editabile ale nodului
+la creare curs: metadate plus chapters[].lessons[].lessonResources[]
+pentru capitol: title și orderIndex la actualizare
+pentru lecție: title, contentMarkdown și orderIndex la actualizare
+pentru resursă: title și url
 State/UI logic necesar
 loading pentru datele cursului în modul edit
 stare locală pentru modul create sau edit
-stare pentru nodul selectat în arbore
+stare pentru capitolul, lecția sau resursa selectată în arbore
 stare pentru formularul de metadate ale cursului
-stare pentru formularul nodului selectat
-stare pentru deschiderea fluxului de add node
+stare pentru formularul entității selectate
+stare pentru fluxurile add chapter, add lesson și add resource
 stare de salvare și eroare
-eventual confirmare la ștergere
-eventual stare de reordonare a nodurilor
+confirmare la ștergere
+reordonare persistentă pentru capitole și lecții prin orderIndex
 Componente principale
 course metadata section
-content tree panel
-node editor panel
-add node flow
+chapter/lesson/resource tree panel
+entity editor panel
+add entity flow
 Navigație din pagină
 înapoi către Course Details / Course Management
 înapoi către My Courses
-către pagina dedicată a unui test, dacă profesorul deschide un nod de test pentru editare specializată
+către pagina dedicată a testului asociat unei lecții
 Decizii / întrebări deschise
 pagina este una singură pentru create și edit
-la add node, tipul default este TEXT
-chapter este un nod container și are title plus description opțional
-pentru FILE și VIDEO acceptăm doar upload; dacă profesorul vrea să folosească un link extern, îl poate introduce ca text
-data de expirare a cursului trebuie să determine automat arhivarea lui după ce expiră
+nu există noduri sau tipuri TEXT/FILE/VIDEO/TEST în modelul backend
+o lecție conține text și zero sau mai multe resurse simultan
+testul nu este resursă; se creează sau editează prin builder-ul dedicat după salvarea lecției
+în create mode nu se adaugă teste; acestea devin disponibile ulterior în edit mode
 
 Test Editor / AI Generate Test
 Rolul paginii
@@ -587,8 +578,8 @@ locul în care profesorul revizuiește, acceptă și editează întrebările în
 Cine are acces
 profesorul care deține cursul și testul
 Cum ajunge utilizatorul aici
-din Course Editor, atunci când adaugă un nod de test
-din Course Details / Course Management, prin click pe un test existent din content tree
+din Course Editor, prin acțiunea create/open test a unei lecții salvate
+din Course Details / Course Management, prin click pe testul unei lecții
 Ce poate face utilizatorul pe pagină
 pornește generarea unui test cu AI pe baza conținutului relevant din curs
 selectează pe ce parte din conținut se bazează testul
@@ -598,14 +589,13 @@ revizuiește întrebările generate
 editează manual întrebările, variantele de răspuns și răspunsul corect
 șterge întrebări generate care nu sunt bune
 regenerează total sau parțial întrebările
-salvează testul ca resursă stabilă a cursului
+salvează testul asociat lecției
 publică/acceptă forma finală a testului pentru a putea fi rezolvată de elevi
 Date consumate din backend
 Endpoint-uri:
-GET /courses/{courseId}
-GET /courses/{courseId}/tree
-GET /tests/{testId} pentru editarea unui test existent
-POST /tests/generate-from-course-content sau echivalent pentru generare AI
+GET /api/v1/lessons/{lessonId}/test
+GET /api/v1/tests/{testId} pentru editarea unui test existent
+GET /api/tests/{testId}/questions
 Date afișate:
 metadatele cursului relevante pentru test
 zona de conținut selectată pentru generare
@@ -613,18 +603,18 @@ draft-ul de întrebări generate
 întrebările și variantele unui test existent
 Date trimise către backend
 Endpoint-uri:
-POST /tests/generate-from-course-content
-POST /courses/{courseId}/nodes dacă testul se creează ca nod nou în content tree
-POST /tests
-PUT /tests/{testId}
+POST /api/v1/lessons/{lessonId}/test
+PATCH /api/v1/tests/{testId}
+PATCH /api/v1/tests/{testId}/publish
+POST /api/tests/{testId}/questions
+PUT /api/tests/{testId}/questions/{questionId}
 Payload-uri:
-pentru generare AI:
-courseId
-nodeIds sau zona de conținut selectată
-questionCount
 pentru salvare test:
 title
 description opțional
+timeLimitSec
+aiEnabled
+pentru generare AI: lessonId și questionCount
 questions
 pentru fiecare întrebare:
 prompt
@@ -651,7 +641,7 @@ pagina trebuie să funcționeze ca un flow de tip Google Forms pentru întrebăr
 profesorul nu scrie manual testul de la zero ca flux principal, ci pornește de la generare AI și apoi revizuiește
 profesorul poate totuși adăuga manual întrebări individuale, dacă este nevoie
 regenerate se poate face atât pentru tot testul, cât și pentru întrebări individuale
-testul devine parte stabilă din content tree doar după ce profesorul îl acceptă și îl salvează
+testul este asociat unei lecții, nu reprezintă un nod sau o resursă în arborele cursului
 în etapa actuală, generarea se bazează pe conținutul cursului, nu pe performanța elevului
 
 Courses Page

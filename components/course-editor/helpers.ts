@@ -1,10 +1,9 @@
-import type { EditorNodeType, NodeForm } from "./types";
+import type { EditorEntityKind, EditorForm } from "./types";
 
-export const EMPTY_FORM: NodeForm = {
+export const EMPTY_FORM: EditorForm = {
   title: "",
-  content: "",
-  fileUrl: "",
-  pendingFile: null,
+  contentMarkdown: "",
+  url: "",
 };
 
 let counter = 0;
@@ -14,32 +13,24 @@ export function tempId() {
   return `temp_${counter}`;
 }
 
-export function nodeIcon(type: EditorNodeType): string {
-  switch (type) {
-    case "CHAPTER":
+export function entityIcon(kind: EditorEntityKind): string {
+  switch (kind) {
+    case "chapter":
       return "folder";
-    case "TEXT":
+    case "lesson":
       return "article";
-    case "FILE":
+    case "resource":
       return "attach_file";
-    case "VIDEO":
-      return "videocam";
-    case "TEST":
-      return "quiz";
   }
 }
 
-export function nodeLabel(type: EditorNodeType): string {
-  switch (type) {
-    case "CHAPTER":
+export function entityLabel(kind: EditorEntityKind): string {
+  switch (kind) {
+    case "chapter":
       return "Chapter";
-    case "TEXT":
-      return "Text";
-    case "FILE":
-      return "File";
-    case "VIDEO":
-      return "Video";
-    case "TEST":
-      return "Test";
+    case "lesson":
+      return "Lesson";
+    case "resource":
+      return "Resource";
   }
 }

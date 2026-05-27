@@ -10,27 +10,84 @@ function getToken(): string {
 async function editorFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
   const callerHeaders = options.headers as Record<string, string> | undefined;
-  const defaultHeaders: Record<string, string> = callerHeaders?.["Content-Type"]
-    ? {}
-    : { "Content-Type": "application/json" };
+  const headers = { "Content-Type": "application/json", ...(callerHeaders ?? {}) };
   const res = await fetchWithAuth(`${API_BASE}${path}`, token, {
     ...options,
-    headers: { ...defaultHeaders, ...(callerHeaders ?? {}) },
+    headers,
   });
+
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.message || `Error ${res.status}`);
   }
+
   if (res.status === 204) return null as T;
   return res.json();
 }
 
-export interface CoursePayload {
+export interface LessonResourceDto {
+  id: string;
+  lessonId?: string;
+  title: string;
+  url: string;
+}
+
+export interface LessonFullViewDto {
+  id: string;
+  chapterId?: string;
+  testId?: string | null;
+  title: string;
+  contentMarkdown?: string | null;
+  orderIndex?: number | null;
+  lessonResources?: LessonResourceDto[] | null;
+}
+
+export interface ChapterFullViewDto {
+  id: string;
+  title: string;
+  orderIndex?: number | null;
+  lessons?: LessonFullViewDto[] | null;
+}
+
+export interface CourseFullViewDto {
+  id: string;
+  title: string;
+  description?: string | null;
+  category?: string | null;
+  status?: "DRAFT" | "PUBLISHED" | null;
+  chapters?: ChapterFullViewDto[] | null;
+}
+
+export interface CreateLessonResourceDto {
+  title: string;
+  url: string;
+}
+
+export interface CreateLessonDto {
+  title: string;
+  contentMarkdown?: string;
+  orderIndex: number;
+  lessonResources: CreateLessonResourceDto[];
+}
+
+export interface CreateChapterDto {
+  title: string;
+  orderIndex: number;
+  lessons: CreateLessonDto[];
+}
+
+interface CourseMetadataPayload {
   title: string;
   description: string;
   category: string;
-  status?: "DRAFT" | "PUBLISHED";
+  status: "DRAFT" | "PUBLISHED";
 }
+
+export interface CreateCoursePayload extends CourseMetadataPayload {
+  chapters: CreateChapterDto[];
+}
+
+export type UpdateCoursePayload = CourseMetadataPayload;
 
 interface CourseSummaryDto {
   id?: string;
@@ -57,8 +114,7 @@ async function fetchCourseSummaryForEditor(courseId: string): Promise<CourseSumm
     const data = await editorFetch<CoursePageDto | CourseSummaryDto[]>(
       `${ENDPOINTS.courses.myCourses}?page=${page}&size=100`,
     );
-    const courses = getCourses(data);
-    const match = courses.find(course => course.id === courseId);
+    const match = getCourses(data).find(course => course.id === courseId);
 
     if (match) return match;
     if (Array.isArray(data)) return null;
@@ -70,37 +126,37 @@ async function fetchCourseSummaryForEditor(courseId: string): Promise<CourseSumm
   return null;
 }
 
-export async function createCourse(payload: CoursePayload): Promise<{ id: string }> {
-  return editorFetch(ENDPOINTS.courses.create, { method: "POST", body: JSON.stringify(payload) });
+export async function createCourse(payload: CreateCoursePayload): Promise<CourseFullViewDto> {
+  return editorFetch(ENDPOINTS.courses.create, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
-export async function updateCourse(courseId: string, payload: CoursePayload): Promise<void> {
-  return editorFetch(ENDPOINTS.courses.byId(courseId), { method: "PUT", body: JSON.stringify(payload) });
+export async function updateCourse(courseId: string, payload: UpdateCoursePayload): Promise<void> {
+  return editorFetch(ENDPOINTS.courses.byId(courseId), {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
 }
 
-export async function fetchCourseForEditor(courseId: string): Promise<Record<string, unknown> & { category: string }> {
+export async function fetchCourseForEditor(courseId: string): Promise<CourseFullViewDto> {
   const [fullView, summary] = await Promise.all([
-    editorFetch<Record<string, unknown>>(ENDPOINTS.courses.fullView(courseId)),
+    editorFetch<CourseFullViewDto>(ENDPOINTS.courses.fullView(courseId)),
     fetchCourseSummaryForEditor(courseId).catch(() => null),
   ]);
-  const fullViewCategory = typeof fullView.category === "string" ? fullView.category : "";
+  const fullViewCategory = fullView.category?.trim() ?? "";
 
   return {
     ...fullView,
-    category: fullViewCategory.trim() ? fullViewCategory : summary?.category ?? "",
+    category: fullViewCategory || summary?.category || "",
   };
 }
 
-// ---------- Chapters ----------
-
-export async function createChapter(
-  courseId: string,
-  payload: { title: string },
-): Promise<{ id: string }> {
+export async function createChapter(courseId: string, title: string): Promise<{ id: string }> {
   return editorFetch(ENDPOINTS.courses.chapters(courseId), {
     method: "POST",
-    headers: { "Content-Type": "text/plain" },
-    body: payload.title,
+    body: JSON.stringify(title),
   });
 }
 
@@ -118,8 +174,6 @@ export async function deleteChapter(chapterId: string): Promise<void> {
   return editorFetch(ENDPOINTS.chapters.byId(chapterId), { method: "DELETE" });
 }
 
-// ---------- Lessons ----------
-
 export async function createLesson(
   chapterId: string,
   payload: { title: string; contentMarkdown?: string },
@@ -132,26 +186,28 @@ export async function createLesson(
 
 export async function updateLesson(
   lessonId: string,
-  payload: { title?: string; content?: string },
+  payload: { title?: string; orderIndex?: number; contentMarkdown?: string },
 ): Promise<void> {
   const calls: Promise<unknown>[] = [];
-  if (payload.title !== undefined) {
+
+  if (payload.title !== undefined || payload.orderIndex !== undefined) {
     calls.push(
       editorFetch(ENDPOINTS.lessons.metadata(lessonId), {
         method: "PATCH",
-        body: JSON.stringify({ title: payload.title }),
+        body: JSON.stringify({ title: payload.title, orderIndex: payload.orderIndex }),
       }),
     );
   }
-  if (payload.content !== undefined && payload.content !== "") {
+
+  if (payload.contentMarkdown !== undefined) {
     calls.push(
       editorFetch(ENDPOINTS.lessons.content(lessonId), {
         method: "PATCH",
-        headers: { "Content-Type": "text/plain" },
-        body: payload.content,
+        body: JSON.stringify(payload.contentMarkdown),
       }),
     );
   }
+
   await Promise.all(calls);
 }
 
@@ -159,11 +215,9 @@ export async function deleteLesson(lessonId: string): Promise<void> {
   return editorFetch(ENDPOINTS.lessons.byId(lessonId), { method: "DELETE" });
 }
 
-// ---------- Resources ----------
-
 export async function createResource(
   lessonId: string,
-  payload: { title: string; url: string },
+  payload: CreateLessonResourceDto,
 ): Promise<{ id: string }> {
   return editorFetch(ENDPOINTS.lessons.resources(lessonId), {
     method: "POST",
@@ -174,7 +228,7 @@ export async function createResource(
 export async function updateResource(
   lessonId: string,
   resourceId: string,
-  payload: { title?: string; url?: string },
+  payload: CreateLessonResourceDto,
 ): Promise<void> {
   return editorFetch(ENDPOINTS.lessons.resourceById(lessonId, resourceId), {
     method: "PATCH",
@@ -182,10 +236,7 @@ export async function updateResource(
   });
 }
 
-export async function deleteResource(
-  lessonId: string,
-  resourceId: string,
-): Promise<void> {
+export async function deleteResource(lessonId: string, resourceId: string): Promise<void> {
   return editorFetch(ENDPOINTS.lessons.resourceById(lessonId, resourceId), {
     method: "DELETE",
   });

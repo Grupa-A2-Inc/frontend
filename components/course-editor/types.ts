@@ -1,35 +1,42 @@
-export type EditorNodeType = "CHAPTER" | "TEXT" | "FILE" | "VIDEO" | "TEST";
+export type EditorEntityKind = "chapter" | "lesson" | "resource";
 
-export interface EditorLeaf {
+export interface EditorResource {
   id: string;
-  type: Exclude<EditorNodeType, "CHAPTER">;
   title: string;
-  content: string;
-  fileUrl: string;
-  resourceId: string;
-  pendingFile: File | null;
+  url: string;
+}
+
+export interface EditorLesson {
+  id: string;
+  title: string;
+  contentMarkdown: string;
   orderIndex: number;
+  testId?: string;
+  resources: EditorResource[];
 }
 
 export interface EditorChapter {
   id: string;
   title: string;
   orderIndex: number;
-  children: EditorLeaf[];
+  lessons: EditorLesson[];
 }
 
 export type SelectedRef =
   | { kind: "chapter"; id: string }
-  | { kind: "leaf"; chapterId: string; id: string };
+  | { kind: "lesson"; chapterId: string; id: string }
+  | { kind: "resource"; chapterId: string; lessonId: string; id: string };
 
-export interface NodeForm {
+export interface EditorForm {
   title: string;
-  content: string;
-  fileUrl: string;
-  pendingFile: File | null;
+  contentMarkdown: string;
+  url: string;
 }
 
-export type AddTarget = { kind: "chapter" | "leaf"; parentId: string | null };
+export type AddTarget =
+  | { kind: "chapter" }
+  | { kind: "lesson"; chapterId: string }
+  | { kind: "resource"; chapterId: string; lessonId: string };
 
 export interface DeleteTarget {
   label: string;
