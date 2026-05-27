@@ -33,4 +33,74 @@ describe('ENDPOINTS', () => {
   it('has subscriptionPlans endpoint', () => {
     expect(ENDPOINTS.subscriptionPlans).toBe('/api/v1/subscription-plans')
   })
+
+  it('has dynamic student endpoints', () => {
+    expect(ENDPOINTS.students.myTestStats('t1')).toBe('/api/v1/students/me/tests/t1/stats')
+    expect(ENDPOINTS.students.myCourseStats('c1')).toBe('/api/v1/students/me/courses/c1/stats')
+    expect(ENDPOINTS.students.coursesProgress('s1')).toBe('/api/v1/students/s1/courses-progress')
+  })
+
+  it('has chapters and lessons endpoints', () => {
+    expect(ENDPOINTS.chapters.lessons('ch1')).toBe('/api/v1/chapters/ch1/lessons')
+    expect(ENDPOINTS.chapters.byId('ch1')).toBe('/api/v1/chapters/ch1')
+    expect(ENDPOINTS.lessons.byId('l1')).toBe('/api/v1/lessons/l1')
+    expect(ENDPOINTS.lessons.test('l1')).toBe('/api/v1/lessons/l1/test')
+    expect(ENDPOINTS.lessons.resources('l1')).toBe('/api/v1/lessons/l1/resources')
+    expect(ENDPOINTS.lessons.resourceById('l1', 'r1')).toBe('/api/v1/lessons/l1/resources/r1')
+    expect(ENDPOINTS.lessons.aiGenerateTest('l1')).toBe('/api/v1/lessons/l1/ai/generate-test')
+  })
+
+  it('has tests and questions endpoints', () => {
+    expect(ENDPOINTS.tests.byId('t1')).toBe('/api/v1/tests/t1')
+    expect(ENDPOINTS.tests.publish('t1')).toBe('/api/v1/tests/t1/publish')
+    expect(ENDPOINTS.tests.start('t1')).toBe('/api/v1/tests/t1/start')
+    expect(ENDPOINTS.tests.questions('t1')).toBe('/api/v1/tests/t1/questions')
+    expect(ENDPOINTS.tests.questionById('t1', 5)).toBe('/api/v1/tests/t1/questions/5')
+    expect(ENDPOINTS.tests.myBest('t1')).toBe('/api/v1/tests/t1/my-best')
+    expect(ENDPOINTS.tests.myAttempts('t1')).toBe('/api/v1/tests/t1/my-attempts')
+    expect(ENDPOINTS.tests.analyticsClassAverage('t1')).toBe('/api/v1/tests/t1/analytics/class-average')
+  })
+
+  it('has attempts endpoints', () => {
+    expect(ENDPOINTS.attempts.submit('a1')).toBe('/api/v1/attempts/a1/submit')
+    expect(ENDPOINTS.attempts.result('a1')).toBe('/api/v1/attempts/a1/result')
+  })
+
+  it('has classrooms endpoints', () => {
+    expect(ENDPOINTS.classrooms.list).toBe('/api/v1/classrooms')
+    expect(ENDPOINTS.classrooms.byId('cls1')).toBe('/api/v1/classrooms/cls1')
+    expect(ENDPOINTS.classrooms.members('cls1')).toBe('/api/v1/classrooms/cls1/members')
+    expect(ENDPOINTS.classrooms.courses('cls1')).toBe('/api/v1/classrooms/cls1/courses')
+  })
+
+  it('has AI endpoints', () => {
+    expect(ENDPOINTS.ai.requestStatus('req1')).toBe('/api/v1/ai/requests/req1/status')
+    expect(ENDPOINTS.ai.injectQuestions('req1')).toBe('/api/v1/ai/request/req1/inject')
+    expect(ENDPOINTS.ai.curriculumCatalog).toBe('/api/v1/ai/catalog/curriculum')
+  })
+
+  it('has courses dynamic endpoints', () => {
+    expect(ENDPOINTS.courses.fullView('c1')).toBe('/api/v1/courses/c1/full-view')
+    expect(ENDPOINTS.courses.chapters('c1')).toBe('/api/v1/courses/c1/chapters')
+    expect(ENDPOINTS.courses.enroll('c1')).toBe('/api/v1/courses/c1/enroll')
+    expect(ENDPOINTS.courses.studentsProgress('c1')).toBe('/api/v1/courses/c1/students-progress')
+    expect(ENDPOINTS.courses.myProgress('c1')).toBe('/api/v1/courses/c1/my-progress')
+  })
+
+  it('has parents endpoints', () => {
+    expect(ENDPOINTS.parents.list).toBe('/api/v1/parents')
+    expect(ENDPOINTS.parents.byId('p1')).toBe('/api/v1/parents/p1')
+    expect(ENDPOINTS.parents.students('p1')).toBe('/api/v1/parents/p1/students')
+    expect(ENDPOINTS.parents.assignStudent('p1', 's1')).toBe('/api/v1/parents/p1/students/s1')
+  })
+
+  it('has professors endpoints', () => {
+    expect(ENDPOINTS.professors.meAlerts).toBe('/api/v1/professors/me/alerts')
+    expect(ENDPOINTS.professors.meLessonsRatings).toBe('/api/v1/professors/me/lessons/ratings')
+    expect(ENDPOINTS.professors.errorReports('p1')).toBe('/api/v1/professors/p1/error-reports')
+  })
+
+  it('has enrollments endpoint', () => {
+    expect(ENDPOINTS.enrollments.certificate('e1')).toBe('/api/v1/enrollments/e1/certificat')
+  })
 })

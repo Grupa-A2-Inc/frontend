@@ -19,18 +19,11 @@ type SubscriptionPayload = {
 };
 
 test.describe('Sprint 5 - subscriptions', () => {
-  test('register page lists available subscription plans', async ({ page }) => {
-    await mockSubscriptionPlans(page);
-
+  test('register page defers subscription choice until after account creation', async ({ page }) => {
     await page.goto('/register');
 
-    await expect(page.getByRole('heading', { name: /subscription plan/i })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Free' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Pro' })).toBeVisible();
-    await expect(page.getByRole('heading', { name: 'Scale' })).toBeVisible();
-
-    await page.getByRole('button', { name: /select plan|choose plan/i }).first().click();
-    await expect(page.getByRole('button', { name: 'Selected' }).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: /subscription plan/i })).toHaveCount(0);
+    await expect(page.getByText(/choose a subscription plan in settings/i)).toBeVisible();
   });
 
   test('settings page shows current subscription and plan limits', async ({ page }) => {
@@ -52,6 +45,21 @@ test.describe('Sprint 5 - subscriptions', () => {
     await expect(proPlan.getByText('100 users', { exact: true })).toBeVisible();
     await expect(proPlan.getByText('25 classrooms', { exact: true })).toBeVisible();
     await expect(proPlan.getByText('50 courses', { exact: true })).toBeVisible();
+  });
+
+  test('only the chosen plan uses the selected state', async ({ page }) => {
+    await seedAdminSession(page);
+    await mockSubscriptionPlans(page);
+    await mockCurrentSubscription(page, plans[1]);
+
+    await page.goto('/dashboard/admin/settings');
+    await expect(page.getByRole('button', { name: /current plan/i })).toBeVisible();
+
+    await page.getByRole('button', { name: /select plan/i }).last().click();
+
+    await expect(page.getByRole('button', { name: 'Selected' })).toHaveCount(1);
+    await expect(page.getByRole('button', { name: 'Current plan' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Select current plan' })).toBeVisible();
   });
 
   test('checkout sends selected plan and redirects to checkout url', async ({ page }) => {
@@ -111,9 +119,11 @@ test.describe('Sprint 5 - subscriptions', () => {
   });
 
   test('shows error when subscription plans fail to load', async ({ page }) => {
+    await seedAdminSession(page);
     await mockSubscriptionPlansError(page);
+    await mockCurrentSubscription(page, plans[1]);
 
-    await page.goto('/register');
+    await page.goto('/dashboard/admin/settings');
 
     await expect(page.getByText('Subscription request failed.')).toBeVisible();
   });

@@ -41,16 +41,17 @@ export default function PlanCard({
   onSelect,
 }: PlanCardProps) {
   const price = formatPrice(plan.priceMonthly, plan.currency);
+  const isSelectedCurrentPlan = selected && current;
 
   return (
     <article
       className={`relative flex h-full flex-col rounded-2xl border p-5 transition-colors ${
-        selected || current
+        selected
           ? "border-brand-primary/70 bg-brand-primary/10"
           : "border-brand-primary/15 bg-brand-card hover:border-brand-primary/40"
       }`}
     >
-      {(selected || current) && (
+      {selected && (
         <div className="absolute right-4 top-4 flex h-7 w-7 items-center justify-center rounded-full bg-brand-primary text-white">
           <Check size={16} />
         </div>
@@ -100,17 +101,23 @@ export default function PlanCard({
 
       <button
         type="button"
-        disabled={disabled || selected || current}
+        disabled={disabled || selected}
         onClick={() => onSelect?.(plan)}
         className={`mt-6 w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors ${
-          selected || current
+          selected
             ? "cursor-default bg-brand-primary/20 text-brand-text"
             : disabled
             ? "cursor-not-allowed border border-brand-primary/15 text-brand-muted/60"
             : "bg-brand-primary text-white hover:bg-brand-primary/90"
         }`}
       >
-        {current ? "Current plan" : selected ? "Selected" : actionLabel}
+        {isSelectedCurrentPlan
+          ? "Current plan"
+          : selected
+          ? "Selected"
+          : current
+          ? "Select current plan"
+          : actionLabel}
       </button>
     </article>
   );

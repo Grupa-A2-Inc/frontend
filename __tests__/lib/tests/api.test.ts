@@ -175,3 +175,128 @@ describe('apiDeleteQuestion', () => {
     await expect(apiDeleteQuestion('t1', 1)).resolves.not.toThrow()
   })
 })
+
+import {
+  apiGenerateAndInjectQuestions,
+  apiStartTestSession,
+  apiSubmitTest,
+  apiGetTestResult,
+  apiGetStudentProgress,
+  apiGetTestAnalytics,
+  apiGetTestsForCourse,
+  apiGetMyAttempts,
+} from '@/lib/tests/api'
+
+const rawSession = {
+  attemptId: 'a1',
+  attemptNumber: 1,
+  startedAt: '2024-01-01',
+  timeLimitSec: 120,
+  test: { id: 't1', title: 'Test' },
+  questions: [{ questionId: 1, questionType: 'SINGLE_CHOICE', content: 'Q?', difficulty: 'EASY', options: [{ optionId: 1, text: 'A', displayOrder: 1 }] }],
+}
+
+const rawResult = {
+  attemptId: 'a1', testId: 't1', score: 80, passed: true, maxScore: 100,
+  startedAt: '2024-01-01', submittedAt: '2024-01-01',
+  questions: [{ questionId: 1, prompt: 'Q?', options: [], isCorrect: true }],
+}
+
+describe('apiStartTestSession', () => {
+  it('returns normalized session', async () => {
+    mockFetch.mockResolvedValueOnce(okRes(rawSession))
+    const result = await apiStartTestSession('t1')
+    expect(result.attemptId).toBe('a1')
+    expect(result.questions[0].prompt).toBe('Q?')
+  })
+})
+
+describe('apiSubmitTest', () => {
+  it('submits and returns result', async () => {
+    mockFetch.mockResolvedValueOnce(okRes(rawResult))
+    const result = await apiSubmitTest('a1', {
+      answers: [{ questionId: 1, selectedOptionIds: [1] }],
+    })
+    expect(result.passed).toBe(true)
+    expect(result.score).toBe(80)
+  })
+})
+
+describe('apiGetTestResult', () => {
+  it('returns result without fetching questions when all have options', async () => {
+    const resultWithOptions = { ...rawResult, questions: [{ questionId: 1, prompt: 'Q?', options: [{ id: 1, label: 'A', order: 1, isCorrect: true }], isCorrect: true }] }
+    mockFetch.mockResolvedValueOnce(okRes(resultWithOptions))
+    const result = await apiGetTestResult('a1')
+    expect(result.passed).toBe(true)
+  })
+
+  it('fetches questions when testId provided and questions lack options', async () => {
+    mockFetch.mockResolvedValueOnce(okRes(rawResult))
+    mockFetch.mockResolvedValueOnce(okRes([rawQuestion]))
+    const result = await apiGetTestResult('a1', 't1')
+    expect(result).toBeDefined()
+  })
+})
+
+describe('apiGetStudentProgress', () => {
+  it('returns student progress', async () => {
+    mockFetch.mockResolvedValueOnce(okRes({ progressPercent: 75, completedLessons: 3, totalLessons: 4 }))
+    const result = await apiGetStudentProgress('c1')
+    expect(result).toBeDefined()
+  })
+})
+
+describe('apiGetTestAnalytics', () => {
+  it('returns test analytics', async () => {
+    mockFetch.mockResolvedValueOnce(okRes({
+      averageScore: 75, totalAttempts: 10, passRate: 80, passed: 8, failed: 2,
+      passThreshold: 70, totalQuestions: 10,
+    }))
+    const result = await apiGetTestAnalytics('t1')
+    expect(result.classAverage).toBe(75)
+  })
+})
+
+describe('apiGetTestsForCourse', () => {
+  it('returns array of tests', async () => {
+    mockFetch.mockResolvedValueOnce(okRes([{ id: 't1' }]))
+    const result = await apiGetTestsForCourse('c1')
+    expect(Array.isArray(result)).toBe(true)
+  })
+})
+
+describe('apiGetMyAttempts', () => {
+  it('returns array of attempts', async () => {
+    mockFetch.mockResolvedValueOnce(okRes([{ attemptId: 'a1' }]))
+    const result = await apiGetMyAttempts('t1')
+    expect(Array.isArray(result)).toBe(true)
+  })
+})
+
+describe('apiGenerateAndInjectQuestions', () => {
+  it('generates and injects questions successfully', async () => {
+    const aiResponse = { requestId: 'req1', status: 'PENDING' }
+    const aiStatus = { requestId: 'req1', status: 'DONE' }
+    const injection = { testId: 't1', injected: 5, skipped: 0, requestId: 'req1' }
+    mockFetch
+      .mockResolvedValueOnce(okRes(aiResponse))     // initiate
+      .mockResolvedValueOnce(okRes(aiStatus))        // poll
+      .mockResolvedValueOnce(okRes(injection))       // inject
+      .mockResolvedValueOnce(okRes(rawTest))          // getTestDetails
+      .mockResolvedValueOnce(okRes([rawQuestion]))   // getEditableQuestions
+
+    const { refreshAccessToken } = await import('@/lib/fetchWithAuth')
+    vi.mocked(refreshAccessToken).mockResolvedValue(undefined as never)
+
+    const result = await apiGenerateAndInjectQuestions('l1', { questionCount: 5, difficulty: 'MEDIUM', language: 'en' })
+    expect(result.test.id).toBe('t1')
+    expect(result.questions).toHaveLength(1)
+  })
+
+  it('throws when AI generation fails immediately', async () => {
+    mockFetch.mockResolvedValueOnce(okRes({ requestId: 'req1', status: 'FAILED' }))
+    await expect(
+      apiGenerateAndInjectQuestions('l1', { questionCount: 5, difficulty: 'MEDIUM', language: 'en' })
+    ).rejects.toThrow('AI generation failed')
+  })
+})

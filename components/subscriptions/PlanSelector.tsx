@@ -13,7 +13,6 @@ type PlanSelectorProps = {
     meta: { source: "initial" | "user" }
   ) => void;
   actionLabel?: string;
-  storageKey?: string;
   compact?: boolean;
 };
 
@@ -39,7 +38,6 @@ export default function PlanSelector({
   currentPlanId,
   onPlanSelect,
   actionLabel,
-  storageKey,
   compact = false,
 }: PlanSelectorProps) {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
@@ -89,12 +87,8 @@ export default function PlanSelector({
 
     initializedRef.current = true;
 
-    const storedPlanId = storageKey
-      ? localStorage.getItem(storageKey) ?? ""
-      : "";
     const initialPlanId =
       selectedPlanId ||
-      storedPlanId ||
       plans.find((plan) => plan.priceMonthly === 0)?.id ||
       plans[0]?.id ||
       "";
@@ -105,7 +99,7 @@ export default function PlanSelector({
     if (initialPlan) {
       onPlanSelect?.(initialPlan, { source: "initial" });
     }
-  }, [plans, selectedPlanId, storageKey, onPlanSelect]);
+  }, [plans, selectedPlanId, onPlanSelect]);
 
   const selectedId = selectedPlanId ?? localSelectedId;
 
@@ -116,9 +110,6 @@ export default function PlanSelector({
 
   function handleSelect(plan: SubscriptionPlan) {
     setLocalSelectedId(plan.id);
-    if (storageKey) {
-      localStorage.setItem(storageKey, plan.id);
-    }
     onPlanSelect?.(plan, { source: "user" });
   }
 

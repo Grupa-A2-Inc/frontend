@@ -66,7 +66,7 @@ async function getErrorMessage(response: Response): Promise<string> {
 }
 
 export async function getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
-  const token = getAccessToken();
+  const token = requireAccessToken();
   const request: RequestInit = {
     method: "GET",
     headers: {
@@ -75,9 +75,7 @@ export async function getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
     cache: "no-store",
   };
   const url = `${API_BASE}${ENDPOINTS.subscriptionPlans}`;
-  const response = token
-    ? await fetchWithAuth(url, token, request)
-    : await fetch(url, request);
+  const response = await fetchWithAuth(url, token, request);
 
   if (!response.ok) {
     throw new Error(await getErrorMessage(response));

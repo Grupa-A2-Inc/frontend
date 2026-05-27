@@ -5,9 +5,6 @@ vi.mock('@/lib/fetchWithAuth', () => ({ fetchWithAuth: vi.fn() }))
 import { fetchWithAuth } from '@/lib/fetchWithAuth'
 const mockFetch = fetchWithAuth as ReturnType<typeof vi.fn>
 
-const mockGlobalFetch = vi.fn()
-vi.stubGlobal('fetch', mockGlobalFetch)
-
 function okRes(body: unknown) {
   return { ok: true, status: 200, json: () => Promise.resolve(body) } as unknown as Response
 }
@@ -26,33 +23,38 @@ beforeEach(() => {
 })
 
 describe('getSubscriptionPlans', () => {
-  it('returns valid plans without token', async () => {
-    mockGlobalFetch.mockResolvedValueOnce(okRes([validPlan]))
-    const plans = await getSubscriptionPlans()
-    expect(plans).toHaveLength(1)
-    expect(plans[0].id).toBe('p1')
+  beforeEach(() => localStorage.setItem('accessToken', 'tok'))
+
+  it('requires an authenticated account', async () => {
+    localStorage.clear()
+    await expect(getSubscriptionPlans()).rejects.toThrow('Access token')
   })
 
-  it('uses fetchWithAuth when token is available', async () => {
-    localStorage.setItem('accessToken', 'tok')
+  it('fetches backend plans with the authenticated account', async () => {
     mockFetch.mockResolvedValueOnce(okRes([validPlan]))
     const plans = await getSubscriptionPlans()
     expect(plans).toHaveLength(1)
+    expect(plans[0].id).toBe('p1')
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/subscription-plans'),
+      'tok',
+      expect.any(Object)
+    )
   })
 
   it('filters out invalid plan objects', async () => {
-    mockGlobalFetch.mockResolvedValueOnce(okRes([validPlan, { id: 'bad' }]))
+    mockFetch.mockResolvedValueOnce(okRes([validPlan, { id: 'bad' }]))
     const plans = await getSubscriptionPlans()
     expect(plans).toHaveLength(1)
   })
 
   it('throws when response is not array', async () => {
-    mockGlobalFetch.mockResolvedValueOnce(okRes({ plans: [] }))
+    mockFetch.mockResolvedValueOnce(okRes({ plans: [] }))
     await expect(getSubscriptionPlans()).rejects.toThrow('unexpected format')
   })
 
   it('throws on HTTP error', async () => {
-    mockGlobalFetch.mockResolvedValueOnce(errRes(500))
+    mockFetch.mockResolvedValueOnce(errRes(500))
     await expect(getSubscriptionPlans()).rejects.toThrow()
   })
 })

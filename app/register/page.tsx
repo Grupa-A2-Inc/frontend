@@ -5,8 +5,6 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { register, clearError } from "@/store/slices/authSlice";
-import PlanSelector from "@/components/subscriptions/PlanSelector";
-import type { SubscriptionPlan } from "@/lib/subscriptions/types";
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -34,7 +32,6 @@ export default function RegisterPage() {
     const [organizationType, setOrganizationType] = useState("");
     const [address, setAddress] = useState("");
     const [phoneNumber, setPhoneNumber] = useState("");
-    const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
 
     // ----------------------------------------
     // UI STATE
@@ -98,7 +95,7 @@ export default function RegisterPage() {
             return;
         }
 
-        router.push("/dashboard/admin");
+        router.push("/dashboard/admin/settings");
     }
 
     return (
@@ -129,6 +126,7 @@ export default function RegisterPage() {
                             <div className="text-xs text-amber-300/90 leading-relaxed space-y-1">
                                 <p className="font-semibold text-amber-300">This page is for organization administrators only.</p>
                                 <p>Registering here creates a new organization and grants you admin access. Teacher and student accounts cannot be created from this page — they must be added by the organization admin from within the dashboard.</p>
+                                <p>After creating your account, you can choose a subscription plan in Settings.</p>
                             </div>
                         </div>
 
@@ -233,27 +231,6 @@ export default function RegisterPage() {
                                     className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
                                     value={phoneNumber}
                                     onChange={(e) => setPhoneNumber(e.target.value)}
-                                />
-                            </div>
-
-                            <div>
-                                <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
-                                    <div>
-                                        <h2 className="text-lg font-semibold text-brand-text">Subscription Plan</h2>
-                                        <p className="text-sm text-brand-muted">
-                                            Choose the plan for this organization.
-                                        </p>
-                                    </div>
-                                    {selectedPlan && (
-                                        <span className="rounded-full border border-brand-primary/20 bg-brand-primary/10 px-3 py-1 text-xs font-semibold text-brand-text">
-                                            {selectedPlan.displayName}
-                                        </span>
-                                    )}
-                                </div>
-                                <PlanSelector
-                                    compact
-                                    storageKey="registerSelectedSubscriptionPlanId"
-                                    onPlanSelect={setSelectedPlan}
                                 />
                             </div>
 
