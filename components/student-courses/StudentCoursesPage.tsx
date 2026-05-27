@@ -132,6 +132,7 @@ const currentCourses = mockCourses;
           enrolledCourseIds={enrolledCourseIds}
           enrollingCourseId={enrollingCourseId}
           onEnroll={handleEnroll}
+          token={token}
         />
       </div>
 
