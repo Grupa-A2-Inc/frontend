@@ -36,6 +36,8 @@ export async function seedAdminSession(page: Page) {
 
   await page.addInitScript((user) => {
     localStorage.setItem('accessToken', 'e2e-token');
-    localStorage.setItem('user', JSON.stringify(user));
+    if (!localStorage.getItem('user')) {
+      localStorage.setItem('user', JSON.stringify(user));
+    }
   }, adminUser);
 }

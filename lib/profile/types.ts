@@ -18,8 +18,8 @@ export type BackendOrganizationResponse = {
   city?: string;
   organizationType?: string;
   type?: string;
-  address?: string;
-  phoneNumber?: string;
+  address?: string | null;
+  phoneNumber?: string | null;
 };
 
 export type UpdateProfilePayload = {
@@ -57,8 +57,8 @@ export function mapOrganizationResponse(
     type: data?.organizationType ?? data?.type ?? fallback?.organizationType ?? "",
     country: data?.country ?? fallback?.country ?? "",
     city: data?.city ?? fallback?.city ?? "",
-    phoneNumber: data?.phoneNumber ?? fallback?.organizationPhoneNumber ?? "",
-    address: data?.address ?? fallback?.organizationAddress ?? "",
+    phoneNumber: data ? data.phoneNumber ?? "" : fallback?.organizationPhoneNumber ?? "",
+    address: data ? data.address ?? "" : fallback?.organizationAddress ?? "",
   };
 }
 
