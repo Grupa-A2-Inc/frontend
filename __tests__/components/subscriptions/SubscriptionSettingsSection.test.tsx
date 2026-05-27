@@ -90,17 +90,26 @@ describe('SubscriptionSettingsSection', () => {
   it('opens action modal when Checkout clicked', async () => {
     mockGetCurrent.mockResolvedValue(mockSubscription)
     render(<SubscriptionSettingsSection />)
-    await screen.findByText('Checkout')
-    fireEvent.click(screen.getAllByText('Checkout')[0])
-    expect(screen.getByLabelText('Close subscription action')).toBeInTheDocument()
+    // Wait for subscription to finish loading (buttons are disabled while loading)
+    await screen.findByText('Free')
+    const checkoutBtns = screen.getAllByText('Checkout')
+    const enabledBtn = checkoutBtns.find(el => !(el.closest('button') as HTMLButtonElement)?.disabled)
+    fireEvent.click(enabledBtn || checkoutBtns[0])
+    await waitFor(() => {
+      expect(screen.getByLabelText('Close subscription action')).toBeInTheDocument()
+    })
   })
 
   it('closes action modal when Close is clicked', async () => {
     mockGetCurrent.mockResolvedValue(mockSubscription)
     render(<SubscriptionSettingsSection />)
-    await screen.findByText('Checkout')
-    fireEvent.click(screen.getAllByText('Checkout')[0])
-    expect(screen.getByLabelText('Close subscription action')).toBeInTheDocument()
+    await screen.findByText('Free')
+    const checkoutBtns = screen.getAllByText('Checkout')
+    const enabledBtn = checkoutBtns.find(el => !(el.closest('button') as HTMLButtonElement)?.disabled)
+    fireEvent.click(enabledBtn || checkoutBtns[0])
+    await waitFor(() => {
+      expect(screen.getByLabelText('Close subscription action')).toBeInTheDocument()
+    })
     fireEvent.click(screen.getByLabelText('Close subscription action'))
     expect(screen.queryByLabelText('Close subscription action')).not.toBeInTheDocument()
   })
@@ -108,15 +117,17 @@ describe('SubscriptionSettingsSection', () => {
   it('opens Change plan modal and shows confirm button', async () => {
     mockGetCurrent.mockResolvedValue(mockSubscription)
     render(<SubscriptionSettingsSection />)
-    await screen.findByText('Change plan')
-    fireEvent.click(screen.getAllByText('Change plan')[0])
+    await screen.findByText('Free')
+    const changePlanBtns = screen.getAllByText('Change plan')
+    const enabledBtn = changePlanBtns.find(el => !(el.closest('button') as HTMLButtonElement)?.disabled)
+    fireEvent.click(enabledBtn || changePlanBtns[0])
     expect(screen.getByText('Confirm change')).toBeInTheDocument()
   })
 
   it('shows plan notice when user selects a plan', async () => {
     mockGetCurrent.mockResolvedValue(mockSubscription)
     render(<SubscriptionSettingsSection />)
-    await screen.findByText('Subscription Plan')
+    await screen.findByText('Free')
     fireEvent.click(screen.getByTestId('select-plan'))
     await waitFor(() => {
       expect(screen.getByText(/Plan selected/)).toBeInTheDocument()
@@ -127,9 +138,11 @@ describe('SubscriptionSettingsSection', () => {
     mockGetCurrent.mockResolvedValue(mockSubscription)
     mockChangePlan.mockResolvedValue(undefined as never)
     render(<SubscriptionSettingsSection />)
-    await screen.findByText('Change plan')
+    await screen.findByText('Free')
     fireEvent.click(screen.getByTestId('select-plan'))
-    fireEvent.click(screen.getByText('Change plan'))
+    const changePlanBtns = screen.getAllByText('Change plan')
+    const enabledBtn = changePlanBtns.find(el => !(el.closest('button') as HTMLButtonElement)?.disabled)
+    fireEvent.click(enabledBtn || changePlanBtns[0])
     const confirmBtn = screen.getByText('Confirm change')
     fireEvent.click(confirmBtn)
     await waitFor(() => {

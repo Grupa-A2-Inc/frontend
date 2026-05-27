@@ -103,4 +103,14 @@ describe('ENDPOINTS', () => {
   it('has enrollments endpoint', () => {
     expect(ENDPOINTS.enrollments.certificate('e1')).toBe('/api/v1/enrollments/e1/certificat')
   })
+
+  it('has rewards endpoints', () => {
+    expect(ENDPOINTS.rewards.organizationConfig('o1')).toBe('/api/v1/rewards/organizations/o1/config')
+    expect(ENDPOINTS.rewards.organizationLatest('o1')).toBe('/api/v1/rewards/organizations/o1/latest')
+    expect(ENDPOINTS.rewards.calculateCycle('o1')).toBe('/api/v1/rewards/cycles/o1/calculate')
+    expect(ENDPOINTS.rewards.cycle('c1')).toBe('/api/v1/rewards/cycles/c1')
+    expect(ENDPOINTS.rewards.mintCycle('c1')).toBe('/api/v1/rewards/cycles/c1/mint')
+    expect(ENDPOINTS.rewards.studentRewards('s1')).toBe('/api/v1/rewards/students/s1')
+    expect(ENDPOINTS.rewards.myWallet).toBe('/api/v1/rewards/students/me/wallet')
+  })
 })

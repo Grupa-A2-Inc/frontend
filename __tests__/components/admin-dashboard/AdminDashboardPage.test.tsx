@@ -35,13 +35,18 @@ const mockGetOrgId = vi.mocked(getOrganizationIdFromStorage)
 const mockGetToken = vi.mocked(getAccessToken)
 
 const mockStats = {
-  totalStudents: 50, totalTeachers: 10, totalCourses: 20, activeClasses: 5,
+  totalStudents: 50, totalTeachers: 10, totalClasses: 5,
   warnings: [],
 }
 
 const mockOrg = {
-  id: 'org1', name: 'Test Org', adminEmail: 'admin@test.com',
-  createdAt: '2024-01-01', studentCount: 50, teacherCount: 10,
+  id: 'org1',
+  organizationName: 'Test Org',
+  organizationType: 'School',
+  country: 'Romania',
+  city: 'Bucharest',
+  address: 'Test street',
+  phoneNumber: '+4000000000',
 }
 
 describe('AdminDashboardPage', () => {

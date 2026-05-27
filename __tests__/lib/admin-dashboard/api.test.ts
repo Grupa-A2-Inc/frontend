@@ -126,32 +126,66 @@ describe('getDashboardStats', () => {
     await expect(getDashboardStats()).rejects.toThrow('Access token')
   })
 
-  it('returns stats counting students, teachers, courses, classes', async () => {
-    const users = [
-      { roleName: 'STUDENT' }, { roleName: 'STUDENT' }, { roleName: 'TEACHER' },
-    ]
-    const courses = [{ id: 'c1' }, { id: 'c2' }]
+  it('returns organization-scoped student, teacher, and class counts', async () => {
+    const students = [{ id: 's1', roleName: 'STUDENT' }, { id: 's2', roleName: 'STUDENT' }]
+    const teachers = [{ id: 't1', roleName: 'TEACHER' }]
     const classrooms = [{ id: 'cl1' }]
 
-    mockFetch.mockResolvedValueOnce(okRes({ content: users }))
-    mockFetch.mockResolvedValueOnce(okRes({ content: courses }))
-    mockFetch.mockResolvedValueOnce(okRes({ classrooms }))
+    mockFetch.mockResolvedValueOnce(okRes({ content: students, totalElements: 2 }))
+    mockFetch.mockResolvedValueOnce(okRes({ content: teachers, totalElements: 1 }))
+    mockFetch.mockResolvedValueOnce(okRes({ classrooms, totalElements: 1 }))
 
     const stats = await getDashboardStats()
     expect(stats.totalStudents).toBe(2)
     expect(stats.totalTeachers).toBe(1)
-    expect(stats.totalCourses).toBe(2)
     expect(stats.totalClasses).toBe(1)
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining('/api/v1/users/organization?role=STUDENT'),
+      'tok',
+      expect.any(Object)
+    )
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining('/api/v1/users/organization?role=TEACHER'),
+      'tok',
+      expect.any(Object)
+    )
   })
 
-  it('returns 0s and warnings when responses are not ok', async () => {
+  it('uses paginated totalElements when the API returns pagination metadata', async () => {
+    mockFetch.mockResolvedValueOnce(okRes({ content: [], totalElements: 42 }))
+    mockFetch.mockResolvedValueOnce(okRes({ content: [], totalElements: 7 }))
+    mockFetch.mockResolvedValueOnce(okRes({ content: [], totalElements: 4 }))
+
+    const stats = await getDashboardStats()
+    expect(stats.totalStudents).toBe(42)
+    expect(stats.totalTeachers).toBe(7)
+    expect(stats.totalClasses).toBe(4)
+  })
+
+  it('walks plain array pages and counts unique records', async () => {
+    const firstStudentPage = Array.from({ length: 1000 }, (_, index) => ({ id: `s${index}` }))
+
+    mockFetch.mockResolvedValueOnce(okRes(firstStudentPage))
+    mockFetch.mockResolvedValueOnce(okRes({ content: [], totalElements: 3 }))
+    mockFetch.mockResolvedValueOnce(okRes({ content: [], totalElements: 2 }))
+    mockFetch.mockResolvedValueOnce(okRes([{ id: 's1000' }]))
+    mockFetch.mockResolvedValueOnce(okRes([]))
+
+    const stats = await getDashboardStats()
+    expect(stats.totalStudents).toBe(1001)
+  })
+
+  it('hides unavailable counts and returns warnings when responses are not ok', async () => {
     mockFetch.mockResolvedValueOnce(errRes(500))
     mockFetch.mockResolvedValueOnce(errRes(500))
     mockFetch.mockResolvedValueOnce(errRes(500))
 
     const stats = await getDashboardStats()
-    expect(stats.totalStudents).toBe(0)
-    expect(stats.totalCourses).toBe(0)
+    expect(stats.totalStudents).toBeNull()
+    expect(stats.totalTeachers).toBeNull()
+    expect(stats.totalClasses).toBeNull()
     expect(stats.warnings).toHaveLength(3)
   })
 })

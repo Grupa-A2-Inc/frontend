@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   getDashboardStats,
@@ -23,9 +23,7 @@ export default function AdminDashboardPage() {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState("");
 
-async function loadDashboard(force = false) {
-  if (!force && stats && organization) return;
-
+const loadDashboard = useCallback(async () => {
   setIsInitialLoading(true);
   setErrorMessage("");
 
@@ -55,11 +53,11 @@ async function loadDashboard(force = false) {
   } finally {
     setIsInitialLoading(false);
   }
-}
+}, []);
 
   useEffect(() => {
-    loadDashboard();
-  }, []);
+    void loadDashboard();
+  }, [loadDashboard]);
 
   if (isInitialLoading) {
   return (
@@ -69,8 +67,8 @@ async function loadDashboard(force = false) {
         <div className="h-4 w-80 animate-pulse rounded bg-[rgb(var(--skeleton-bg-2))]" />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, index) => (
+      <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, index) => (
           <div
             key={index}
             className="h-32 animate-pulse rounded-2xl bg-[rgb(var(--skeleton-bg-1))]"
@@ -104,7 +102,7 @@ async function loadDashboard(force = false) {
         onClick={() => {
           setStats(null);
           setOrganization(null);
-          loadDashboard(true);
+          void loadDashboard();
         }}
         className="rounded-lg bg-black px-4 py-2 text-sm font-medium text-white"
       >

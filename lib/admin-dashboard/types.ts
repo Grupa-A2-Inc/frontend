@@ -1,9 +1,7 @@
 export type AdminDashboardStats = {
-    totalStudents : number;
-    totalTeachers : number;
-    totalClasses : number;
-    totalCourses : number;
-
+    totalStudents: number | null;
+    totalTeachers: number | null;
+    totalClasses: number | null;
     warnings?: string[];
 };
 

@@ -6,6 +6,5 @@ describe('dashboardStatsFallback', () => {
     expect(dashboardStatsFallback.totalStudents).toBe(0)
     expect(dashboardStatsFallback.totalTeachers).toBe(0)
     expect(dashboardStatsFallback.totalClasses).toBe(0)
-    expect(dashboardStatsFallback.totalCourses).toBe(0)
   })
 })

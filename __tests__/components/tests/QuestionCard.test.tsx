@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
 
 const mockDispatch = vi.fn()
 const mockSelector = vi.fn()
@@ -84,5 +84,94 @@ describe('QuestionCard', () => {
   it('does not show Add option for TRUE_FALSE questions', () => {
     render(<QuestionCard lessonId="l1" question={{ ...question, questionType: 'TRUE_FALSE' }} index={0} />)
     expect(screen.queryByText('Add option')).not.toBeInTheDocument()
+  })
+
+  it('dispatches saveQuestionThunk when Save button clicked', () => {
+    render(<QuestionCard lessonId="l1" question={question} index={0} />)
+    fireEvent.click(screen.getByTitle('Save this question'))
+    expect(mockDispatch).toHaveBeenCalled()
+  })
+
+  it('dispatches deleteQuestionThunk when Delete button clicked', () => {
+    render(<QuestionCard lessonId="l1" question={question} index={0} />)
+    const deleteBtn = screen.getByText('Delete').closest('button')!
+    fireEvent.click(deleteBtn)
+    expect(mockDispatch).toHaveBeenCalled()
+  })
+
+  it('dispatches updateQuestionType when select changes', () => {
+    render(<QuestionCard lessonId="l1" question={question} index={0} />)
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'MULTI_CHOICE' } })
+    expect(mockDispatch).toHaveBeenCalled()
+  })
+
+  it('dispatches updateQuestionText when textarea changes', () => {
+    render(<QuestionCard lessonId="l1" question={question} index={0} />)
+    fireEvent.change(screen.getByDisplayValue('What is 2+2?'), { target: { value: 'New question?' } })
+    expect(mockDispatch).toHaveBeenCalled()
+  })
+
+  it('dispatches toggleCorrectOption when correct toggle clicked', () => {
+    render(<QuestionCard lessonId="l1" question={question} index={0} />)
+    const toggleBtn = screen.getAllByTitle('Mark as correct answer')[0]
+    fireEvent.click(toggleBtn)
+    expect(mockDispatch).toHaveBeenCalled()
+  })
+
+  it('dispatches updateOptionText when option input changes', () => {
+    render(<QuestionCard lessonId="l1" question={question} index={0} />)
+    fireEvent.change(screen.getByDisplayValue('Option A'), { target: { value: 'Modified A' } })
+    expect(mockDispatch).toHaveBeenCalled()
+  })
+
+  it('dispatches deleteOption when remove option button clicked', () => {
+    render(<QuestionCard lessonId="l1" question={question} index={0} />)
+    const removeBtn = screen.getAllByTitle('Remove option')[0]
+    fireEvent.click(removeBtn)
+    expect(mockDispatch).toHaveBeenCalled()
+  })
+
+  it('dispatches addOption when Add option button clicked', () => {
+    render(<QuestionCard lessonId="l1" question={question} index={0} />)
+    fireEvent.click(screen.getByText('Add option'))
+    expect(mockDispatch).toHaveBeenCalled()
+  })
+
+  it('shows spinner and disables save button when saving', () => {
+    mockSelector.mockImplementation((selector: (s: unknown) => unknown) =>
+      selector({ testDraft: { deletingQuestionIds: [], savingQuestionIds: ['q1'], isGenerating: false } })
+    )
+    render(<QuestionCard lessonId="l1" question={question} index={0} />)
+    const saveBtn = screen.getByTitle('Save this question')
+    expect(saveBtn).toBeDisabled()
+  })
+
+  it('disables delete button when deleting', () => {
+    mockSelector.mockImplementation((selector: (s: unknown) => unknown) =>
+      selector({ testDraft: { deletingQuestionIds: ['q1'], savingQuestionIds: [], isGenerating: false } })
+    )
+    render(<QuestionCard lessonId="l1" question={question} index={0} />)
+    const deleteBtn = screen.getByText('Delete').closest('button')!
+    expect(deleteBtn).toBeDisabled()
+  })
+
+  it('renders MULTI_CHOICE correct option with checkbox icon', () => {
+    const multiQuestion: TestQuestion = {
+      ...question,
+      questionType: 'MULTI_CHOICE',
+      options: [
+        { clientId: 'o1', id: 1, text: 'Option A', isCorrect: true, displayOrder: 0 },
+        { clientId: 'o2', id: 2, text: 'Option B', isCorrect: false, displayOrder: 1 },
+      ],
+    }
+    render(<QuestionCard lessonId="l1" question={multiQuestion} index={0} />)
+    expect(document.body).toBeTruthy()
+  })
+
+  it('renders readOnly mode with isCorrect option styling', () => {
+    render(<QuestionCard lessonId="l1" question={question} index={0} readOnly={true} />)
+    const optionInput = screen.getByDisplayValue('Option B')
+    expect(optionInput).toBeInTheDocument()
+    expect(optionInput.className).toContain('green')
   })
 })

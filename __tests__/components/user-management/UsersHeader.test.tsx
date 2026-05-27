@@ -46,4 +46,23 @@ describe('UsersHeader', () => {
     render(<UsersHeader {...baseProps} importing={true} />)
     expect(screen.getByText('Importing...')).toBeInTheDocument()
   })
+
+  it('calls onImportCsv with file when CSV input changes', () => {
+    const onImportCsv = vi.fn()
+    render(<UsersHeader {...baseProps} onImportCsv={onImportCsv} />)
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+    const file = new File(['a,b,c'], 'test.csv', { type: 'text/csv' })
+    Object.defineProperty(fileInput, 'files', { value: [file], configurable: true })
+    fileInput.dispatchEvent(new Event('change', { bubbles: true }))
+    expect(onImportCsv).toHaveBeenCalledWith(file)
+  })
+
+  it('does not call onImportCsv when no file selected', () => {
+    const onImportCsv = vi.fn()
+    render(<UsersHeader {...baseProps} onImportCsv={onImportCsv} />)
+    const fileInput = document.querySelector('input[type="file"]') as HTMLInputElement
+    Object.defineProperty(fileInput, 'files', { value: [], configurable: true })
+    fileInput.dispatchEvent(new Event('change', { bubbles: true }))
+    expect(onImportCsv).not.toHaveBeenCalled()
+  })
 })

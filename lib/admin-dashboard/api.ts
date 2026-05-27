@@ -11,25 +11,77 @@ import { API_BASE } from "@/lib/config";
 import { ENDPOINTS } from "@/lib/api-endpoints";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
-type DashboardUserRow = {
-  roleName?: unknown;
-  role?: unknown;
-};
+const DASHBOARD_COUNT_PAGE_SIZE = 1000;
+const MAX_DASHBOARD_COUNT_PAGES = 1000;
 
-function getDataList(data: unknown): unknown[] {
+function getCollectionItems(data: unknown): unknown[] | null {
   if (Array.isArray(data)) return data;
-  if (!data || typeof data !== "object") return [];
+  if (!data || typeof data !== "object") return null;
 
   const record = data as Record<string, unknown>;
-  const list = record.data ?? record.content ?? record.users ?? record.items ?? record.classrooms;
-  return Array.isArray(list) ? list : [];
+  const list =
+    record.data ??
+    record.content ??
+    record.users ??
+    record.items ??
+    record.classrooms;
+  return Array.isArray(list) ? list : null;
 }
 
-function getUserRole(user: unknown): string {
-  if (!user || typeof user !== "object") return "";
+function getReportedTotal(data: unknown): number | null {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return null;
 
-  const row = user as DashboardUserRow;
-  return String(row.roleName ?? row.role ?? "").toUpperCase();
+  const total = (data as Record<string, unknown>).totalElements;
+  return typeof total === "number" && total >= 0 ? total : null;
+}
+
+function getItemIds(items: unknown[]): string[] | null {
+  const ids = items.map((item) => {
+    if (!item || typeof item !== "object") return "";
+    return String((item as Record<string, unknown>).id ?? "");
+  });
+
+  return ids.every(Boolean) ? ids : null;
+}
+
+async function getScopedCollectionCount(
+  endpoint: string,
+  token: string,
+  filters: Record<string, string> = {}
+): Promise<number | null> {
+  const uniqueIds = new Set<string>();
+
+  for (let page = 0; page < MAX_DASHBOARD_COUNT_PAGES; page += 1) {
+    const query = new URLSearchParams({
+      ...filters,
+      page: String(page),
+      size: String(DASHBOARD_COUNT_PAGE_SIZE),
+    });
+    const response = await fetchWithAuth(`${API_BASE}${endpoint}?${query.toString()}`, token, {
+      headers: getAuthHeaders(),
+      cache: "no-store",
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const reportedTotal = getReportedTotal(data);
+    if (reportedTotal !== null) return reportedTotal;
+
+    const items = getCollectionItems(data);
+    if (!items) return null;
+    if (items.length === 0) return uniqueIds.size;
+
+    const itemIds = getItemIds(items);
+    if (!itemIds) return null;
+
+    const countBeforePage = uniqueIds.size;
+    itemIds.forEach((id) => uniqueIds.add(id));
+
+    if (page > 0 && uniqueIds.size === countBeforePage) return uniqueIds.size;
+  }
+
+  return null;
 }
 
 export function getStoredUser(): StoredUser | null {
@@ -159,64 +211,32 @@ export async function getDashboardStats(): Promise<AdminDashboardStats> {
   const warnings: string[] = [];
 
   try {
-    const [usersRes, coursesRes, classroomsRes] = await Promise.all([
-      fetchWithAuth(`${API_BASE}${ENDPOINTS.users.organization}`, token, {
-        headers: getAuthHeaders(),
-        cache: "no-store",
+    const [totalStudents, totalTeachers, totalClasses] = await Promise.all([
+      getScopedCollectionCount(ENDPOINTS.users.organization, token, {
+        role: "STUDENT",
       }),
-      fetchWithAuth(`${API_BASE}${ENDPOINTS.courses.public}`, token, {
-        headers: getAuthHeaders(),
-        cache: "no-store",
+      getScopedCollectionCount(ENDPOINTS.users.organization, token, {
+        role: "TEACHER",
       }),
-      fetchWithAuth(`${API_BASE}${ENDPOINTS.classrooms.list}`, token, {
-        headers: getAuthHeaders(),
-        cache: "no-store",
-      }),
+      getScopedCollectionCount(ENDPOINTS.classrooms.list, token),
     ]);
 
-    let totalStudents = 0;
-    let totalTeachers = 0;
-
-    if (usersRes.ok) {
-      const users = await usersRes.json();
-      const list = getDataList(users);
-
-      totalStudents = list.filter(
-        (user) => getUserRole(user) === "STUDENT"
-      ).length;
-
-      totalTeachers = list.filter(
-        (user) => getUserRole(user) === "TEACHER"
-      ).length;
-    } else {
-      warnings.push("Could not load organization users data.");
+    if (totalStudents === null) {
+      warnings.push("Could not load the organization student count.");
     }
 
-    let totalCourses = 0;
-
-    if (coursesRes.ok) {
-      const courses = await coursesRes.json();
-      const list = getDataList(courses);
-
-      totalCourses = list.length;
-    } else {
-      warnings.push("Could not load courses data.");
+    if (totalTeachers === null) {
+      warnings.push("Could not load the organization teacher count.");
     }
 
-    let totalClasses = 0;
-
-    if (classroomsRes.ok) {
-      const classrooms = await classroomsRes.json();
-      totalClasses = getDataList(classrooms).length;
-    } else {
-      warnings.push("Could not load classes data.");
+    if (totalClasses === null) {
+      warnings.push("Could not load the organization class count.");
     }
 
     return {
       totalStudents,
       totalTeachers,
       totalClasses,
-      totalCourses,
       warnings,
     };
   } catch (error) {
