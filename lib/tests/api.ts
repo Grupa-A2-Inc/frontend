@@ -124,6 +124,20 @@ function getQuestionId(data: any): number | undefined {
   return data?.questionId ?? data?.id;
 }
 
+function normalizeQuestionType(value: unknown): QuestionType {
+  if (value === "MULTIPLE_CHOICE" || value === "MULTI_CHOICE") {
+    return "MULTI_CHOICE";
+  }
+  if (value === "TRUE_FALSE") {
+    return "TRUE_FALSE";
+  }
+  return "SINGLE_CHOICE";
+}
+
+function questionTypeToRequest(questionType: QuestionType): string {
+  return questionType === "MULTI_CHOICE" ? "MULTIPLE_CHOICE" : questionType;
+}
+
 function normalizeOption(data: any, index: number, correctIds: Set<number>): TestOption {
   const id = getOptionId(data);
   const isCorrect = data?.isCorrect ?? (id !== undefined && correctIds.has(id));
@@ -148,7 +162,7 @@ function normalizeQuestion(data: any, index = 0): TestQuestion {
   return {
     id,
     clientId: id !== undefined ? `question-${id}` : `question-new-${crypto.randomUUID()}-${index}`,
-    questionType: (data?.questionType ?? "SINGLE_CHOICE") as QuestionType,
+    questionType: normalizeQuestionType(data?.questionType),
     content: data?.content ?? "",
     difficulty: data?.difficulty,
     options: (data?.options ?? []).map((option: any, optionIndex: number) =>
@@ -159,7 +173,7 @@ function normalizeQuestion(data: any, index = 0): TestQuestion {
 
 function questionToRequest(question: TestQuestion) {
   return {
-    questionType: question.questionType,
+    questionType: questionTypeToRequest(question.questionType),
     content: question.content,
     difficulty: question.difficulty,
     options: question.options.map((option, index) => ({
@@ -383,7 +397,7 @@ export async function apiStartTestSession(testId: string): Promise<TakeTestSessi
     title: data.test?.title ?? "Lesson test",
     questions: (data.questions ?? []).map((question: any) => ({
       questionId: question.questionId,
-      questionType: question.questionType ?? "SINGLE_CHOICE",
+      questionType: normalizeQuestionType(question.questionType),
       prompt: question.content ?? "",
       difficulty: question.difficulty,
       options: (question.options ?? []).map((option: any) => ({
@@ -424,16 +438,36 @@ function normalizeResult(data: any): TestResult {
     const questionId = question.questionId ?? question.id ?? index;
     const selectedOptionIds = (question.selectedOptionIds ?? []).map(Number);
     const correctOptionIds = (question.correctOptionIds ?? []).map(Number);
+    const selectedIds = new Set(selectedOptionIds);
+    const correctIds = new Set(correctOptionIds);
+    const matchesCorrectOptions =
+      correctIds.size > 0 &&
+      selectedIds.size === correctIds.size &&
+      [...selectedIds].every((optionId) => correctIds.has(optionId));
+    const isCorrect =
+      typeof question.correct === "boolean"
+        ? question.correct
+        : typeof question.isCorrect === "boolean"
+          ? question.isCorrect
+          : matchesCorrectOptions;
 
     return {
       id: String(questionId),
       questionId,
-      questionType: (question.questionType ?? "SINGLE_CHOICE") as QuestionType,
+      questionType: normalizeQuestionType(question.questionType),
       prompt: question.content ?? question.prompt ?? "",
       selectedOptionIds,
       correctOptionIds,
-      options: [],
-      isCorrect: Boolean(question.correct ?? question.isCorrect),
+      options: (question.options ?? []).map((option: any) => {
+        const id = Number(option.optionId ?? option.id);
+        return {
+          id,
+          label: option.text ?? option.label ?? "",
+          isSelected: Boolean(option.selected ?? selectedIds.has(id)),
+          isCorrect: Boolean(option.correct ?? option.isCorrect ?? correctIds.has(id)),
+        };
+      }),
+      isCorrect,
     };
   });
 
