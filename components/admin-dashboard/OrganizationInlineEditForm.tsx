@@ -246,12 +246,12 @@ function Field({ label, value, onChange, required }: FieldProps) {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className="
-          w-full rounded-lg 
-          border-[rgb(var(--border))]
-          bg-[rgb(var(--bg-card))] 
-          text-[rgb(var(--text-secondary))]
-          px-3 py-2.5 text-sm outline-none transition 
-          focus:border-[rgb(var(--text-primary))]
+          w-full rounded-lg
+          border border-brand-primary/25
+          bg-brand-mid
+          px-3 py-2.5 text-sm text-brand-text
+          outline-none transition-colors
+          focus:border-brand-primary/60 focus:ring-2 focus:ring-brand-primary/20
         "
       />
     </label>
