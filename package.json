@@ -6,7 +6,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "dev": "next dev"
+    "dev": "next dev",
+    "sonar": "node sonar.js"
   },
   "dependencies": {
     "@reduxjs/toolkit": "^2.11.2",
