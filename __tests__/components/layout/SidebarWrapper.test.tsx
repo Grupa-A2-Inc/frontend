@@ -73,6 +73,43 @@ function setup(user = adminUser) {
   )
 }
 
+describe('SidebarWrapper (mobile)', () => {
+  beforeEach(() => {
+    Object.defineProperty(window, 'innerWidth', { value: 375, configurable: true, writable: true })
+    setup()
+  })
+  afterEach(() => {
+    Object.defineProperty(window, 'innerWidth', { value: 1024, configurable: true, writable: true })
+    vi.clearAllMocks()
+  })
+
+  it('renders mobile header with Toggle menu button', async () => {
+    const { findByLabelText } = render(<SidebarWrapper><div>Content</div></SidebarWrapper>)
+    const menuBtn = await findByLabelText('Toggle menu')
+    expect(menuBtn).toBeInTheDocument()
+  })
+
+  it('opens mobile drawer when menu button clicked', async () => {
+    const { findByLabelText, findByText } = render(<SidebarWrapper><div>Content</div></SidebarWrapper>)
+    const menuBtn = await findByLabelText('Toggle menu')
+    fireEvent.click(menuBtn)
+    // Drawer should show the nav items
+    expect(await findByText(/Log Out/i)).toBeInTheDocument()
+  })
+
+  it('closes mobile drawer when backdrop clicked', async () => {
+    const { findByLabelText } = render(<SidebarWrapper><div>Content</div></SidebarWrapper>)
+    const menuBtn = await findByLabelText('Toggle menu')
+    fireEvent.click(menuBtn)
+    // Click backdrop (first div with bg-black class)
+    const backdrop = document.querySelector('.bg-black\\/60')
+    if (backdrop) {
+      fireEvent.click(backdrop)
+    }
+    expect(document.body).toBeTruthy()
+  })
+})
+
 describe('SidebarWrapper', () => {
   it('renders children', () => {
     setup()

@@ -86,3 +86,48 @@ describe('unenrollFromCourse', () => {
     await expect(unenrollFromCourse('tok', 'c1')).rejects.toThrow()
   })
 })
+
+describe('fetchPublicCourses null-fallback branches', () => {
+  it('uses fallback values when fields are missing', async () => {
+    const sparseData = {
+      content: [{ id: 'c1' }], // missing title, description, category, status, visibility, createdBy
+    }
+    mockFetch.mockResolvedValueOnce(okRes(sparseData))
+    const result = await fetchPublicCourses('tok')
+    expect(result.content[0].title).toBe('Untitled course')
+    expect(result.content[0].category).toBe('Uncategorized')
+  })
+
+  it('uses fallback pagination values when fields are null', async () => {
+    const sparseData = {
+      content: [{ id: 'c2', title: 'X', description: '', category: 'C', status: 'PUBLISHED', visibility: 'PUBLIC', createdBy: '' }],
+      // missing totalPages, totalElements, etc.
+    }
+    mockFetch.mockResolvedValueOnce(okRes(sparseData))
+    const result = await fetchPublicCourses('tok')
+    expect(result.totalPages).toBe(0)
+    expect(result.first).toBe(true)
+    expect(result.last).toBe(true)
+  })
+})
+
+describe('fetchMyCourses null-fallback branches', () => {
+  it('uses fallback values when enrolled course fields are missing', async () => {
+    const sparseEnrolled = {
+      content: [{ courseId: 'c1', enrollmentId: 'e1' }], // missing courseTitle, courseCategory, etc.
+    }
+    mockFetch.mockResolvedValueOnce(okRes(sparseEnrolled))
+    const result = await fetchMyCourses('tok')
+    expect(result.content[0].title).toBe('Untitled course')
+    expect(result.content[0].progressPercent).toBe(0)
+  })
+
+  it('uses unrollmentId when enrollmentId is missing', async () => {
+    const data = {
+      content: [{ unrollmentId: 'u1', courseId: 'c1', courseTitle: 'X', courseCategory: 'C', enrolledAt: '2024-01-01', progressPercent: 0 }],
+    }
+    mockFetch.mockResolvedValueOnce(okRes(data))
+    const result = await fetchMyCourses('tok')
+    expect(result.content[0].enrollmentId).toBe('u1')
+  })
+})

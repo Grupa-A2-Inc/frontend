@@ -11,6 +11,12 @@ vi.mock('@/components/DoodleBackground', () => ({ default: () => <div data-testi
 vi.mock('@/components/DaySky', () => ({ default: () => <div data-testid="day-sky" /> }))
 vi.mock('@/components/Constellation', () => ({ default: () => <div data-testid="constellation" /> }))
 
+const mockInViewRef = { current: null }
+let mockInView = false
+vi.mock('@/hooks/useInView', () => ({
+  useInView: () => ({ ref: mockInViewRef, inView: mockInView }),
+}))
+
 describe('sections/FAQ', () => {
   it('renders without crashing', async () => {
     const FAQ = (await import('@/components/sections/FAQ')).default
@@ -26,6 +32,13 @@ describe('sections/Hero', () => {
   it('renders the section element', async () => {
     const Hero = (await import('@/components/sections/Hero')).default
     const { container } = render(<Hero />)
+    expect(container.querySelector('section')).toBeInTheDocument()
+  })
+
+  it('advances through animation states with fake timers', async () => {
+    const Hero = (await import('@/components/sections/Hero')).default
+    const { container } = render(<Hero />)
+    await vi.runAllTimersAsync()
     expect(container.querySelector('section')).toBeInTheDocument()
   })
 })
@@ -64,8 +77,27 @@ describe('sections/Roles', () => {
 
 describe('sections/WhatItDoes', () => {
   it('renders without crashing', async () => {
+    mockInView = false
     const WhatItDoes = (await import('@/components/sections/WhatItDoes')).default
     const { container } = render(<WhatItDoes />)
     expect(container.firstChild).toBeTruthy()
+  })
+
+  it('renders with inView=true (different class branches)', async () => {
+    mockInView = true
+    const WhatItDoes = (await import('@/components/sections/WhatItDoes')).default
+    const { container } = render(<WhatItDoes />)
+    expect(container.firstChild).toBeTruthy()
+    mockInView = false
+  })
+})
+
+describe('sections/HowItWorks (inView)', () => {
+  it('renders with inView=true to cover animation branches', async () => {
+    mockInView = true
+    const HowItWorks = (await import('@/components/sections/HowItWorks')).default
+    const { container } = render(<HowItWorks />)
+    expect(container.firstChild).toBeTruthy()
+    mockInView = false
   })
 })

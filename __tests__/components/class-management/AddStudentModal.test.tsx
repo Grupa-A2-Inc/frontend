@@ -1,5 +1,5 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 
 vi.mock('@/lib/fetchWithAuth', () => ({
   fetchWithAuth: vi.fn(),
@@ -84,5 +84,77 @@ describe('AddStudentModal', () => {
     render(<AddStudentModal {...baseProps} onClose={onClose} />)
     fireEvent.click(screen.getByText('✕'))
     expect(onClose).toHaveBeenCalled()
+  })
+
+  it('filters users by search query', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => users,
+    } as Response)
+    render(<AddStudentModal {...baseProps} />)
+    await screen.findByText('alice@test.com')
+    fireEvent.change(screen.getByPlaceholderText('Search by name or email…'), { target: { value: 'alice' } })
+    expect(screen.queryByText('bob@test.com')).not.toBeInTheDocument()
+    expect(screen.getByText('alice@test.com')).toBeInTheDocument()
+  })
+
+  it('shows no students message when filtered list is empty', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    } as Response)
+    render(<AddStudentModal {...baseProps} />)
+    expect(await screen.findByText(/No students available to add/i)).toBeInTheDocument()
+  })
+
+  it('shows no teachers available when TEACHER roleFilter and empty', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => [],
+    } as Response)
+    render(<AddStudentModal {...baseProps} roleFilter="TEACHER" />)
+    expect(await screen.findByText(/No teachers available to add/i)).toBeInTheDocument()
+  })
+
+  it('adds a student when Add button clicked', async () => {
+    const onAdded = vi.fn()
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => users } as Response)
+      .mockResolvedValueOnce({ ok: true, json: async () => ({}) } as Response)
+    render(<AddStudentModal {...baseProps} onAdded={onAdded} />)
+    await screen.findByText('alice@test.com')
+    fireEvent.click(screen.getAllByText('Add')[0])
+    await waitFor(() => {
+      expect(onAdded).toHaveBeenCalled()
+    })
+  })
+
+  it('shows error when add member fails', async () => {
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: async () => users } as Response)
+      .mockResolvedValueOnce({ ok: false, json: async () => ({ message: 'Add failed' }) } as Response)
+    render(<AddStudentModal {...baseProps} />)
+    await screen.findByText('alice@test.com')
+    fireEvent.click(screen.getAllByText('Add')[0])
+    expect(await screen.findByText('Add failed')).toBeInTheDocument()
+  })
+
+  it('handles users from data.content format', async () => {
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => ({ content: users }),
+    } as Response)
+    render(<AddStudentModal {...baseProps} />)
+    expect(await screen.findByText('alice@test.com')).toBeInTheDocument()
+  })
+
+  it('handles user with role field instead of roleName', async () => {
+    const usersWithRole = [{ id: 'u3', email: 'carol@test.com', firstName: 'Carol', lastName: 'Lee', role: 'STUDENT' }]
+    mockFetch.mockResolvedValue({
+      ok: true,
+      json: async () => usersWithRole,
+    } as Response)
+    render(<AddStudentModal {...baseProps} />)
+    expect(await screen.findByText('carol@test.com')).toBeInTheDocument()
   })
 })

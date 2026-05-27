@@ -220,6 +220,31 @@ describe('apiSubmitTest', () => {
     expect(result.passed).toBe(true)
     expect(result.score).toBe(80)
   })
+
+  it('uses matchesCorrectOptions when isCorrect and correct fields absent', async () => {
+    const resultWithMatchedOptions = {
+      ...rawResult,
+      questions: [{
+        questionId: 1, prompt: 'Q?', options: [],
+        selectedOptionIds: [1, 2], correctOptionIds: [1, 2],
+        // no 'correct' or 'isCorrect' fields
+      }],
+    }
+    mockFetch.mockResolvedValueOnce(okRes(resultWithMatchedOptions))
+    const result = await apiSubmitTest('a1', { answers: [] })
+    expect(result.questions[0].isCorrect).toBe(true)
+  })
+
+  it('covers data.question fallback (singular)', async () => {
+    const resultWithQuestion = {
+      ...rawResult,
+      questions: undefined,
+      question: [{ questionId: 1, prompt: 'Q?', options: [], isCorrect: false }],
+    }
+    mockFetch.mockResolvedValueOnce(okRes(resultWithQuestion))
+    const result = await apiSubmitTest('a1', { answers: [] })
+    expect(result.questions).toHaveLength(1)
+  })
 })
 
 describe('apiGetTestResult', () => {
@@ -298,5 +323,52 @@ describe('apiGenerateAndInjectQuestions', () => {
     await expect(
       apiGenerateAndInjectQuestions('l1', { questionCount: 5, difficulty: 'MEDIUM', language: 'en' })
     ).rejects.toThrow('AI generation failed')
+  })
+
+  it('throws when poll returns FAILED status with error message', async () => {
+    const aiResponse = { requestId: 'req1', status: 'PENDING' }
+    const aiStatus = { requestId: 'req1', status: 'FAILED', error: 'Poll failed reason' }
+    mockFetch
+      .mockResolvedValueOnce(okRes(aiResponse))  // initiate
+      .mockResolvedValueOnce(okRes(aiStatus))    // poll returns FAILED
+    await expect(
+      apiGenerateAndInjectQuestions('l1', { questionCount: 5, difficulty: 'MEDIUM', language: 'en' })
+    ).rejects.toThrow('Poll failed reason')
+  })
+
+  it('throws when poll returns FAILED with no error message', async () => {
+    const aiResponse = { requestId: 'req1', status: 'PENDING' }
+    const aiStatus = { requestId: 'req1', status: 'FAILED' }
+    mockFetch
+      .mockResolvedValueOnce(okRes(aiResponse))  // initiate
+      .mockResolvedValueOnce(okRes(aiStatus))    // poll returns FAILED, no error field
+    await expect(
+      apiGenerateAndInjectQuestions('l1', { questionCount: 5, difficulty: 'MEDIUM', language: 'en' })
+    ).rejects.toThrow('AI generation failed')
+  })
+
+  it('polls multiple times before DONE', async () => {
+    vi.useFakeTimers()
+    const aiResponse = { requestId: 'req1', status: 'PENDING' }
+    const pendingStatus = { requestId: 'req1', status: 'PENDING' }
+    const aiStatus = { requestId: 'req1', status: 'DONE' }
+    const injection = { testId: 't1', injected: 5, skipped: 0, requestId: 'req1' }
+    mockFetch
+      .mockResolvedValueOnce(okRes(aiResponse))   // initiate
+      .mockResolvedValueOnce(okRes(pendingStatus)) // poll 1 - PENDING
+      .mockResolvedValueOnce(okRes(aiStatus))      // poll 2 - DONE
+      .mockResolvedValueOnce(okRes(injection))     // inject
+      .mockResolvedValueOnce(okRes(rawTest))        // getTestDetails
+      .mockResolvedValueOnce(okRes([rawQuestion])) // getEditableQuestions
+
+    const { refreshAccessToken } = await import('@/lib/fetchWithAuth')
+    vi.mocked(refreshAccessToken).mockResolvedValue(undefined as never)
+
+    const resultPromise = apiGenerateAndInjectQuestions('l1', { questionCount: 5, difficulty: 'MEDIUM', language: 'en' })
+    // Advance all timers to handle the sleep
+    await vi.runAllTimersAsync()
+    const result = await resultPromise
+    expect(result.test.id).toBe('t1')
+    vi.useRealTimers()
   })
 })
