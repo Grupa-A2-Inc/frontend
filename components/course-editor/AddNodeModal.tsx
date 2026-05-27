@@ -92,20 +92,6 @@ export function AddNodeModal({
               </p>
             )}
           </div>
-          {addTarget.kind === "chapter" && (
-            <div>
-              <label className="block text-xs font-medium text-brand-text/60 mb-1.5">
-                Description <span className="text-brand-muted/50 font-normal">(optional)</span>
-              </label>
-              <textarea
-                value={addForm.description}
-                onChange={e => onFormChange(form => ({ ...form, description: e.target.value }))}
-                rows={2}
-                placeholder="Optional description..."
-                className="w-full bg-brand-bg border border-brand-primary/20 rounded-xl px-4 py-2.5 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors resize-none"
-              />
-            </div>
-          )}
           {addTarget.kind === "leaf" && addType === "TEXT" && (
             <div>
               <label className="block text-xs font-medium text-brand-text/60 mb-1.5">

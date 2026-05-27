@@ -14,7 +14,6 @@ export interface EditorLeaf {
 export interface EditorChapter {
   id: string;
   title: string;
-  description: string;
   orderIndex: number;
   children: EditorLeaf[];
 }
@@ -25,7 +24,6 @@ export type SelectedRef =
 
 export interface NodeForm {
   title: string;
-  description: string;
   content: string;
   fileUrl: string;
   pendingFile: File | null;

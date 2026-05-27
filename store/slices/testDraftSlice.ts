@@ -53,6 +53,40 @@ function getErrorMessage(err: unknown, fallback: string) {
   return err instanceof Error ? err.message : fallback;
 }
 
+const DEFAULT_OPTION_TEXT_PATTERN = /^option\s+\d+$/i;
+
+function validateQuestion(question: TestQuestion, index: number): string[] {
+  const label = `Question ${index + 1}`;
+  const errors: string[] = [];
+  const emptyOptions: number[] = [];
+  const placeholderOptions: number[] = [];
+
+  if (!question.content.trim()) {
+    errors.push(`${label}: Question text is required.`);
+  }
+
+  question.options.forEach((option, optionIndex) => {
+    const text = option.text.trim();
+    if (!text) {
+      emptyOptions.push(optionIndex + 1);
+    } else if (DEFAULT_OPTION_TEXT_PATTERN.test(text)) {
+      placeholderOptions.push(optionIndex + 1);
+    }
+  });
+
+  if (emptyOptions.length > 0) {
+    errors.push(`${label}: Option text is required for option(s) ${emptyOptions.join(", ")}.`);
+  }
+  if (placeholderOptions.length > 0) {
+    errors.push(`${label}: Replace the placeholder text in option(s) ${placeholderOptions.join(", ")}.`);
+  }
+  if (!question.options.some((option) => option.isCorrect)) {
+    errors.push(`${label}: Select at least one correct option.`);
+  }
+
+  return errors;
+}
+
 function makeClientId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
@@ -150,6 +184,15 @@ export const saveQuestionThunk = createAsyncThunk(
       if (!question) {
         throw new Error("Question not found.");
       }
+
+      const questionIndex = state.testDraft.questions.findIndex(
+        (item) => item.clientId === payload.questionClientId
+      );
+      const validationErrors = validateQuestion(question, questionIndex);
+      if (validationErrors.length > 0) {
+        throw new Error(validationErrors.join(" "));
+      }
+
       if (!test) {
         if (!lessonId) {
           throw new Error("Lesson not found.");
@@ -213,6 +256,11 @@ export const publishDraftThunk = createAsyncThunk(
         throw new Error("This lesson does not have a test yet.");
       }
 
+      const validationErrors = state.testDraft.questions.flatMap(validateQuestion);
+      if (validationErrors.length > 0) {
+        throw new Error(validationErrors.join(" "));
+      }
+
       const published = await apiPublishTest(testId);
       const questions = await apiGetEditableQuestionsForTest(published.id);
       return { test: published, questions };
@@ -232,11 +280,13 @@ const testDraftSlice = createSlice({
     updateQuestionText(state, action: PayloadAction<{ qId: string; newText: string }>) {
       const question = state.questions.find((item) => item.clientId === action.payload.qId);
       if (question) question.content = action.payload.newText;
+      state.error = null;
     },
     updateQuestionType(state, action: PayloadAction<{ qId: string; questionType: QuestionType }>) {
       const question = state.questions.find((item) => item.clientId === action.payload.qId);
       if (!question) return;
 
+      state.error = null;
       question.questionType = action.payload.questionType;
       if (action.payload.questionType === "TRUE_FALSE") {
         question.options = ["True", "False"].map((label, index) => ({
@@ -259,11 +309,13 @@ const testDraftSlice = createSlice({
       const question = state.questions.find((item) => item.clientId === action.payload.qId);
       const option = question?.options.find((item) => item.clientId === action.payload.optId);
       if (option) option.text = action.payload.newText;
+      state.error = null;
     },
     toggleCorrectOption(state, action: PayloadAction<{ qId: string; optId: string }>) {
       const question = state.questions.find((item) => item.clientId === action.payload.qId);
       if (!question) return;
 
+      state.error = null;
       question.options.forEach((option) => {
         if (question.questionType === "MULTI_CHOICE") {
           if (option.clientId === action.payload.optId) {
@@ -278,6 +330,7 @@ const testDraftSlice = createSlice({
       const question = state.questions.find((item) => item.clientId === action.payload);
       if (!question || question.questionType === "TRUE_FALSE") return;
 
+      state.error = null;
       question.options.push({
         clientId: makeClientId("option"),
         text: `Option ${question.options.length + 1}`,
@@ -289,6 +342,7 @@ const testDraftSlice = createSlice({
       const question = state.questions.find((item) => item.clientId === action.payload.qId);
       if (!question || question.options.length <= 2) return;
 
+      state.error = null;
       question.options = question.options
         .filter((option) => option.clientId !== action.payload.optId)
         .map((option, index) => ({ ...option, displayOrder: index + 1 }));

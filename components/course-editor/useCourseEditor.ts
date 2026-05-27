@@ -39,7 +39,6 @@ interface EditorCourseResponse {
 interface EditorChapterResponse {
   id: string;
   title?: string | null;
-  description?: string | null;
   orderIndex?: number | null;
   lessons?: EditorLessonResponse[] | null;
 }
@@ -110,7 +109,6 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
       if (chapter) {
         setNodeForm({
           title: chapter.title,
-          description: chapter.description,
           content: "",
           fileUrl: "",
           pendingFile: null,
@@ -125,7 +123,6 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
     if (leaf) {
       setNodeForm({
         title: leaf.title,
-        description: "",
         content: leaf.content,
         fileUrl: leaf.fileUrl,
         pendingFile: leaf.pendingFile,
@@ -323,7 +320,6 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
         {
           id,
           title: form.title.trim(),
-          description: form.description,
           orderIndex: prev.length,
           children: [],
         },
@@ -531,7 +527,6 @@ function mapCourseToChapters(data: EditorCourseResponse): EditorChapter[] {
   return (data.chapters ?? []).map((chapter, chapterIndex) => ({
     id: chapter.id,
     title: chapter.title ?? "",
-    description: chapter.description ?? "",
     orderIndex: chapter.orderIndex ?? chapterIndex,
     children: (chapter.lessons ?? []).map((lesson, lessonIndex): EditorLeaf => ({
       id: lesson.id,

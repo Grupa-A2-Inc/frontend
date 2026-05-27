@@ -47,7 +47,6 @@ export function NodeEditorPanel({
             isTitleBlank={isTitleBlank}
             onFormChange={onFormChange}
           />
-          {selectedType === "CHAPTER" && <ChapterFields nodeForm={nodeForm} onFormChange={onFormChange} />}
           {selectedType === "TEXT" && <TextFields nodeForm={nodeForm} onFormChange={onFormChange} />}
           {(selectedType === "FILE" || selectedType === "VIDEO") && (
             <UploadField
@@ -120,23 +119,6 @@ function TitleField({
           Title is required.
         </p>
       )}
-    </div>
-  );
-}
-
-function ChapterFields({ nodeForm, onFormChange }: NodeFormChildProps) {
-  return (
-    <div className="mb-5">
-      <label className="block text-xs font-medium text-brand-text/60 mb-1.5">
-        Description <span className="text-brand-muted/50 font-normal">(optional)</span>
-      </label>
-      <textarea
-        value={nodeForm.description}
-        onChange={e => onFormChange(form => ({ ...form, description: e.target.value }))}
-        placeholder="Optional chapter description..."
-        rows={3}
-        className="w-full bg-brand-card border border-brand-primary/20 rounded-xl px-4 py-2.5 text-sm text-brand-text placeholder-brand-muted/60 focus:outline-none focus:border-brand-primary/60 transition-colors resize-none"
-      />
     </div>
   );
 }
