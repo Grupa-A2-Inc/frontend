@@ -1,7 +1,8 @@
-import { createSlice, createAsyncThunk, PayloadAction } from "@reduxjs/toolkit";
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { ChatMessage } from "@/lib/customer-support/types";
 import { apiSendSupportMessage } from "@/lib/customer-support/api";
 import { logout } from "@/store/slices/authSlice";
+import type { RootState } from "@/store";
 
 const MAX_HISTORY = 8;
 
@@ -28,9 +29,10 @@ export const sendMessageThunk = createAsyncThunk(
   "customerSupport/sendMessage",
   async ({ message, page }: { message: string; page: string }, { getState, rejectWithValue }) => {
     try {
-      const state = getState() as any;
+      const state = getState() as RootState;
       const userType = getUserType(state.auth.user?.role);
-      const history = state.customerSupport.messages.slice(-MAX_HISTORY);
+      // The pending reducer has already added the current user message for optimistic display.
+      const history = state.customerSupport.messages.slice(0, -1).slice(-MAX_HISTORY);
 
       const data = await apiSendSupportMessage({
         message,
@@ -39,8 +41,11 @@ export const sendMessageThunk = createAsyncThunk(
       });
 
       return data.answer;
-    } catch (err: any) {
-      return rejectWithValue(err.message || "Could not send message. Please try again." );
+    } catch (err: unknown) {
+      const message = err instanceof Error
+        ? err.message
+        : "Could not send message. Please try again.";
+      return rejectWithValue(message);
     }
   }
 );
@@ -50,7 +55,7 @@ const customerSupportSlice = createSlice({
   initialState,
   reducers: {
     // Resetare conversatie
-    resetChat(state) {
+    resetChat() {
       return initialState;
     },
   },
