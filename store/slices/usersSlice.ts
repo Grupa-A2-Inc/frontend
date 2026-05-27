@@ -53,6 +53,7 @@ type UsersPageResponse = {
   content?: UserResponse[];
   users?: UserResponse[];
   items?: UserResponse[];
+  page?: number;
   totalElements?: number;
   totalPages?: number;
   number?: number;
@@ -167,25 +168,35 @@ export const fetchUsers = createAsyncThunk(
       }
       const data = (await response.json()) as UsersPageResponse | UserResponse[];
       const users = Array.isArray(data) ? data : (data.content ?? data.users ?? data.items ?? []);
-      const pagination: UsersPaginationMeta = Array.isArray(data)
-        ? {
-            totalElements: users.length,
-            totalPages: users.length > 0 ? 1 : 0,
-            number: 0,
-            size: users.length || size,
-            numberOfElements: users.length,
-            first: true,
-            last: true,
-          }
-        : {
-            totalElements: data.totalElements ?? users.length,
-            totalPages: data.totalPages ?? (users.length > 0 ? 1 : 0),
-            number: data.number ?? page,
-            size: data.size ?? size,
-            numberOfElements: data.numberOfElements ?? users.length,
-            first: data.first ?? page <= 0,
-            last: data.last ?? (data.totalPages ? page >= data.totalPages - 1 : true),
-          };
+      let pagination: UsersPaginationMeta;
+
+      if (Array.isArray(data)) {
+        pagination = {
+          totalElements: users.length,
+          totalPages: users.length > 0 ? 1 : 0,
+          number: 0,
+          size: users.length || size,
+          numberOfElements: users.length,
+          first: true,
+          last: true,
+        };
+      } else {
+        const totalElements = data.totalElements ?? users.length;
+        const responseSize = Math.max(1, data.size ?? size);
+        const currentPage = Math.max(0, data.number ?? data.page ?? page);
+        const totalPages = data.totalPages
+          ?? (totalElements > 0 ? Math.ceil(totalElements / responseSize) : 0);
+
+        pagination = {
+          totalElements,
+          totalPages,
+          number: currentPage,
+          size: responseSize,
+          numberOfElements: data.numberOfElements ?? users.length,
+          first: data.first ?? currentPage === 0,
+          last: data.last ?? currentPage >= totalPages - 1,
+        };
+      }
 
       return { users, pagination };
     } catch {
