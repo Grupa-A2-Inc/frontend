@@ -55,9 +55,12 @@ next-env.d.ts
 **/trace.zip
 **/.last-run.json
 
-sonar.js 
+# SonarQube local analysis
+.scannerwork/
+.env.sonar.local
+sonar.js
+
 swagger.json
 SPRINT_ACTIVITY_REPORT.md
 todo.md
 test-users-import.csv
-

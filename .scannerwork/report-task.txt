@@ -1,6 +1,0 @@
-projectKey=Frontend-ELearning
-serverUrl=http://localhost:9000
-serverVersion=26.5.0.122743
-dashboardUrl=http://localhost:9000/dashboard?id=Frontend-ELearning
-ceTaskId=bc8b8ecc-c318-4a7b-9518-1ab137904b0a
-ceTaskUrl=http://localhost:9000/api/ce/task?id=bc8b8ecc-c318-4a7b-9518-1ab137904b0a
