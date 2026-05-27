@@ -14,8 +14,9 @@ import ConfirmRemoveModal from "@/components/class-management/ConfirmRemoveModal
 import Toast from "@/components/class-ui/Toast";
 import Spinner from "@/components/class-ui/Spinner";
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
+import { API_BASE } from "@/lib/config";
 
-const API_URL = "https://api.adaptiveelearning.online";
+const API_URL = API_BASE;
 
 export default function ClassManagementPage({ params }: { params: Promise<{ classId: string }> }) {
   const { classId } = use(params);

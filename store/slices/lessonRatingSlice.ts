@@ -1,7 +1,8 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { fetchWithAuth } from "@/lib/fetchWithAuth"; // Verifică să fie corectă calea
+import { API_BASE } from "@/lib/config";
 
-const BASE_URL = "https://api.adaptiveelearning.online/api/v1";
+const BASE_URL = `${API_BASE}/api/v1`;
 
 export interface RatingPayload {
   rating: number;

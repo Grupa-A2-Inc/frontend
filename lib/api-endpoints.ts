@@ -180,4 +180,17 @@ export const ENDPOINTS = {
     assignStudent: (parentId: string, studentId: string) =>
       `/api/v1/parents/${parentId}/students/${studentId}`,
   },
+
+  rewards: {
+    organizationConfig: (organizationId: string) =>
+      `/api/v1/rewards/organizations/${organizationId}/config`,
+    organizationLatest: (organizationId: string) =>
+      `/api/v1/rewards/organizations/${organizationId}/latest`,
+    calculateCycle: (organizationId: string) =>
+      `/api/v1/rewards/cycles/${organizationId}/calculate`,
+    cycle: (cycleId: string) => `/api/v1/rewards/cycles/${cycleId}`,
+    mintCycle: (cycleId: string) => `/api/v1/rewards/cycles/${cycleId}/mint`,
+    studentRewards: (studentId: string) => `/api/v1/rewards/students/${studentId}`,
+    myWallet: "/api/v1/rewards/students/me/wallet",
+  },
 } as const;
