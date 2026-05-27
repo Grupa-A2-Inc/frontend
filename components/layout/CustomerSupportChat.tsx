@@ -69,7 +69,7 @@ export default function CustomerSupportChat() {
                   </span>
                 </div>
                 <div className="flex flex-col">
-                  <span className="text-brand-text text-sm font-semibold leading-tight">TestifyAI Support</span>
+                  <span className="text-brand-text text-sm font-semibold leading-tight">AdaptiveTutor Support</span>
                   <span className="text-brand-muted text-xs leading-tight">We're here to help</span>
                 </div>
               </div>

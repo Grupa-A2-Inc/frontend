@@ -1,6 +1,6 @@
 {
-  "name": "TestifyAI",
-  "short_name": "TestifyAI",
+  "name": "AdaptiveTutor",
+  "short_name": "AdaptiveTutor",
   "description": "Adaptive e-learning platform",
   "start_url": "/",
   "display": "standalone",

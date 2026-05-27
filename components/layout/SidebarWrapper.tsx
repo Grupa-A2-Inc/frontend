@@ -246,7 +246,7 @@ export default function SidebarWrapper({ children }: SidebarWrapperProps) {
           <div className="flex items-center gap-2">
             <Image src="/logo_192x192.png" alt="logo" width={30} height={30} className="flex-shrink-0" />
             <span className="text-brand-text font-semibold text-base">
-              Testify<span className="text-brand-primary">AI</span>
+              Adaptive<span className="text-brand-primary">Tutor</span>
             </span>
           </div>
 
@@ -378,7 +378,7 @@ export default function SidebarWrapper({ children }: SidebarWrapperProps) {
                     transition={{ duration: 0.2 }}
                     className="text-brand-text font-semibold text-lg whitespace-nowrap"
                   >
-                    Testify<span className="text-brand-primary">AI</span>
+                    Adaptive<span className="text-brand-primary">Tutor</span>
                   </motion.span>
                 )}
               </AnimatePresence>

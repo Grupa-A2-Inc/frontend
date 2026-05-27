@@ -60,7 +60,7 @@ export default function Hero() {
           </div>
           <div className="p-4 text-left space-y-3">
             <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Question 5/5 (AI Generated)</p>
-            <p className="text-white text-sm font-black leading-snug">How does TestifyAI optimize the learning process?</p>
+            <p className="text-white text-sm font-black leading-snug">How does AdaptiveTutor optimize the learning process?</p>
             <div className="space-y-2">
               <div className="bg-[#1e1e1e] border border-gray-600 rounded-lg px-3 py-2 text-gray-400 text-xs font-semibold">A) Delivers identical content to all students</div>
               <div className="bg-brand-primary/20 border-2 border-brand-primary rounded-lg px-3 py-2 text-white text-xs font-bold flex justify-between items-center">
@@ -104,7 +104,7 @@ export default function Hero() {
               <div className="p-8 md:p-12 text-left font-display relative z-10">
                 <p className="text-gray-400 text-sm font-bold uppercase tracking-widest mb-4">Întrebarea 5/5 (Generată de AI)</p>
                 <h3 className="text-white text-2xl md:text-3xl font-black mb-8 leading-snug tracking-tight">
-                  Cum optimizează TestifyAI procesul de învățare?
+                  Cum optimizează AdaptiveTutor procesul de învățare?
                 </h3>
                 <div className="space-y-4">
                   <div className="bg-[#1e1e1e] border border-gray-600 rounded-xl p-5 text-gray-400 text-base font-semibold">
@@ -141,7 +141,7 @@ export default function Hero() {
                 <br /> Limitless learning.
               </h2>
               <p className="text-slate-300 text-base md:text-lg max-w-2xl mx-auto font-semibold mb-10 leading-relaxed">
-                TestifyAI is redefining how people learn. Powered by AI, it instantly creates personalized tests, tracks your progress, and delivers exactly what you need.
+                AdaptiveTutor is redefining how people learn. Powered by AI, it instantly creates personalized tests, tracks your progress, and delivers exactly what you need.
               </p>
               <div className="flex flex-col sm:flex-row justify-center gap-4">
                 {[{ v: "3", l: "core roles" }, { v: "1", l: "unified flow" }, { v: "AI", l: "test generation" }].map((stat) => (

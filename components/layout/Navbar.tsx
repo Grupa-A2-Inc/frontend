@@ -13,8 +13,8 @@ export default function Navbar() {
         
         {/* Logo */}
         <Link href="/" className="text-2xl font-black tracking-tight flex gap-1">
-          <span className="text-brand-primary">Testify</span>
-          <span className="text-brand-accent">AI</span>
+          <span className="text-brand-primary">Adaptive</span>
+          <span className="text-brand-accent">Tutor</span>
         </Link>
 
         {/* Desktop Menu */}
