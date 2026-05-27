@@ -158,6 +158,28 @@ export async function getStudentRewardHistory(studentId: string): Promise<Studen
   return response.json();
 }
 
+export async function getMyStudentWallet(): Promise<StudentWalletResponse | null> {
+  const response = await fetchWithAuth(
+    rewardUrl(ENDPOINTS.rewards.myWallet),
+    getAccessToken(),
+    {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    }
+  );
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw await parseRewardError(response, "Failed to load wallet");
+  }
+
+  return response.json();
+}
+
 export async function saveStudentWallet(walletAddress: string): Promise<StudentWalletResponse> {
   const response = await fetchWithAuth(
     rewardUrl(ENDPOINTS.rewards.myWallet),

@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import { Coins, Loader2, Save, Wallet } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
-import { getStudentRewardHistory, saveStudentWallet } from "@/lib/rewards/api";
+import { getMyStudentWallet, getStudentRewardHistory, saveStudentWallet } from "@/lib/rewards/api";
 import type { StudentReward } from "@/lib/rewards/types";
 import { formatDate, formatTai, shortAddress, statusClass } from "./rewardFormat";
 
@@ -27,15 +27,24 @@ export default function StudentRewardsPage() {
   useEffect(() => {
     let alive = true;
 
-    async function loadHistory() {
+    async function loadRewardsPage() {
       if (!user?.id) {
         setLoading(false);
         return;
       }
 
       try {
-        const history = await getStudentRewardHistory(user.id);
-        if (alive) setRewards(history);
+        const [wallet, history] = await Promise.all([
+          getMyStudentWallet(),
+          getStudentRewardHistory(user.id),
+        ]);
+        if (alive) {
+          setRewards(history);
+          if (wallet?.walletAddress) {
+            setSavedWallet(wallet.walletAddress);
+            setWalletAddress(wallet.walletAddress);
+          }
+        }
       } catch (loadError) {
         if (alive) setError(loadError instanceof Error ? loadError.message : "Failed to load rewards.");
       } finally {
@@ -43,7 +52,7 @@ export default function StudentRewardsPage() {
       }
     }
 
-    loadHistory();
+    loadRewardsPage();
     return () => {
       alive = false;
     };
@@ -101,7 +110,7 @@ export default function StudentRewardsPage() {
           </span>
           <div>
             <h2 className="text-base font-semibold text-brand-text">Wallet</h2>
-            <p className="text-sm text-brand-muted">{savedWallet ? shortAddress(savedWallet) : "No wallet saved in this session"}</p>
+            <p className="text-sm text-brand-muted">{savedWallet ? shortAddress(savedWallet) : "No wallet saved"}</p>
           </div>
         </div>
 
