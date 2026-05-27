@@ -61,7 +61,7 @@ jobs:
 
       - name: Apply Kubernetes manifests
         run: |
-          kubectl apply -f k8s-frontend/01-frontend.yaml
+          kubectl apply -f k8s/06-frontend.yaml
 
       - name: Deploy image to Kubernetes
         run: |
