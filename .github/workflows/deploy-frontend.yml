@@ -42,12 +42,6 @@ jobs:
           }
           EOF
 
-      - name: Debug Docker config
-        run: |
-          echo "DOCKER_CONFIG_DIR=$DOCKER_CONFIG_DIR"
-          ls -la "$DOCKER_CONFIG_DIR"
-          cat "$DOCKER_CONFIG_DIR/config.json"
-
       - name: Build Docker image
         run: |
           docker --config "$DOCKER_CONFIG_DIR" build \
@@ -58,10 +52,6 @@ jobs:
         run: |
           docker --config "$DOCKER_CONFIG_DIR" push lyochris/elearning-frontend:latest
           docker --config "$DOCKER_CONFIG_DIR" push lyochris/elearning-frontend:${{ github.sha }}
-
-      - name: Apply Kubernetes manifests
-        run: |
-          kubectl apply -f k8s/06-frontend.yaml
 
       - name: Deploy image to Kubernetes
         run: |
