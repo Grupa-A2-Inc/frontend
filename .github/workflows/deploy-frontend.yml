@@ -14,9 +14,18 @@ jobs:
   deploy:
     runs-on: [self-hosted, elearnserver, frontend]
 
+    env:
+      KUBECONFIG: /home/lyo/.kube/config
+      DOCKER_CONFIG: /tmp/docker-config-${{ github.run_id }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Prepare Docker config
+        run: |
+          rm -rf "$DOCKER_CONFIG"
+          mkdir -p "$DOCKER_CONFIG"
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
@@ -48,3 +57,8 @@ jobs:
       - name: Wait for rollout
         run: |
           kubectl rollout status deployment/elearning-frontend -n elearning
+
+      - name: Clean Docker config
+        if: always()
+        run: |
+          rm -rf "$DOCKER_CONFIG"
