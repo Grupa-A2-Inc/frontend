@@ -26,6 +26,18 @@ export type CalculateRewardCycleRequest = {
   eurcDepositedAmount?: number;
 };
 
+export type StablecoinFundingResponse = {
+  cycleId: string;
+  organizationId: string;
+  paymentAmount: number;
+  rewardPoolAmount: number;
+  eurcDepositedAmount: number;
+  provider: string;
+  chainId: number;
+  transactionHash?: string | null;
+  status: string;
+};
+
 export type StudentReward = {
   id: string;
   rewardCycleId: string;
@@ -64,4 +76,21 @@ export type StudentWalletResponse = {
   verified: boolean;
   createdAt?: string;
   updatedAt?: string;
+};
+
+export type StudentRedeemQuote = {
+  walletAddress: string;
+  recipientAddress: string;
+  amount: number;
+  amountSmallestUnit: string;
+  nonce: string;
+  deadline: string;
+  typedData: Record<string, unknown>;
+};
+
+export type StudentRedeemResponse = {
+  walletAddress: string;
+  amount: number;
+  transactionHash: string;
+  status: string;
 };

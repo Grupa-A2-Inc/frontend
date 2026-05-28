@@ -6,6 +6,9 @@ import type {
   RewardConfigRequest,
   RewardConfigResponse,
   RewardCycle,
+  StablecoinFundingResponse,
+  StudentRedeemQuote,
+  StudentRedeemResponse,
   StudentReward,
   StudentWalletResponse,
 } from "./types";
@@ -123,6 +126,27 @@ export async function calculateRewardCycle(
   return response.json();
 }
 
+export async function fundSepoliaRewardCycle(organizationId: string, amount = 100): Promise<StablecoinFundingResponse> {
+  const response = await fetchWithAuth(
+    rewardUrl(ENDPOINTS.rewards.mockPayment(organizationId)),
+    getAccessToken(),
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ amount }),
+    }
+  );
+
+  if (!response.ok) {
+    throw await parseRewardError(response, "Failed to fund reward cycle");
+  }
+
+  return response.json();
+}
+
 export async function mintRewardCycle(cycleId: string): Promise<RewardCycle> {
   const response = await fetchWithAuth(
     rewardUrl(ENDPOINTS.rewards.mintCycle(cycleId)),
@@ -158,6 +182,28 @@ export async function getStudentRewardHistory(studentId: string): Promise<Studen
   return response.json();
 }
 
+export async function getMyStudentWallet(): Promise<StudentWalletResponse | null> {
+  const response = await fetchWithAuth(
+    rewardUrl(ENDPOINTS.rewards.myWallet),
+    getAccessToken(),
+    {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    }
+  );
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  if (!response.ok) {
+    throw await parseRewardError(response, "Failed to load wallet");
+  }
+
+  return response.json();
+}
+
 export async function saveStudentWallet(walletAddress: string): Promise<StudentWalletResponse> {
   const response = await fetchWithAuth(
     rewardUrl(ENDPOINTS.rewards.myWallet),
@@ -174,6 +220,49 @@ export async function saveStudentWallet(walletAddress: string): Promise<StudentW
 
   if (!response.ok) {
     throw await parseRewardError(response, "Failed to save wallet");
+  }
+
+  return response.json();
+}
+
+export async function getMyRedeemQuote(): Promise<StudentRedeemQuote> {
+  const response = await fetchWithAuth(
+    rewardUrl(ENDPOINTS.rewards.myRedeemQuote),
+    getAccessToken(),
+    {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    throw await parseRewardError(response, "Failed to prepare redeem");
+  }
+
+  return response.json();
+}
+
+export async function redeemAllStudentRewards(
+  amount: number,
+  deadline: string,
+  signature: string
+): Promise<StudentRedeemResponse> {
+  const response = await fetchWithAuth(
+    rewardUrl(ENDPOINTS.rewards.redeemAll),
+    getAccessToken(),
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ amount, deadline, signature }),
+    }
+  );
+
+  if (!response.ok) {
+    throw await parseRewardError(response, "Failed to redeem rewards");
   }
 
   return response.json();

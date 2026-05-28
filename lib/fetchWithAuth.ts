@@ -220,16 +220,29 @@ function resolveAccessToken(token?: string | null): string | null {
   return getStoredAccessToken() ?? token ?? null;
 }
 
-function buildAuthRequest(
+function requiresCsrfHeader(method?: string): boolean {
+  const normalizedMethod = (method ?? "GET").toUpperCase();
+  return !["GET", "HEAD", "OPTIONS"].includes(normalizedMethod);
+}
+
+async function buildAuthRequest(
   token: string | null,
   options: AuthFetchOptions,
-): RequestInit {
+): Promise<RequestInit> {
   const requestOptions: AuthFetchOptions = { ...options };
   delete requestOptions.skipAuthRefresh;
   const headers = toHeaders(options.headers);
 
   if (token) {
     headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  if (requiresCsrfHeader(options.method)) {
+    Object.entries(await getXsrfHeadersAsync()).forEach(([key, value]) => {
+      if (!headers.has(key)) {
+        headers.set(key, value);
+      }
+    });
   }
 
   return {
@@ -245,7 +258,7 @@ export async function fetchWithAuth(
   options: AuthFetchOptions = {}
 ): Promise<Response> {
   const initialToken = resolveAccessToken(token);
-  const response = await fetch(url, buildAuthRequest(initialToken, options));
+  const response = await fetch(url, await buildAuthRequest(initialToken, options));
 
   if (response.status !== 401 || options.skipAuthRefresh) {
     return response;
@@ -254,5 +267,5 @@ export async function fetchWithAuth(
   const refreshedToken = await refreshAccessToken(initialToken);
   if (!refreshedToken) return response;
 
-  return fetch(url, buildAuthRequest(refreshedToken, options));
+  return fetch(url, await buildAuthRequest(refreshedToken, options));
 }

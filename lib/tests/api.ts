@@ -366,10 +366,9 @@ export async function apiDeleteQuestion(testId: string, questionId: number): Pro
 
 async function pollAiRequestStatus(
   requestId: string,
-  intervalMs = 4000,
-  maxAttempts = 75
+  intervalMs = 4000
 ): Promise<AiRequestStatusResponse> {
-  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+  while (true) {
     const data = await apiFetch<AiRequestStatusResponse>(
       ENDPOINTS.ai.requestStatus(requestId)
     );
@@ -380,8 +379,6 @@ async function pollAiRequestStatus(
 
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
-
-  throw new Error("AI generation timed out. Please try again.");
 }
 
 export async function apiGenerateAndInjectQuestions(

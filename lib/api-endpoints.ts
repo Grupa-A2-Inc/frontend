@@ -168,6 +168,8 @@ export const ENDPOINTS = {
   // 20. Adaptive Learning
   adaptive: {
     start: "/api/v1/adaptive/start",
+    jobs: "/api/v1/adaptive/jobs",
+    jobStatus: (jobId: string) => `/api/v1/adaptive/jobs/${jobId}`,
     submitSession: (sessionId: string) =>
       `/api/v1/adaptive/sessions/${sessionId}/submit`,
   },
@@ -186,11 +188,15 @@ export const ENDPOINTS = {
       `/api/v1/rewards/organizations/${organizationId}/config`,
     organizationLatest: (organizationId: string) =>
       `/api/v1/rewards/organizations/${organizationId}/latest`,
+    mockPayment: (organizationId: string) =>
+      `/api/v1/rewards/organizations/${organizationId}/mock-payment`,
     calculateCycle: (organizationId: string) =>
       `/api/v1/rewards/cycles/${organizationId}/calculate`,
     cycle: (cycleId: string) => `/api/v1/rewards/cycles/${cycleId}`,
     mintCycle: (cycleId: string) => `/api/v1/rewards/cycles/${cycleId}/mint`,
     studentRewards: (studentId: string) => `/api/v1/rewards/students/${studentId}`,
     myWallet: "/api/v1/rewards/students/me/wallet",
+    myRedeemQuote: "/api/v1/rewards/students/me/redeem-quote",
+    redeemAll: "/api/v1/rewards/students/me/redeem-all",
   },
 } as const;
