@@ -168,6 +168,8 @@ export const ENDPOINTS = {
   // 20. Adaptive Learning
   adaptive: {
     start: "/api/v1/adaptive/start",
+    jobs: "/api/v1/adaptive/jobs",
+    jobStatus: (jobId: string) => `/api/v1/adaptive/jobs/${jobId}`,
     submitSession: (sessionId: string) =>
       `/api/v1/adaptive/sessions/${sessionId}/submit`,
   },

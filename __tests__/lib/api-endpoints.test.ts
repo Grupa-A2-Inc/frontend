@@ -66,6 +66,13 @@ describe('ENDPOINTS', () => {
     expect(ENDPOINTS.attempts.result('a1')).toBe('/api/v1/attempts/a1/result')
   })
 
+  it('has adaptive endpoints', () => {
+    expect(ENDPOINTS.adaptive.start).toBe('/api/v1/adaptive/start')
+    expect(ENDPOINTS.adaptive.jobs).toBe('/api/v1/adaptive/jobs')
+    expect(ENDPOINTS.adaptive.jobStatus('job1')).toBe('/api/v1/adaptive/jobs/job1')
+    expect(ENDPOINTS.adaptive.submitSession('s1')).toBe('/api/v1/adaptive/sessions/s1/submit')
+  })
+
   it('has classrooms endpoints', () => {
     expect(ENDPOINTS.classrooms.list).toBe('/api/v1/classrooms')
     expect(ENDPOINTS.classrooms.byId('cls1')).toBe('/api/v1/classrooms/cls1')

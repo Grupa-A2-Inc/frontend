@@ -227,7 +227,7 @@ export default function RegisterPage() {
 
                                 <input  
                                     type="text"
-                                    placeholder="Phone Number (optional)"
+                                    placeholder="Phone Number"
                                     className="mt-4 bg-brand-bg/50 text-brand-text border border-brand-border rounded-xl px-4 py-3 shadow-sm focus:ring-2 focus:ring-brand-primary outline-none w-full transition-colors"
                                     value={phoneNumber}
                                     onChange={(e) => setPhoneNumber(e.target.value)}

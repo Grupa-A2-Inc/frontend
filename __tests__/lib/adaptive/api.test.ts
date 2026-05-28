@@ -1,73 +1,159 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { startAdaptiveSession, submitAdaptiveSession } from '@/lib/adaptive/api'
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { startAdaptiveSession, submitAdaptiveSession } from "@/lib/adaptive/api";
+import { API_BASE } from "@/lib/config";
 
-vi.mock('@/lib/fetchWithAuth', () => ({ fetchWithAuth: vi.fn() }))
-import { fetchWithAuth } from '@/lib/fetchWithAuth'
-const mockFetch = fetchWithAuth as ReturnType<typeof vi.fn>
+vi.mock("@/lib/fetchWithAuth", () => ({ fetchWithAuth: vi.fn() }));
+import { fetchWithAuth } from "@/lib/fetchWithAuth";
 
-function okRes(body: unknown) {
-  return { ok: true, status: 200, json: () => Promise.resolve(body), text: () => Promise.resolve('') } as unknown as Response
+const mockFetch = vi.mocked(fetchWithAuth);
+
+function okRes(body: unknown, status = 200) {
+  return {
+    ok: true,
+    status,
+    json: () => Promise.resolve(body),
+    text: () => Promise.resolve(""),
+  } as unknown as Response;
 }
-function errRes(status: number, text = '') {
-  return { ok: false, status, statusText: 'Error', text: () => Promise.resolve(text), json: () => Promise.resolve({}) } as unknown as Response
+
+function errRes(status: number, text = "") {
+  return {
+    ok: false,
+    status,
+    statusText: "Error",
+    text: () => Promise.resolve(text),
+    json: () => Promise.resolve({}),
+  } as unknown as Response;
 }
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks();
+  vi.useRealTimers();
+});
 
-describe('startAdaptiveSession', () => {
-  it('normalizes MULTIPLE_CHOICE to MULTI_CHOICE', async () => {
-    const raw = {
-      sessionId: 's1',
-      exercises: [{ id: 'e1', type: 'MULTIPLE_CHOICE', question: 'Q', options: [] }],
-    }
-    mockFetch.mockResolvedValueOnce(okRes(raw))
-    const result = await startAdaptiveSession('tok', { lessonId: 'l1', difficulty: 'MEDIUM' })
-    expect(result.exercises[0].type).toBe('MULTI_CHOICE')
-  })
+describe("startAdaptiveSession", () => {
+  const request = { subjectId: 1, topicId: 10, count: 5 };
 
-  it('normalizes MULTI_CHOICE stays as MULTI_CHOICE', async () => {
-    const raw = { exercises: [{ type: 'MULTI_CHOICE' }] }
-    mockFetch.mockResolvedValueOnce(okRes(raw))
-    const result = await startAdaptiveSession('tok', { lessonId: 'l1', difficulty: 'MEDIUM' })
-    expect(result.exercises[0].type).toBe('MULTI_CHOICE')
-  })
+  it("creates an adaptive job and returns the finished session", async () => {
+    mockFetch
+      .mockResolvedValueOnce(okRes({ jobId: "job-1", status: "PENDING" }, 202))
+      .mockResolvedValueOnce(
+        okRes({
+          jobId: "job-1",
+          status: "DONE",
+          error: null,
+          session: {
+            sessionId: "session-1",
+            expiresAt: "2026-05-20T10:45:00",
+            exercises: [
+              {
+                exerciseId: "ex-1",
+                text: "Question",
+                type: "MULTIPLE_CHOICE",
+                answers: ["A", "B"],
+              },
+            ],
+          },
+        }),
+      );
 
-  it('normalizes TRUE_FALSE stays as TRUE_FALSE', async () => {
-    const raw = { exercises: [{ type: 'TRUE_FALSE' }] }
-    mockFetch.mockResolvedValueOnce(okRes(raw))
-    const result = await startAdaptiveSession('tok', { lessonId: 'l1', difficulty: 'MEDIUM' })
-    expect(result.exercises[0].type).toBe('TRUE_FALSE')
-  })
+    const result = await startAdaptiveSession("tok", request);
 
-  it('defaults unknown type to SINGLE_CHOICE', async () => {
-    const raw = { exercises: [{ type: 'UNKNOWN' }] }
-    mockFetch.mockResolvedValueOnce(okRes(raw))
-    const result = await startAdaptiveSession('tok', { lessonId: 'l1', difficulty: 'MEDIUM' })
-    expect(result.exercises[0].type).toBe('SINGLE_CHOICE')
-  })
+    expect(result.sessionId).toBe("session-1");
+    expect(result.exercises[0].type).toBe("MULTI_CHOICE");
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      1,
+      `${API_BASE}/api/v1/adaptive/jobs`,
+      "tok",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(mockFetch).toHaveBeenNthCalledWith(
+      2,
+      `${API_BASE}/api/v1/adaptive/jobs/job-1`,
+      "tok",
+      expect.any(Object),
+    );
+  });
 
-  it('handles missing exercises array', async () => {
-    mockFetch.mockResolvedValueOnce(okRes({ sessionId: 's1' }))
-    const result = await startAdaptiveSession('tok', { lessonId: 'l1', difficulty: 'MEDIUM' })
-    expect(result.exercises).toHaveLength(0)
-  })
+  it("polls multiple times before DONE", async () => {
+    vi.useFakeTimers();
+    mockFetch
+      .mockResolvedValueOnce(okRes({ jobId: "job-1", status: "PENDING" }, 202))
+      .mockResolvedValueOnce(okRes({ jobId: "job-1", status: "RUNNING", error: null, session: null }))
+      .mockResolvedValueOnce(
+        okRes({
+          jobId: "job-1",
+          status: "DONE",
+          error: null,
+          session: {
+            sessionId: "session-1",
+            expiresAt: "2026-05-20T10:45:00",
+            exercises: [],
+          },
+        }),
+      );
 
-  it('throws on HTTP error', async () => {
-    mockFetch.mockResolvedValueOnce(errRes(500, 'Server Error'))
-    await expect(startAdaptiveSession('tok', { lessonId: 'l1', difficulty: 'MEDIUM' })).rejects.toThrow('HTTP 500')
-  })
-})
+    const resultPromise = startAdaptiveSession("tok", request);
+    await vi.runAllTimersAsync();
+    const result = await resultPromise;
 
-describe('submitAdaptiveSession', () => {
-  it('returns result on success', async () => {
-    const raw = { score: 90, passed: true }
-    mockFetch.mockResolvedValueOnce(okRes(raw))
-    const result = await submitAdaptiveSession('tok', 's1', { answers: [] })
-    expect(result.score).toBe(90)
-  })
+    expect(result.sessionId).toBe("session-1");
+    expect(mockFetch).toHaveBeenCalledTimes(3);
+  });
 
-  it('throws on HTTP error', async () => {
-    mockFetch.mockResolvedValueOnce(errRes(400, 'Bad Request'))
-    await expect(submitAdaptiveSession('tok', 's1', { answers: [] })).rejects.toThrow('HTTP 400')
-  })
-})
+  it("throws when job creation fails immediately", async () => {
+    mockFetch.mockResolvedValueOnce(okRes({ jobId: "job-1", status: "FAILED" }, 202));
+
+    await expect(startAdaptiveSession("tok", request)).rejects.toThrow(
+      "Adaptive session generation failed",
+    );
+  });
+
+  it("throws when polling returns FAILED with backend error", async () => {
+    mockFetch
+      .mockResolvedValueOnce(okRes({ jobId: "job-1", status: "PENDING" }, 202))
+      .mockResolvedValueOnce(
+        okRes({
+          jobId: "job-1",
+          status: "FAILED",
+          error: "Adaptive AI returned an invalid response.",
+          session: null,
+        }),
+      );
+
+    await expect(startAdaptiveSession("tok", request)).rejects.toThrow(
+      "Adaptive AI returned an invalid response.",
+    );
+  });
+
+  it("throws when polling completes without session data", async () => {
+    mockFetch
+      .mockResolvedValueOnce(okRes({ jobId: "job-1", status: "PENDING" }, 202))
+      .mockResolvedValueOnce(okRes({ jobId: "job-1", status: "DONE", error: null, session: null }));
+
+    await expect(startAdaptiveSession("tok", request)).rejects.toThrow(
+      "Adaptive session generation finished without session data.",
+    );
+  });
+
+  it("throws on HTTP error", async () => {
+    mockFetch.mockResolvedValueOnce(errRes(500, "Server Error"));
+    await expect(startAdaptiveSession("tok", request)).rejects.toThrow("HTTP 500");
+  });
+});
+
+describe("submitAdaptiveSession", () => {
+  it("returns result on success", async () => {
+    const raw = { totalScore: 90, feedbackSent: true, clientResults: [] };
+    mockFetch.mockResolvedValueOnce(okRes(raw));
+    const result = await submitAdaptiveSession("tok", "s1", { answers: [] });
+    expect(result.totalScore).toBe(90);
+  });
+
+  it("throws on HTTP error", async () => {
+    mockFetch.mockResolvedValueOnce(errRes(400, "Bad Request"));
+    await expect(submitAdaptiveSession("tok", "s1", { answers: [] })).rejects.toThrow(
+      "HTTP 400",
+    );
+  });
+});

@@ -31,6 +31,20 @@ export interface AdaptiveStartResponse {
   exercises: ClientExercise[];
 }
 
+export type AdaptiveJobStatus = "PENDING" | "RUNNING" | "DONE" | "FAILED";
+
+export interface AdaptiveJobResponse {
+  jobId: string;
+  status: AdaptiveJobStatus;
+}
+
+export interface AdaptiveJobStatusResponse {
+  jobId: string;
+  status: AdaptiveJobStatus;
+  error: string | null;
+  session: AdaptiveStartResponse | null;
+}
+
 export interface AnswerDto {
   exerciseId: string;
   givenAnswers: string[];
