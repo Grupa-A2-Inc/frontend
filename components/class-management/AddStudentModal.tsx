@@ -26,6 +26,80 @@ type Props = {
   onClose: () => void;
 };
 
+type OrganizationUsersResponse =
+  | OrgUser[]
+  | {
+      content?: OrgUser[];
+      users?: OrgUser[];
+      items?: OrgUser[];
+      totalPages?: number;
+      number?: number;
+      page?: number;
+      size?: number;
+      last?: boolean;
+    };
+
+const USERS_PAGE_SIZE = 100;
+const MAX_USERS_PAGES = 1000;
+
+function getUsersFromResponse(data: OrganizationUsersResponse): OrgUser[] {
+  if (Array.isArray(data)) return data;
+  return data.content ?? data.users ?? data.items ?? [];
+}
+
+function shouldFetchNextPage(
+  data: OrganizationUsersResponse,
+  page: number,
+  itemCount: number
+): boolean {
+  if (Array.isArray(data)) return false;
+  if (typeof data.last === "boolean") return !data.last;
+  if (typeof data.totalPages === "number") return page + 1 < data.totalPages;
+  return itemCount === USERS_PAGE_SIZE;
+}
+
+async function fetchOrganizationUsersPage(
+  token: string,
+  roleFilter: Props["roleFilter"],
+  page: number
+): Promise<OrganizationUsersResponse> {
+  const query = new URLSearchParams({
+    page: String(page),
+    size: String(USERS_PAGE_SIZE),
+    sortBy: "firstName",
+    sortDir: "asc",
+    role: roleFilter,
+  });
+
+  const res = await fetchWithAuth(
+    `${API_URL}/api/v1/users/organization?${query.toString()}`,
+    token,
+    { headers: { "Content-Type": "application/json" } }
+  );
+
+  if (!res.ok) throw new Error("Failed to load users");
+  return (await res.json()) as OrganizationUsersResponse;
+}
+
+async function fetchAllOrganizationUsers(
+  token: string,
+  roleFilter: Props["roleFilter"]
+): Promise<OrgUser[]> {
+  const allUsers = new Map<string, OrgUser>();
+
+  for (let page = 0; page < MAX_USERS_PAGES; page += 1) {
+    const data = await fetchOrganizationUsersPage(token, roleFilter, page);
+    const users = getUsersFromResponse(data);
+    const previousSize = allUsers.size;
+    users.forEach((user) => allUsers.set(user.id, user));
+
+    if (!shouldFetchNextPage(data, page, users.length)) break;
+    if (page > 0 && allUsers.size === previousSize) break;
+  }
+
+  return [...allUsers.values()];
+}
+
 export default function AddStudentModal({ token, classId, existingUserIds, roleFilter, onAdded, onClose }: Props) {
   const [query, setQuery] = useState("");
   const [allStudents, setAllStudents] = useState<OrgUser[]>([]);
@@ -34,22 +108,31 @@ export default function AddStudentModal({ token, classId, existingUserIds, roleF
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let active = true;
+
     const load = async () => {
+      setLoadingStudents(true);
+      setError(null);
+
       try {
-        const res = await fetchWithAuth(`${API_URL}/api/v1/users/organization`, token, {
-          headers: { "Content-Type": "application/json" },
-        });
-        if (!res.ok) throw new Error("Failed to load users");
-        const data = await res.json();
-        const arr: OrgUser[] = Array.isArray(data) ? data : (data.content ?? data.users ?? data.items ?? []);
-        setAllStudents(arr.filter((u) => (u.roleName ?? u.role) === roleFilter));
+        const arr = await fetchAllOrganizationUsers(token, roleFilter);
+        if (active) {
+          setAllStudents(arr.filter((u) => (u.roleName ?? u.role) === roleFilter));
+        }
       } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to load users");
+        if (active) {
+          setError(e instanceof Error ? e.message : "Failed to load users");
+        }
       } finally {
-        setLoadingStudents(false);
+        if (active) setLoadingStudents(false);
       }
     };
+
     load();
+
+    return () => {
+      active = false;
+    };
   }, [token, roleFilter]);
 
   const filtered = allStudents.filter((u) => {

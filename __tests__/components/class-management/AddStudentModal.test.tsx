@@ -25,6 +25,10 @@ const baseProps = {
 }
 
 describe('AddStudentModal', () => {
+  beforeEach(() => {
+    mockFetch.mockReset()
+  })
+
   it('shows loading spinner initially', () => {
     mockFetch.mockReturnValue(new Promise(() => {}))
     render(<AddStudentModal {...baseProps} />)
@@ -146,6 +150,38 @@ describe('AddStudentModal', () => {
     } as Response)
     render(<AddStudentModal {...baseProps} />)
     expect(await screen.findByText('alice@test.com')).toBeInTheDocument()
+  })
+
+  it('loads users from every paginated organization page', async () => {
+    mockFetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          content: [users[0]],
+          totalPages: 2,
+          number: 0,
+          size: 1,
+          last: false,
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          content: [users[1]],
+          totalPages: 2,
+          number: 1,
+          size: 1,
+          last: true,
+        }),
+      } as Response)
+
+    render(<AddStudentModal {...baseProps} />)
+
+    expect(await screen.findByText('alice@test.com')).toBeInTheDocument()
+    expect(await screen.findByText('bob@test.com')).toBeInTheDocument()
+    expect(mockFetch).toHaveBeenCalledTimes(2)
+    expect(mockFetch.mock.calls[0][0]).toContain('page=0')
+    expect(mockFetch.mock.calls[1][0]).toContain('page=1')
   })
 
   it('handles user with role field instead of roleName', async () => {
