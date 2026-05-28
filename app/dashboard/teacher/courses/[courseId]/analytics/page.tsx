@@ -24,6 +24,11 @@ function formatScore(value?: number) {
   return `${Math.round(value)}%`;
 }
 
+function formatStudentAverage(student: StudentAverage) {
+  if (student.testCount <= 0) return "—";
+  return formatScore(student.averageScore);
+}
+
 function getDirectoryName(user?: OrganizationUser) {
   const fullName = `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim();
   return fullName || user?.email;
@@ -96,10 +101,11 @@ export default function TeacherAnalyticsPage({ params }: { params: Promise<{ cou
     });
   }, [directoryById, searchQuery, teacherCatalog]);
 
+  const studentsWithScores = visibleStudents.filter((student) => student.testCount > 0);
   const pageAverage =
-    visibleStudents.length > 0
-      ? visibleStudents.reduce((total, student) => total + student.averageScore, 0) /
-        visibleStudents.length
+    studentsWithScores.length > 0
+      ? studentsWithScores.reduce((total, student) => total + student.averageScore, 0) /
+        studentsWithScores.length
       : undefined;
 
   const totalAttempts = visibleStudents.reduce(
@@ -194,6 +200,7 @@ export default function TeacherAnalyticsPage({ params }: { params: Promise<{ cou
             <thead>
               <tr className="bg-slate-50 dark:bg-brand-bg/50 text-slate-500 dark:text-brand-muted text-xs uppercase tracking-wider">
                 <th className="px-6 py-4 font-bold">Student Name</th>
+                <th className="px-6 py-4 font-bold text-center">Progress</th>
                 <th className="px-6 py-4 font-bold text-center">Average Score</th>
                 <th className="px-6 py-4 font-bold text-center">Tests Taken</th>
                 <th className="px-6 py-4 font-bold text-center">Passed / Failed</th>
@@ -222,11 +229,17 @@ export default function TeacherAnalyticsPage({ params }: { params: Promise<{ cou
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">
+                        <span className="text-sm font-semibold text-slate-600 dark:text-brand-muted">
+                          {formatScore(student.progressPercent)}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-center">
                         <span className={`inline-block px-3 py-1 rounded-full text-xs font-bold ${
+                          student.testCount <= 0 ? 'bg-slate-100 text-slate-500' :
                           student.averageScore >= 80 ? 'bg-emerald-100 text-emerald-700' :
                           student.averageScore >= 50 ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'
                         }`}>
-                          {formatScore(student.averageScore)}
+                          {formatStudentAverage(student)}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-center">
@@ -244,7 +257,7 @@ export default function TeacherAnalyticsPage({ params }: { params: Promise<{ cou
                 })
               ) : (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-slate-400 italic">
+                  <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">
                     <div className="flex flex-col items-center gap-2">
                       <AlertCircle size={24} />
                       No student data found for this course.

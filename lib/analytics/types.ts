@@ -38,6 +38,8 @@ export interface StudentAverage {
   passedTests: number;
   failedTests: number;
   lastAttemptAt?: string;
+  enrolledAt?: string;
+  progressPercent?: number;
 }
 
 export interface TeacherCatalogResponse {
