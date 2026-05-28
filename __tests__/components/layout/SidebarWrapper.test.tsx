@@ -121,6 +121,14 @@ describe('SidebarWrapper', () => {
     expect(screen.getByTestId('child')).toBeInTheDocument()
   })
 
+  it('sizes desktop content to the space left by the sidebar', () => {
+    setup()
+    render(<SidebarWrapper><div data-testid="child">Content</div></SidebarWrapper>)
+    expect(screen.getByTestId('child').closest('main')).toHaveStyle({
+      width: 'calc(100% - 250px)',
+    })
+  })
+
   it('renders navigation links for admin role', () => {
     setup()
     render(<SidebarWrapper><div>Content</div></SidebarWrapper>)

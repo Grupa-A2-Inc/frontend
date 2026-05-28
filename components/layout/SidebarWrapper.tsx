@@ -559,7 +559,8 @@ export default function SidebarWrapper({ children }: SidebarWrapperProps) {
       <motion.main
         animate={{ marginLeft: isMobile ? 0 : sidebarWidth }}
         transition={{ duration: 0.3, ease: "easeInOut" }}
-        className={`flex-1 min-h-screen w-full ${isMobile ? "pt-14 p-4" : "p-8"}`}
+        style={{ width: isMobile ? "100%" : `calc(100% - ${sidebarWidth}px)` }}
+        className={`min-h-screen ${isMobile ? "pt-14 p-4" : "p-8"}`}
       >
         {children}
       </motion.main>
