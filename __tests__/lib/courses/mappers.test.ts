@@ -99,6 +99,15 @@ describe('mapLesson', () => {
     expect(l.contentMarkdown).toBe('')
   })
 
+  it('normalizes JSON-encoded contentMarkdown from older saves', () => {
+    const l = mapLesson({
+      ...baseLesson,
+      contentMarkdown: JSON.stringify('# Hello\n\n  spaced line'),
+    })
+
+    expect(l.contentMarkdown).toBe('# Hello\n\n  spaced line')
+  })
+
   it('handles missing lessonResources', () => {
     const l = mapLesson({ ...baseLesson, lessonResources: null })
     expect(l.lessonResources).toHaveLength(0)

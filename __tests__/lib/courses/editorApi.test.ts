@@ -72,6 +72,25 @@ describe('fetchCourseForEditor', () => {
     const result = await fetchCourseForEditor('c1')
     expect(result.category).toBe('Science')
   })
+
+  it('normalizes JSON-encoded lesson markdown returned by older saves', async () => {
+    mockFetch.mockResolvedValueOnce(okRes({
+      ...courseDto,
+      chapters: [{
+        id: 'ch1',
+        title: 'Chapter',
+        lessons: [{
+          id: 'l1',
+          title: 'Lesson',
+          contentMarkdown: JSON.stringify('# Title\n\n  indented line'),
+        }],
+      }],
+    }))
+    mockFetch.mockResolvedValueOnce(okRes([{ id: 'c1', category: 'Web' }]))
+
+    const result = await fetchCourseForEditor('c1')
+    expect(result.chapters?.[0]?.lessons?.[0]?.contentMarkdown).toBe('# Title\n\n  indented line')
+  })
 })
 
 describe('createChapter', () => {
@@ -113,6 +132,25 @@ describe('updateLesson', () => {
   it('patches lesson content', async () => {
     mockFetch.mockResolvedValueOnce(noContentRes())
     await expect(updateLesson('l1', { contentMarkdown: '# Hello' })).resolves.not.toThrow()
+  })
+
+  it('sends lesson markdown as raw text so whitespace is preserved', async () => {
+    const markdown = '# Hello\n\n  indented line'
+    mockFetch.mockResolvedValueOnce(noContentRes())
+
+    await updateLesson('l1', { contentMarkdown: markdown })
+
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/lessons/l1/content'),
+      'tok',
+      expect.objectContaining({
+        method: 'PATCH',
+        body: markdown,
+        headers: expect.objectContaining({
+          'Content-Type': 'text/plain;charset=UTF-8',
+        }),
+      }),
+    )
   })
 
   it('patches both title and content', async () => {

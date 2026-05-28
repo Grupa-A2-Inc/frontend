@@ -18,6 +18,7 @@ import {
     ClassroomCourseResponse,
     OrganizationUser,
 } from "./types";
+import { normalizeContentMarkdown } from "./content";
 
 // ----- MAPPERS PENTRU CURS -----
 export function mapCourseFullView(data: any): {
@@ -60,7 +61,7 @@ export function mapLesson(data: any): Lesson {
         chapterId: data.chapterId,
         testId: data.testId ?? undefined, // null devine undefined
         title: data.title,
-        contentMarkdown: data.contentMarkdown ?? "",
+        contentMarkdown: normalizeContentMarkdown(data.contentMarkdown),
         orderIndex: data.orderIndex,
         // Mapăm resursele lecției
         lessonResources: (data.lessonResources ?? []).map(mapLessonResource),

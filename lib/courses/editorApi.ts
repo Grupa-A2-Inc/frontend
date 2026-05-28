@@ -1,6 +1,7 @@
 import { fetchWithAuth } from "@/lib/fetchWithAuth";
 import { API_BASE } from "@/lib/config";
 import { ENDPOINTS } from "@/lib/api-endpoints";
+import { normalizeContentMarkdown } from "./content";
 
 function getToken(): string {
   if (typeof window === "undefined") return "";
@@ -150,6 +151,13 @@ export async function fetchCourseForEditor(courseId: string): Promise<CourseFull
   return {
     ...fullView,
     category: fullViewCategory || summary?.category || "",
+    chapters: (fullView.chapters ?? []).map(chapter => ({
+      ...chapter,
+      lessons: (chapter.lessons ?? []).map(lesson => ({
+        ...lesson,
+        contentMarkdown: normalizeContentMarkdown(lesson.contentMarkdown),
+      })),
+    })),
   };
 }
 
@@ -203,7 +211,8 @@ export async function updateLesson(
     calls.push(
       editorFetch(ENDPOINTS.lessons.content(lessonId), {
         method: "PATCH",
-        body: JSON.stringify(payload.contentMarkdown),
+        headers: { "Content-Type": "text/plain;charset=UTF-8" },
+        body: payload.contentMarkdown,
       }),
     );
   }
