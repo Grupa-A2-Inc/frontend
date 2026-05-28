@@ -162,7 +162,8 @@ function ActionModal({
             {selectedPlan && (
               <p className="text-sm font-bold text-brand-text">
                 {price}
-                {selectedPlan.priceMonthly > 0 && (
+                {typeof selectedPlan.priceMonthly === "number" &&
+                  selectedPlan.priceMonthly > 0 && (
                   <span className="font-normal text-brand-muted"> / month</span>
                 )}
               </p>

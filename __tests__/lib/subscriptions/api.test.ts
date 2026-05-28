@@ -48,6 +48,38 @@ describe('getSubscriptionPlans', () => {
     expect(plans).toHaveLength(1)
   })
 
+  it('keeps plans with optional enterprise fields missing or null', async () => {
+    mockFetch.mockResolvedValueOnce(okRes([
+      validPlan,
+      {
+        id: 'p-enterprise',
+        code: 'ENTERPRISE',
+        displayName: 'Enterprise',
+        maxUsers: null,
+        maxClassrooms: null,
+        maxCourses: null,
+        hasPremiumFeatures: true,
+        priceMonthly: null,
+        currency: null,
+      },
+    ]))
+
+    const plans = await getSubscriptionPlans()
+
+    expect(plans).toHaveLength(2)
+    expect(plans[1]).toMatchObject({
+      id: 'p-enterprise',
+      code: 'ENTERPRISE',
+      displayName: 'Enterprise',
+      maxUsers: null,
+      maxClassrooms: null,
+      maxCourses: null,
+      hasPremiumFeatures: true,
+      priceMonthly: null,
+      currency: 'EUR',
+    })
+  })
+
   it('throws when response is not array', async () => {
     mockFetch.mockResolvedValueOnce(okRes({ plans: [] }))
     await expect(getSubscriptionPlans()).rejects.toThrow('unexpected format')
@@ -82,17 +114,22 @@ describe('getCurrentOrganizationSubscription', () => {
 
 describe('createSubscriptionCheckoutSession', () => {
   beforeEach(() => localStorage.setItem('accessToken', 'tok'))
+  const checkoutPayload = {
+    planId: 'p1',
+    successUrl: 'https://app.example.com/success',
+    cancelUrl: 'https://app.example.com/cancel',
+  }
 
   it('returns checkout session on success', async () => {
     const session = { sessionId: 'sess1', url: 'https://checkout.example.com' }
     mockFetch.mockResolvedValueOnce(okRes(session))
-    const result = await createSubscriptionCheckoutSession('o1', { planId: 'p1' })
+    const result = await createSubscriptionCheckoutSession('o1', checkoutPayload)
     expect(result.sessionId).toBe('sess1')
   })
 
   it('throws when no access token', async () => {
     localStorage.clear()
-    await expect(createSubscriptionCheckoutSession('o1', { planId: 'p1' })).rejects.toThrow()
+    await expect(createSubscriptionCheckoutSession('o1', checkoutPayload)).rejects.toThrow()
   })
 })
 

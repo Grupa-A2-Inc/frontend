@@ -2,11 +2,11 @@ export type SubscriptionPlan = {
   id: string;
   code: string;
   displayName: string;
-  maxUsers: number;
-  maxClassrooms: number;
-  maxCourses: number;
+  maxUsers: number | null;
+  maxClassrooms: number | null;
+  maxCourses: number | null;
   hasPremiumFeatures: boolean;
-  priceMonthly: number;
+  priceMonthly: number | null;
   currency: string;
   createdAt?: string;
   updatedAt?: string;

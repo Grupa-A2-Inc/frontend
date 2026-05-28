@@ -18,15 +18,18 @@ function LimitItem({
 }: {
   icon: React.ReactNode;
   label: string;
-  value: number;
+  value: number | null;
 }) {
+  const valueLabel = value === null ? "Unlimited" : String(value);
+
   return (
     <div className="flex items-center gap-2 text-sm text-brand-text/75">
       <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand-primary/10 text-brand-primary">
         {icon}
       </span>
       <span>
-        <span className="font-semibold text-brand-text">{value}</span> {label}
+        <span className="font-semibold text-brand-text">{valueLabel}</span>{" "}
+        {label}
       </span>
     </div>
   );
@@ -76,7 +79,7 @@ export default function PlanCard({
 
       <div className="mt-5">
         <span className="text-3xl font-bold text-brand-text">{price}</span>
-        {plan.priceMonthly > 0 && (
+        {typeof plan.priceMonthly === "number" && plan.priceMonthly > 0 && (
           <span className="text-sm text-brand-muted"> / month</span>
         )}
       </div>

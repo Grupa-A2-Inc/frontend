@@ -1,4 +1,5 @@
-export function formatPrice(value: number, currency: string): string {
+export function formatPrice(value: number | null | undefined, currency: string): string {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "Custom";
   if (value === 0) return "Free";
 
   try {
@@ -11,4 +12,3 @@ export function formatPrice(value: number, currency: string): string {
     return `${value} ${currency}`.trim();
   }
 }
-

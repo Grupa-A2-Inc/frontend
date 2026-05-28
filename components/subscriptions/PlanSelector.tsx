@@ -104,7 +104,12 @@ export default function PlanSelector({
   const selectedId = selectedPlanId ?? localSelectedId;
 
   const sortedPlans = useMemo(
-    () => [...plans].sort((a, b) => a.priceMonthly - b.priceMonthly),
+    () =>
+      [...plans].sort(
+        (a, b) =>
+          (a.priceMonthly ?? Number.POSITIVE_INFINITY) -
+          (b.priceMonthly ?? Number.POSITIVE_INFINITY)
+      ),
     [plans]
   );
 

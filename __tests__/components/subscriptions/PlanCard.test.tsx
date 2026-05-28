@@ -77,4 +77,21 @@ describe('PlanCard', () => {
     expect(screen.getByText('10')).toBeInTheDocument()
     expect(screen.getByText('20')).toBeInTheDocument()
   })
+
+  it('renders custom pricing and unlimited limits', () => {
+    render(
+      <PlanCard
+        plan={{
+          ...premiumPlan,
+          priceMonthly: null,
+          maxUsers: null,
+          maxClassrooms: null,
+          maxCourses: null,
+        }}
+      />
+    )
+
+    expect(screen.getByText('Custom')).toBeInTheDocument()
+    expect(screen.getAllByText('Unlimited')).toHaveLength(3)
+  })
 })

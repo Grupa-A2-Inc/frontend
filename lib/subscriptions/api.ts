@@ -9,22 +9,46 @@ import type {
 import { API_BASE } from "@/lib/config";
 import { ENDPOINTS } from "@/lib/api-endpoints";
 
-function isSubscriptionPlan(value: unknown): value is SubscriptionPlan {
-  if (!value || typeof value !== "object") return false;
+function asString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value : null;
+}
 
-  const plan = value as Partial<SubscriptionPlan>;
+function asNullableNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
 
-  return (
-    typeof plan.id === "string" &&
-    typeof plan.code === "string" &&
-    typeof plan.displayName === "string" &&
-    typeof plan.maxUsers === "number" &&
-    typeof plan.maxClassrooms === "number" &&
-    typeof plan.maxCourses === "number" &&
-    typeof plan.hasPremiumFeatures === "boolean" &&
-    typeof plan.priceMonthly === "number" &&
-    typeof plan.currency === "string"
-  );
+  return null;
+}
+
+function fallbackCode(displayName: string): string {
+  return displayName.trim().replace(/\s+/g, "_").toUpperCase();
+}
+
+function normalizeSubscriptionPlan(value: unknown): SubscriptionPlan | null {
+  if (!value || typeof value !== "object") return null;
+
+  const plan = value as Record<string, unknown>;
+  const id = asString(plan.id);
+  const displayName = asString(plan.displayName) ?? asString(plan.code);
+
+  if (!id || !displayName) return null;
+
+  return {
+    id,
+    code: asString(plan.code) ?? fallbackCode(displayName),
+    displayName,
+    maxUsers: asNullableNumber(plan.maxUsers),
+    maxClassrooms: asNullableNumber(plan.maxClassrooms),
+    maxCourses: asNullableNumber(plan.maxCourses),
+    hasPremiumFeatures: Boolean(plan.hasPremiumFeatures),
+    priceMonthly: asNullableNumber(plan.priceMonthly),
+    currency: asString(plan.currency) ?? "EUR",
+    createdAt: asString(plan.createdAt) ?? undefined,
+    updatedAt: asString(plan.updatedAt) ?? undefined,
+  };
 }
 
 function getAccessToken(): string | null {
@@ -87,7 +111,9 @@ export async function getSubscriptionPlans(): Promise<SubscriptionPlan[]> {
     throw new Error("Subscription plans response has an unexpected format.");
   }
 
-  return data.filter(isSubscriptionPlan);
+  return data
+    .map(normalizeSubscriptionPlan)
+    .filter((plan): plan is SubscriptionPlan => plan !== null);
 }
 
 export async function getCurrentOrganizationSubscription(

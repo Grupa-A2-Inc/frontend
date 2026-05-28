@@ -27,16 +27,28 @@ import React from 'react'
 import {
   getCurrentOrganizationSubscription,
   changeOrganizationSubscriptionPlan,
-  createSubscriptionCheckoutSession,
 } from '@/lib/subscriptions/api'
 import SubscriptionSettingsSection from '@/components/subscriptions/SubscriptionSettingsSection'
+import type { OrganizationSubscriptionStatus, SubscriptionPlan } from '@/lib/subscriptions/types'
 
 const mockGetCurrent = vi.mocked(getCurrentOrganizationSubscription)
 const mockChangePlan = vi.mocked(changeOrganizationSubscriptionPlan)
-const mockCheckout = vi.mocked(createSubscriptionCheckoutSession)
 
-const mockSubscription = {
-  plan: { id: 'plan-free', displayName: 'Free', priceMonthly: 0, currency: 'USD' },
+const freePlan: SubscriptionPlan = {
+  id: 'plan-free',
+  code: 'FREE',
+  displayName: 'Free',
+  maxUsers: 10,
+  maxClassrooms: 2,
+  maxCourses: 3,
+  hasPremiumFeatures: false,
+  priceMonthly: 0,
+  currency: 'USD',
+}
+
+const mockSubscription: OrganizationSubscriptionStatus = {
+  organizationId: 'org1',
+  plan: freePlan,
   status: 'ACTIVE',
   currentPeriodStart: '2024-01-01',
   currentPeriodEnd: '2024-12-31',
