@@ -33,3 +33,15 @@ export function lessonHasVideoResource(
 ): boolean {
   return lesson.lessonResources.some((resource) => isVideoResourceUrl(resource.url));
 }
+
+export function lessonHasTextContent(
+  lesson: Pick<Lesson, "contentMarkdown">
+): boolean {
+  return lesson.contentMarkdown.trim().length > 0;
+}
+
+export function lessonIsVideoOnly(
+  lesson: Pick<Lesson, "contentMarkdown" | "lessonResources">
+): boolean {
+  return lessonHasVideoResource(lesson) && !lessonHasTextContent(lesson);
+}

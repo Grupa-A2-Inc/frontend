@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest'
-import { isVideoResourceUrl, lessonHasVideoResource } from '@/lib/courses/resourceType'
+import {
+  isVideoResourceUrl,
+  lessonHasTextContent,
+  lessonHasVideoResource,
+  lessonIsVideoOnly,
+} from '@/lib/courses/resourceType'
 
 describe('isVideoResourceUrl', () => {
   it('returns false for empty string', () => {
@@ -93,5 +98,36 @@ describe('lessonHasVideoResource', () => {
 
   it('returns false when there are no resources', () => {
     expect(lessonHasVideoResource({ lessonResources: [] })).toBe(false)
+  })
+})
+
+describe('lessonHasTextContent', () => {
+  it('returns true when markdown has text', () => {
+    expect(lessonHasTextContent({ contentMarkdown: '# Lesson text' })).toBe(true)
+  })
+
+  it('returns false when markdown is empty or whitespace', () => {
+    expect(lessonHasTextContent({ contentMarkdown: '' })).toBe(false)
+    expect(lessonHasTextContent({ contentMarkdown: '   ' })).toBe(false)
+  })
+})
+
+describe('lessonIsVideoOnly', () => {
+  it('returns true for video lessons without text content', () => {
+    expect(lessonIsVideoOnly({
+      contentMarkdown: '',
+      lessonResources: [
+        { id: 'r1', lessonId: 'l1', title: 'Video', url: 'https://youtube.com/watch?v=x' },
+      ],
+    })).toBe(true)
+  })
+
+  it('returns false for video lessons that also have text content', () => {
+    expect(lessonIsVideoOnly({
+      contentMarkdown: 'This lesson already has text content.',
+      lessonResources: [
+        { id: 'r1', lessonId: 'l1', title: 'Video', url: 'https://youtube.com/watch?v=x' },
+      ],
+    })).toBe(false)
   })
 })

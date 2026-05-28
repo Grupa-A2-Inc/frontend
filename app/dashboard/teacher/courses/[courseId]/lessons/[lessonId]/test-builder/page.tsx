@@ -16,7 +16,7 @@ import QuestionCard from "@/components/tests/QuestionCard";
 import QuestionNavigator from "@/components/tests/QuestionNavigator";
 import TestSettingsPanel from "@/components/tests/TestSettingsPanel";
 import { fetchCourseFullView } from "@/lib/courses/api";
-import { lessonHasVideoResource } from "@/lib/courses/resourceType";
+import { lessonIsVideoOnly } from "@/lib/courses/resourceType";
 import { Chapter } from "@/lib/courses/types";
 import { DEFAULT_TEST_TIME_LIMIT_SEC, MIN_TEST_TIME_LIMIT_SEC } from "@/lib/tests/types";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
@@ -54,7 +54,7 @@ export default function LessonTestBuilderPage({ params }: Props) {
   const [descriptionDraft, setDescriptionDraft] = useState<string | null>(null);
   const [timeLimitSecDraft, setTimeLimitSecDraft] = useState<number | null>(null);
   const [lessonError, setLessonError] = useState<string | null>(null);
-  const [isVideoLesson, setIsVideoLesson] = useState(false);
+  const [isVideoOnlyLesson, setIsVideoOnlyLesson] = useState(false);
   const [metadataSuccess, setMetadataSuccess] = useState("");
 
   useEffect(() => {
@@ -74,7 +74,7 @@ export default function LessonTestBuilderPage({ params }: Props) {
         const lesson = lessons.find((item) => item.id === lessonId);
         if (isMounted) {
           setLessonTitle(lesson?.title ?? "Selected lesson");
-          setIsVideoLesson(lesson ? lessonHasVideoResource(lesson) : false);
+          setIsVideoOnlyLesson(lesson ? lessonIsVideoOnly(lesson) : false);
         }
       })
       .catch((err) => {
@@ -149,7 +149,7 @@ export default function LessonTestBuilderPage({ params }: Props) {
 
   async function handleGenerate(count: number) {
     if (readOnly) return;
-    if (isVideoLesson) return;
+    if (isVideoOnlyLesson) return;
     if (!(await persistMetadata())) return;
     dispatch(generateQuestionsThunk({ lessonId, payload: { count } }));
   }
@@ -236,7 +236,7 @@ export default function LessonTestBuilderPage({ params }: Props) {
         </div>
       )}
 
-      {isVideoLesson && !readOnly && (
+      {isVideoOnlyLesson && !readOnly && (
         <div className="mb-6 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-200">
           Tests cannot be generated from video content. Add text content if you want to use AI test generation for this lesson.
         </div>
@@ -283,9 +283,9 @@ export default function LessonTestBuilderPage({ params }: Props) {
               saveDisabled={!testTitle.trim() || timeLimitSec < MIN_TEST_TIME_LIMIT_SEC}
               onGenerate={handleGenerate}
               readOnly={readOnly}
-              generateDisabled={isVideoLesson}
+              generateDisabled={isVideoOnlyLesson}
               generateWarning={
-                isVideoLesson ? "Tests cannot be generated from video content." : null
+                isVideoOnlyLesson ? "Tests cannot be generated from video content." : null
               }
             />
 
