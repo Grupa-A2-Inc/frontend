@@ -1,13 +1,30 @@
 "use client";
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { Coins, Loader2, Save, Wallet } from "lucide-react";
+import { Coins, Loader2, RefreshCw, Save, Wallet } from "lucide-react";
 import { useAppSelector } from "@/store/hooks";
-import { getMyStudentWallet, getStudentRewardHistory, saveStudentWallet } from "@/lib/rewards/api";
+import {
+  getMyRedeemQuote,
+  getMyStudentWallet,
+  getStudentRewardHistory,
+  redeemAllStudentRewards,
+  saveStudentWallet,
+} from "@/lib/rewards/api";
 import type { StudentReward } from "@/lib/rewards/types";
 import { formatDate, formatTai, shortAddress, statusClass } from "./rewardFormat";
 
 const EVM_ADDRESS_PATTERN = /^0x[a-fA-F0-9]{40}$/;
+const SEPOLIA_CHAIN_ID = "0xaa36a7";
+
+type EthereumProvider = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>;
+};
+
+declare global {
+  interface Window {
+    ethereum?: EthereumProvider;
+  }
+}
 
 export default function StudentRewardsPage() {
   const user = useAppSelector((state) => state.auth.user);
@@ -16,6 +33,7 @@ export default function StudentRewardsPage() {
   const [rewards, setRewards] = useState<StudentReward[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [redeeming, setRedeeming] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
@@ -81,6 +99,49 @@ export default function StudentRewardsPage() {
     }
   }
 
+  async function handleRedeemAll() {
+    setMessage("");
+    setError("");
+
+    if (!savedWallet) {
+      setError("Save your wallet before redeeming rewards.");
+      return;
+    }
+
+    if (!window.ethereum) {
+      setError("MetaMask is required to sign the redeem request.");
+      return;
+    }
+
+    setRedeeming(true);
+    try {
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [{ chainId: SEPOLIA_CHAIN_ID }],
+      }).catch(() => undefined);
+
+      const accounts = (await window.ethereum.request({ method: "eth_requestAccounts" })) as string[];
+      const activeAccount = accounts?.[0];
+      if (!activeAccount || activeAccount.toLowerCase() !== savedWallet.toLowerCase()) {
+        setError("Select the saved student wallet in MetaMask before redeeming.");
+        return;
+      }
+
+      const quote = await getMyRedeemQuote();
+      const signature = (await window.ethereum.request({
+        method: "eth_signTypedData_v4",
+        params: [savedWallet, JSON.stringify(quote.typedData)],
+      })) as string;
+
+      const result = await redeemAllStudentRewards(quote.amount, quote.deadline, signature);
+      setMessage(`Redeemed ${formatTai(result.amount)} to EURC. Tx: ${shortAddress(result.transactionHash)}`);
+    } catch (redeemError) {
+      setError(redeemError instanceof Error ? redeemError.message : "Failed to redeem rewards.");
+    } finally {
+      setRedeeming(false);
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex min-h-[50vh] items-center justify-center text-brand-muted">
@@ -130,6 +191,18 @@ export default function StudentRewardsPage() {
             Save wallet
           </button>
         </form>
+
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            disabled={redeeming || !savedWallet}
+            onClick={handleRedeemAll}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-brand-primary/25 px-4 py-2.5 text-sm font-semibold text-brand-text transition-colors hover:border-brand-primary/50 hover:bg-brand-primary/10 disabled:opacity-60"
+          >
+            {redeeming ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
+            Redeem all TAI
+          </button>
+        </div>
 
         {(message || error) && (
           <p className={`mt-4 rounded-xl px-4 py-3 text-sm ${error ? "bg-red-500/10 text-red-300" : "bg-green-500/10 text-green-300"}`}>
