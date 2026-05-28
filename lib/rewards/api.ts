@@ -7,6 +7,8 @@ import type {
   RewardConfigResponse,
   RewardCycle,
   StablecoinFundingResponse,
+  StudentRedeemQuote,
+  StudentRedeemResponse,
   StudentReward,
   StudentWalletResponse,
 } from "./types";
@@ -218,6 +220,49 @@ export async function saveStudentWallet(walletAddress: string): Promise<StudentW
 
   if (!response.ok) {
     throw await parseRewardError(response, "Failed to save wallet");
+  }
+
+  return response.json();
+}
+
+export async function getMyRedeemQuote(): Promise<StudentRedeemQuote> {
+  const response = await fetchWithAuth(
+    rewardUrl(ENDPOINTS.rewards.myRedeemQuote),
+    getAccessToken(),
+    {
+      method: "GET",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    }
+  );
+
+  if (!response.ok) {
+    throw await parseRewardError(response, "Failed to prepare redeem");
+  }
+
+  return response.json();
+}
+
+export async function redeemAllStudentRewards(
+  amount: number,
+  deadline: string,
+  signature: string
+): Promise<StudentRedeemResponse> {
+  const response = await fetchWithAuth(
+    rewardUrl(ENDPOINTS.rewards.redeemAll),
+    getAccessToken(),
+    {
+      method: "POST",
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ amount, deadline, signature }),
+    }
+  );
+
+  if (!response.ok) {
+    throw await parseRewardError(response, "Failed to redeem rewards");
   }
 
   return response.json();

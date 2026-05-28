@@ -77,3 +77,20 @@ export type StudentWalletResponse = {
   createdAt?: string;
   updatedAt?: string;
 };
+
+export type StudentRedeemQuote = {
+  walletAddress: string;
+  recipientAddress: string;
+  amount: number;
+  amountSmallestUnit: string;
+  nonce: string;
+  deadline: string;
+  typedData: Record<string, unknown>;
+};
+
+export type StudentRedeemResponse = {
+  walletAddress: string;
+  amount: number;
+  transactionHash: string;
+  status: string;
+};

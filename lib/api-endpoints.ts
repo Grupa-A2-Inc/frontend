@@ -194,5 +194,7 @@ export const ENDPOINTS = {
     mintCycle: (cycleId: string) => `/api/v1/rewards/cycles/${cycleId}/mint`,
     studentRewards: (studentId: string) => `/api/v1/rewards/students/${studentId}`,
     myWallet: "/api/v1/rewards/students/me/wallet",
+    myRedeemQuote: "/api/v1/rewards/students/me/redeem-quote",
+    redeemAll: "/api/v1/rewards/students/me/redeem-all",
   },
 } as const;
