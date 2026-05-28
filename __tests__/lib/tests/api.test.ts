@@ -183,6 +183,8 @@ import {
   apiGetTestResult,
   apiGetStudentProgress,
   apiGetTestAnalytics,
+  apiGetTestFailureRate,
+  apiSetTestAlertThreshold,
   apiGetTestsForCourse,
   apiGetMyAttempts,
 } from '@/lib/tests/api'
@@ -279,6 +281,47 @@ describe('apiGetTestAnalytics', () => {
     }))
     const result = await apiGetTestAnalytics('t1')
     expect(result.classAverage).toBe(75)
+  })
+})
+
+describe('apiGetTestFailureRate', () => {
+  it('returns failure rate data', async () => {
+    mockFetch.mockResolvedValueOnce(okRes({
+      failureRate: 60,
+      threshold: 50,
+      alertTriggered: true,
+    }))
+
+    const result = await apiGetTestFailureRate('t1')
+
+    expect(result.failureRate).toBe(60)
+    expect(result.threshold).toBe(50)
+    expect(result.alertTriggered).toBe(true)
+  })
+})
+
+describe('apiSetTestAlertThreshold', () => {
+  it('posts threshold and returns alert data', async () => {
+    mockFetch.mockResolvedValueOnce(okRes({
+      alertId: 'a1',
+      testId: 't1',
+      professorId: 'p1',
+      failureThreshold: 45,
+      currentFailureRate: 60,
+      isActive: true,
+    }))
+
+    const result = await apiSetTestAlertThreshold('t1', 45)
+
+    expect(result.failureThreshold).toBe(45)
+    expect(mockFetch).toHaveBeenCalledWith(
+      expect.stringContaining('/api/v1/tests/t1/analytics/alerts'),
+      undefined,
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ failureThreshold: 45 }),
+      })
+    )
   })
 })
 

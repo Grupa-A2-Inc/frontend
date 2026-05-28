@@ -1,10 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertCircle, BarChart3, Loader2, Target, TrendingDown, Trophy } from "lucide-react";
+import {
+  AlertCircle,
+  BarChart3,
+  BellRing,
+  Loader2,
+  Save,
+  Target,
+  TrendingDown,
+  Trophy,
+} from "lucide-react";
 
-import { apiGetTestAnalytics } from "@/lib/tests/api";
-import { TestAnalytics as TestAnalyticsData } from "@/lib/tests/types";
+import {
+  apiGetTestAnalytics,
+  apiGetTestFailureRate,
+  apiSetTestAlertThreshold,
+} from "@/lib/tests/api";
+import {
+  TestAnalytics as TestAnalyticsData,
+  TestFailureRate,
+} from "@/lib/tests/types";
 
 type Props = {
   testId: string;
@@ -36,8 +52,13 @@ function MetricCard({
 
 export default function TestAnalytics({ testId }: Props) {
   const [analytics, setAnalytics] = useState<TestAnalyticsData | null>(null);
+  const [failureRate, setFailureRate] = useState<TestFailureRate | null>(null);
+  const [thresholdInput, setThresholdInput] = useState("50");
   const [loading, setLoading] = useState(true);
+  const [savingThreshold, setSavingThreshold] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [thresholdError, setThresholdError] = useState<string | null>(null);
+  const [thresholdSuccess, setThresholdSuccess] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -46,8 +67,23 @@ export default function TestAnalytics({ testId }: Props) {
       try {
         setLoading(true);
         setError(null);
+        setThresholdError(null);
+        setThresholdSuccess(null);
+
         const data = await apiGetTestAnalytics(testId);
-        if (active) setAnalytics(data);
+        if (!active) return;
+        setAnalytics(data);
+
+        try {
+          const rateData = await apiGetTestFailureRate(testId);
+          if (!active) return;
+          setFailureRate(rateData);
+          setThresholdInput(String(Math.round(rateData.threshold)));
+        } catch {
+          if (active) {
+            setThresholdError("Could not load alert threshold.");
+          }
+        }
       } catch (err) {
         if (active) {
           setError(err instanceof Error ? err.message : "Failed to load test analytics.");
@@ -62,6 +98,36 @@ export default function TestAnalytics({ testId }: Props) {
       active = false;
     };
   }, [testId]);
+
+  async function handleThresholdSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const nextThreshold = Number(thresholdInput);
+    if (!Number.isFinite(nextThreshold) || nextThreshold < 0 || nextThreshold > 100) {
+      setThresholdError("Threshold must be between 0 and 100.");
+      setThresholdSuccess(null);
+      return;
+    }
+
+    try {
+      setSavingThreshold(true);
+      setThresholdError(null);
+      setThresholdSuccess(null);
+
+      const savedAlert = await apiSetTestAlertThreshold(testId, nextThreshold);
+      setFailureRate({
+        failureRate: savedAlert.currentFailureRate,
+        threshold: savedAlert.failureThreshold,
+        alertTriggered: savedAlert.currentFailureRate >= savedAlert.failureThreshold,
+      });
+      setThresholdInput(String(Math.round(savedAlert.failureThreshold)));
+      setThresholdSuccess("Alert threshold saved.");
+    } catch (err) {
+      setThresholdError(err instanceof Error ? err.message : "Failed to save threshold.");
+    } finally {
+      setSavingThreshold(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -130,6 +196,91 @@ export default function TestAnalytics({ testId }: Props) {
         <MetricCard label="Best score" value={formatPercent(analytics.bestScore)} icon={<Trophy className="h-4 w-4" />} />
         <MetricCard label="Worst score" value={formatPercent(analytics.worstScore)} icon={<TrendingDown className="h-4 w-4" />} />
       </div>
+
+      <section className="rounded-xl border border-brand-border bg-brand-card p-5 shadow-sm">
+        <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex items-start gap-3">
+            <div className="rounded-xl bg-brand-primary/10 p-3 text-brand-primary">
+              <BellRing className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-brand-text">Failure alert threshold</h3>
+              <p className="mt-1 text-sm text-brand-muted">
+                Set when this test should appear as triggered in teacher alerts.
+              </p>
+            </div>
+          </div>
+
+          <span
+            className={`w-fit rounded-full px-2.5 py-1 text-xs font-semibold ${
+              failureRate?.alertTriggered
+                ? "bg-red-500/10 text-red-400"
+                : "bg-emerald-500/10 text-emerald-400"
+            }`}
+          >
+            {failureRate?.alertTriggered ? "Triggered" : "Within threshold"}
+          </span>
+        </div>
+
+        <div className="mb-5 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-lg border border-brand-border bg-brand-bg p-4">
+            <p className="text-xs uppercase tracking-wide text-brand-muted">Current failure rate</p>
+            <p className="mt-1 text-xl font-bold text-brand-text">
+              {formatPercent(failureRate?.failureRate ?? analytics.failureRate)}
+            </p>
+          </div>
+          <div className="rounded-lg border border-brand-border bg-brand-bg p-4">
+            <p className="text-xs uppercase tracking-wide text-brand-muted">Saved threshold</p>
+            <p className="mt-1 text-xl font-bold text-brand-text">
+              {formatPercent(failureRate?.threshold ?? Number(thresholdInput))}
+            </p>
+          </div>
+        </div>
+
+        <form
+          className="flex flex-col gap-3 sm:flex-row sm:items-end"
+          onSubmit={handleThresholdSubmit}
+          noValidate
+        >
+          <label className="flex-1">
+            <span className="mb-1 block text-sm font-medium text-brand-text">
+              Failure threshold (%)
+            </span>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              step="1"
+              value={thresholdInput}
+              onChange={(event) => {
+                setThresholdInput(event.target.value);
+                setThresholdSuccess(null);
+              }}
+              className="w-full rounded-lg border border-brand-border bg-brand-bg px-3 py-2 text-sm text-brand-text outline-none transition focus:border-brand-primary"
+            />
+          </label>
+
+          <button
+            type="submit"
+            disabled={savingThreshold}
+            className="inline-flex items-center justify-center gap-2 rounded-lg bg-brand-primary px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-primary/90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {savingThreshold ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            {savingThreshold ? "Saving..." : "Save threshold"}
+          </button>
+        </form>
+
+        {thresholdError && (
+          <p className="mt-3 text-sm text-red-300" role="alert">
+            {thresholdError}
+          </p>
+        )}
+        {thresholdSuccess && (
+          <p className="mt-3 text-sm text-emerald-300" role="status">
+            {thresholdSuccess}
+          </p>
+        )}
+      </section>
 
       <div className="rounded-xl border border-brand-border bg-brand-card p-5 shadow-sm">
         <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-brand-muted">

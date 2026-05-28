@@ -9,9 +9,11 @@ import {
   SubmitTestPayload,
   TakeTestSession,
   TestAnalytics,
+  TestAnalyticsAlert,
   DEFAULT_TEST_TIME_LIMIT_SEC,
   TestEditPayload,
   TestEntity,
+  TestFailureRate,
   TestOption,
   TestQuestion,
   TestResult,
@@ -47,6 +49,21 @@ type ClassAverageDto = {
   minScore?: number;
   maxScore?: number;
   failureRate?: number;
+};
+
+type FailureRateDto = {
+  failureRate?: number;
+  threshold?: number;
+  alertTriggered?: boolean;
+};
+
+type AlertDto = {
+  alertId?: string;
+  testId?: string;
+  professorId?: string;
+  failureThreshold?: number;
+  currentFailureRate?: number;
+  isActive?: boolean;
 };
 
 async function apiFetch<T>(path: string, options?: ApiOptions): Promise<T> {
@@ -113,6 +130,25 @@ function normalizeTestAnalytics(data: ClassAverageDto): TestAnalytics {
     worstScore: asNumber(data.minScore),
     passedCount,
     failedCount,
+  };
+}
+
+function normalizeFailureRate(data: FailureRateDto): TestFailureRate {
+  return {
+    failureRate: asNumber(data.failureRate),
+    threshold: asNumber(data.threshold),
+    alertTriggered: Boolean(data.alertTriggered),
+  };
+}
+
+function normalizeAnalyticsAlert(data: AlertDto): TestAnalyticsAlert {
+  return {
+    alertId: data.alertId ?? "",
+    testId: data.testId ?? "",
+    professorId: data.professorId ?? "",
+    failureThreshold: asNumber(data.failureThreshold),
+    currentFailureRate: asNumber(data.currentFailureRate),
+    isActive: Boolean(data.isActive),
   };
 }
 
@@ -529,6 +565,23 @@ export async function apiGetStudentProgress(courseId: string): Promise<StudentPr
 export async function apiGetTestAnalytics(testId: string): Promise<TestAnalytics> {
   const data = await apiFetch<ClassAverageDto>(ENDPOINTS.tests.analyticsClassAverage(testId));
   return normalizeTestAnalytics(data);
+}
+
+export async function apiGetTestFailureRate(testId: string): Promise<TestFailureRate> {
+  const data = await apiFetch<FailureRateDto>(ENDPOINTS.tests.analyticsFailureRate(testId));
+  return normalizeFailureRate(data);
+}
+
+export async function apiSetTestAlertThreshold(
+  testId: string,
+  failureThreshold: number
+): Promise<TestAnalyticsAlert> {
+  const data = await apiFetch<AlertDto>(ENDPOINTS.tests.analyticsAlerts(testId), {
+    method: "POST",
+    body: JSON.stringify({ failureThreshold }),
+  });
+
+  return normalizeAnalyticsAlert(data);
 }
 
 export async function apiGetTestsForCourse(courseId: string): Promise<unknown[]> {

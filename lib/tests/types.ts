@@ -124,6 +124,21 @@ export interface TestAnalytics {
   failedCount: number;
 }
 
+export interface TestFailureRate {
+  failureRate: number;
+  threshold: number;
+  alertTriggered: boolean;
+}
+
+export interface TestAnalyticsAlert {
+  alertId: string;
+  testId: string;
+  professorId: string;
+  failureThreshold: number;
+  currentFailureRate: number;
+  isActive: boolean;
+}
+
 export interface LessonProgress {
   lessonId: string;
   title: string;

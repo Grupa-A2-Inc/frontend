@@ -16,18 +16,33 @@ import {
 } from "lucide-react";
 import { fetchStudentCourseStats } from "@/store/slices/analyticsSlice";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
+import { fetchCourseDetails } from "@/store/slices/coursesSlice";
+import {
+  countCourseTests,
+  resolveStudentTestTotals,
+  type CourseTestSource,
+} from "@/lib/analytics/courseStats";
 import type { AttemptDetails, DifficultyLesson } from "@/lib/analytics/types";
 
 export default function StudentStatsPage({ params }: { params: Promise<{ courseId: string }> }) {
   const { courseId } = use(params);
   const dispatch = useAppDispatch();
   const { studentStats, loading } = useAppSelector((state) => state.analytics);
+  const token = useAppSelector((state) => state.auth.accessToken);
+  const currentCourse = useAppSelector((state) => state.courses.currentCourse);
 
   useEffect(() => {
     if (courseId) {
       dispatch(fetchStudentCourseStats(courseId));
     }
   }, [courseId, dispatch]);
+
+  useEffect(() => {
+    if (!courseId || !token) return;
+    if (currentCourse?.id === courseId) return;
+
+    dispatch(fetchCourseDetails({ token, courseId }));
+  }, [courseId, currentCourse, dispatch, token]);
 
   if (loading) {
     return (
@@ -46,6 +61,12 @@ export default function StudentStatsPage({ params }: { params: Promise<{ courseI
         </div>
      );
   }
+
+  const actualTestCount =
+    currentCourse?.id === courseId
+      ? countCourseTests(currentCourse as CourseTestSource)
+      : undefined;
+  const testTotals = resolveStudentTestTotals(studentStats, actualTestCount);
 
   return (
     <div className="max-w-5xl mx-auto p-6 lg:p-8 space-y-12">
@@ -86,8 +107,8 @@ export default function StudentStatsPage({ params }: { params: Promise<{ courseI
         <StatCard 
           icon={<Activity className="text-emerald-600" />} 
           label="Tests Done" 
-          value={studentStats.totalTestDone ?? 0}
-          suffix={`/ ${studentStats.totalTestCount ?? 0}`}
+          value={testTotals.done}
+          suffix={`/ ${testTotals.total}`}
         />
       </div>
 
@@ -95,7 +116,7 @@ export default function StudentStatsPage({ params }: { params: Promise<{ courseI
         <StatCard
           icon={<CheckCircle2 className="text-emerald-600" />}
           label="Tests Passed"
-          value={studentStats.totalTestPassed ?? 0}
+          value={testTotals.passed}
           suffix="passed"
         />
         <StatCard
