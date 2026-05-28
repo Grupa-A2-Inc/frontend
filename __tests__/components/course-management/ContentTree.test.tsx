@@ -74,4 +74,23 @@ describe('course-management ContentTree', () => {
     fireEvent.click(screen.getByText('Chapter One'))
     expect(await screen.findByText('L1')).toBeInTheDocument()
   })
+
+  it('shows analytics link for existing tests', async () => {
+    const chaptersWithTest = [{
+      ...chapters[0],
+      lessons: [{ id: 'l1', title: 'L1', contentMarkdown: '', orderIndex: 0, lessonResources: [], testId: 'tst1' }],
+    }]
+    mockFetchCourse.mockResolvedValue({ course: { id: 'c1', title: '', description: '', category: '', status: 'PUBLISHED', visibility: 'PUBLIC' }, chapters: chaptersWithTest })
+    mockFetchTests.mockResolvedValue([{ id: 'tst1', title: 'Test', lessonId: 'l1', status: 'PUBLISHED', aiEnabled: false, createdAt: '2024-01-01' }])
+    render(<ContentTree courseId="c1" />)
+
+    await screen.findByText('Chapter One')
+    fireEvent.click(screen.getByText('Chapter One'))
+
+    const analyticsLink = await screen.findByText('Analytics')
+    expect(analyticsLink.closest('a')).toHaveAttribute(
+      'href',
+      '/dashboard/teacher/courses/c1/tests/tst1/analytics'
+    )
+  })
 })

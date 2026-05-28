@@ -229,13 +229,6 @@ export default function LessonTestBuilderPage({ params }: Props) {
         </div>
       </div>
 
-      {readOnly && (
-        <div className="mb-6 rounded-xl border border-yellow-500/30 bg-yellow-500/10 p-4 text-sm text-yellow-200">
-          Published tests are read-only because the backend currently allows question edits only in DRAFT.
-          A reopen or unpublish endpoint is needed before this test can be edited again.
-        </div>
-      )}
-
       {isVideoOnlyLesson && !readOnly && (
         <div className="mb-6 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-200">
           Tests cannot be generated from video content. Add text content if you want to use AI test generation for this lesson.

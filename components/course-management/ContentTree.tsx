@@ -10,6 +10,7 @@ import {
     Loader2, Video, Paperclip,
     Eye,
     Pencil,
+    BarChart3,
 } from "lucide-react";
 
 import { fetchCourseFullView, fetchTestsForLessons } from "@/lib/courses/api";
@@ -191,19 +192,28 @@ export default function ContentTree({ courseId }: { courseId: string }) {
                                             </div>
 
                                             {/* TEST */}
-                                            <div className="mt-2 ml-6">
+                                            <div className="mt-2 ml-6 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                                                 {test ? (
-                                                    <Link 
-                                                        href={`/dashboard/teacher/courses/${courseId}/lessons/${lesson.id}/test-builder`}
-                                                        className="flex items-center gap-2 text-sm text-brand-muted hover:text-brand-text transition"
-                                                    >
-                                                        {test.status === "PUBLISHED" ? (
-                                                            <Eye className="h-4 w-4 text-green-500" />
-                                                        ) : (
-                                                            <Pencil className="h-4 w-4 text-brand-primary" />
-                                                        )}
-                                                        {test.status === "PUBLISHED" ? "View published test" : "Edit draft"}: {test.title}
-                                                    </Link>
+                                                    <>
+                                                        <Link
+                                                            href={`/dashboard/teacher/courses/${courseId}/lessons/${lesson.id}/test-builder`}
+                                                            className="flex items-center gap-2 text-sm text-brand-muted hover:text-brand-text transition"
+                                                        >
+                                                            {test.status === "PUBLISHED" ? (
+                                                                <Eye className="h-4 w-4 text-green-500" />
+                                                            ) : (
+                                                                <Pencil className="h-4 w-4 text-brand-primary" />
+                                                            )}
+                                                            {test.status === "PUBLISHED" ? "View published test" : "Edit draft"}: {test.title}
+                                                        </Link>
+                                                        <Link
+                                                            href={`/dashboard/teacher/courses/${courseId}/tests/${test.id}/analytics`}
+                                                            className="flex items-center gap-2 text-sm text-brand-primary hover:underline"
+                                                        >
+                                                            <BarChart3 className="h-4 w-4" />
+                                                            Analytics
+                                                        </Link>
+                                                    </>
                                                 ) : (
                                                     <Link
                                                         href={`/dashboard/teacher/courses/${courseId}/lessons/${lesson.id}/test-builder`}
