@@ -1,4 +1,6 @@
 import {
+  AdaptiveJobResponse,
+  AdaptiveJobStatusResponse,
   AdaptiveStartRequest,
   AdaptiveStartResponse,
   AdaptiveSubmitRequest,
@@ -35,6 +37,10 @@ type AdaptiveStartApiResponse = Omit<AdaptiveStartResponse, "exercises"> & {
   exercises?: AdaptiveExerciseResponse[];
 };
 
+type AdaptiveJobStatusApiResponse = Omit<AdaptiveJobStatusResponse, "session"> & {
+  session?: AdaptiveStartApiResponse | null;
+};
+
 function normalizeExerciseType(type: string | undefined): ExerciseType {
   if (type === "MULTIPLE_CHOICE" || type === "MULTI_CHOICE") {
     return "MULTI_CHOICE";
@@ -45,15 +51,9 @@ function normalizeExerciseType(type: string | undefined): ExerciseType {
   return "SINGLE_CHOICE";
 }
 
-export async function startAdaptiveSession(
-  token: string,
-  req: AdaptiveStartRequest
-): Promise<AdaptiveStartResponse> {
-  const response = await apiFetch<AdaptiveStartApiResponse>(ENDPOINTS.adaptive.start, token, {
-    method: "POST",
-    body: JSON.stringify(req),
-  });
-
+function normalizeAdaptiveStartResponse(
+  response: AdaptiveStartApiResponse,
+): AdaptiveStartResponse {
   return {
     ...response,
     exercises: (response.exercises ?? []).map((exercise) => ({
@@ -61,6 +61,60 @@ export async function startAdaptiveSession(
       type: normalizeExerciseType(exercise.type),
     })),
   };
+}
+
+function normalizeAdaptiveJobStatusResponse(
+  response: AdaptiveJobStatusApiResponse,
+): AdaptiveJobStatusResponse {
+  return {
+    ...response,
+    session: response.session ? normalizeAdaptiveStartResponse(response.session) : null,
+  };
+}
+
+async function pollAdaptiveJobStatus(
+  token: string,
+  jobId: string,
+  intervalMs = 4000,
+): Promise<AdaptiveJobStatusResponse> {
+  while (true) {
+    const response = await apiFetch<AdaptiveJobStatusApiResponse>(
+      ENDPOINTS.adaptive.jobStatus(jobId),
+      token,
+    );
+    const normalized = normalizeAdaptiveJobStatusResponse(response);
+
+    if (normalized.status === "DONE" || normalized.status === "FAILED") {
+      return normalized;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+}
+
+export async function startAdaptiveSession(
+  token: string,
+  req: AdaptiveStartRequest
+): Promise<AdaptiveStartResponse> {
+  const job = await apiFetch<AdaptiveJobResponse>(ENDPOINTS.adaptive.jobs, token, {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+
+  if (job.status === "FAILED") {
+    throw new Error("Adaptive session generation failed. Please try again.");
+  }
+
+  const status = await pollAdaptiveJobStatus(token, job.jobId);
+  if (status.status === "FAILED") {
+    throw new Error(status.error ?? "Adaptive session generation failed. Please try again.");
+  }
+
+  if (!status.session) {
+    throw new Error("Adaptive session generation finished without session data.");
+  }
+
+  return status.session;
 }
 
 export async function submitAdaptiveSession(

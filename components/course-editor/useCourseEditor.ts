@@ -205,7 +205,7 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
           ? (await createChapter(courseId, addForm.title.trim())).id
           : tempId();
         if (mode === "edit") {
-          await updateChapter(id, { orderIndex: chapters.length });
+          await updateChapter(id, { orderIndex: toBackendOrderIndex(chapters.length) });
         }
         const chapter: EditorChapter = {
           id,
@@ -224,9 +224,6 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
               ...(addForm.contentMarkdown ? { contentMarkdown: addForm.contentMarkdown } : {}),
             })).id
           : tempId();
-        if (mode === "edit") {
-          await updateLesson(id, { orderIndex });
-        }
         const lesson: EditorLesson = {
           id,
           title: addForm.title.trim(),
@@ -339,7 +336,7 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
       if (mode === "edit") {
         await Promise.all(reordered.map((chapter, orderIndex) =>
           chapter.orderIndex !== orderIndex
-            ? updateChapter(chapter.id, { orderIndex })
+            ? updateChapter(chapter.id, { orderIndex: toBackendOrderIndex(orderIndex) })
             : Promise.resolve(),
         ));
       }
@@ -359,7 +356,7 @@ export function useCourseEditor({ mode, courseId }: CourseEditorProps) {
       if (mode === "edit") {
         await Promise.all(reordered.map((lesson, orderIndex) =>
           lesson.orderIndex !== orderIndex
-            ? updateLesson(lesson.id, { orderIndex })
+            ? updateLesson(lesson.id, { orderIndex: toBackendOrderIndex(orderIndex) })
             : Promise.resolve(),
         ));
       }
@@ -489,6 +486,16 @@ function isTemporary(id: string): boolean {
   return id.startsWith("temp_");
 }
 
+function toBackendOrderIndex(orderIndex: number): number {
+  return orderIndex + 1;
+}
+
+function toUiOrderIndex(orderIndex: number | null | undefined, fallback: number): number {
+  return typeof orderIndex === "number" && Number.isFinite(orderIndex) && orderIndex > 0
+    ? orderIndex - 1
+    : fallback;
+}
+
 function selectedChapterId(selected: SelectedRef): string {
   return selected.kind === "chapter" ? selected.id : selected.chapterId;
 }
@@ -508,12 +515,12 @@ function mapCourseStructure(data: CourseFullViewDto): EditorChapter[] {
   return (data.chapters ?? []).map((chapter, chapterIndex) => ({
     id: chapter.id,
     title: chapter.title ?? "",
-    orderIndex: chapter.orderIndex ?? chapterIndex,
+    orderIndex: toUiOrderIndex(chapter.orderIndex, chapterIndex),
     lessons: (chapter.lessons ?? []).map((lesson, lessonIndex) => ({
       id: lesson.id,
       title: lesson.title ?? "",
       contentMarkdown: lesson.contentMarkdown ?? "",
-      orderIndex: lesson.orderIndex ?? lessonIndex,
+      orderIndex: toUiOrderIndex(lesson.orderIndex, lessonIndex),
       testId: lesson.testId ?? undefined,
       resources: (lesson.lessonResources ?? []).map(resource => ({
         id: resource.id,
@@ -534,13 +541,13 @@ function toCreatePayload(
       .sort((left, right) => left.orderIndex - right.orderIndex)
       .map((chapter, chapterIndex) => ({
         title: chapter.title.trim(),
-        orderIndex: chapterIndex,
+        orderIndex: toBackendOrderIndex(chapterIndex),
         lessons: [...chapter.lessons]
           .sort((left, right) => left.orderIndex - right.orderIndex)
           .map((lesson, lessonIndex) => ({
             title: lesson.title.trim(),
             contentMarkdown: lesson.contentMarkdown,
-            orderIndex: lessonIndex,
+            orderIndex: toBackendOrderIndex(lessonIndex),
             lessonResources: lesson.resources.map(resource => ({
               title: resource.title.trim(),
               url: resource.url.trim(),
