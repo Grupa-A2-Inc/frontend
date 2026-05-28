@@ -323,7 +323,7 @@ export default function ProfilePage() {
   const avatarLetter = displayName.charAt(0).toUpperCase();
 
   return (
-    <div className="w-full max-w-4xl space-y-6 px-4 py-8 md:px-6 md:py-10">
+    <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-8 md:px-6 md:py-10">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-brand-text md:text-3xl">My Profile</h1>
